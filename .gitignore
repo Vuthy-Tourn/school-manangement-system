@@ -19,6 +19,7 @@ bld/
 .vs/
 .idea/
 .dotnet/
+.dotnet_home/
 .local/
 Library/
 *.suo

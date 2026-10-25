@@ -82,12 +82,23 @@ public partial class StudentsViewModel : BaseViewModel
             IsBusy = false;
         }
     }
+
+    [RelayCommand]
+    private async Task EditStudentAsync(StudentDto student)
+    {
+        if (student == null) return;
+        await Shell.Current.Navigation.PushAsync(new Views.StudentFormPage(new StudentFormViewModel(_apiService, student)));
+    }
 }
 
 // 2. Student Form ViewModel
 public partial class StudentFormViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
+    private readonly StudentDto? _originalStudent;
+
+    public bool IsEditMode => _originalStudent != null;
+    public bool IsAddMode => !IsEditMode;
 
     [ObservableProperty] private string _admissionNumber = string.Empty;
     [ObservableProperty] private string _firstName = string.Empty;
@@ -104,11 +115,32 @@ public partial class StudentFormViewModel : BaseViewModel
     [ObservableProperty] private string _username = string.Empty;
     [ObservableProperty] private string _password = string.Empty;
 
-    public StudentFormViewModel(IApiService apiService)
+    public StudentFormViewModel(IApiService apiService, StudentDto? student = null)
     {
         _apiService = apiService;
-        Title = "Add New Student";
-        AdmissionNumber = $"ADM-2026-{Random.Shared.Next(1000, 9999)}";
+        _originalStudent = student;
+
+        if (student != null)
+        {
+            Title = $"Edit Student: {student.FullName}";
+            AdmissionNumber = student.AdmissionNumber;
+            FirstName = student.FirstName;
+            LastName = student.LastName;
+            DateOfBirth = student.DateOfBirth;
+            Gender = student.Gender;
+            BloodGroup = student.BloodGroup ?? "O+";
+            Email = student.Email ?? string.Empty;
+            PhoneNumber = student.PhoneNumber ?? string.Empty;
+            Address = student.Address ?? string.Empty;
+            EmergencyContactName = student.EmergencyContactName ?? string.Empty;
+            EmergencyContactPhone = student.EmergencyContactPhone ?? string.Empty;
+            EmergencyContactRelationship = student.EmergencyContactRelationship ?? "Parent";
+        }
+        else
+        {
+            Title = "Add New Student";
+            AdmissionNumber = $"ADM-2026-{Random.Shared.Next(1000, 9999)}";
+        }
     }
 
     [RelayCommand]
@@ -125,21 +157,43 @@ public partial class StudentFormViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
 
-            var req = new CreateStudentRequest(
-                AdmissionNumber, FirstName, LastName, DateOfBirth, Gender, BloodGroup,
-                DateTime.UtcNow, Email, PhoneNumber, Address, null, null,
-                EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship,
-                Username, Password);
-
-            var res = await _apiService.CreateStudentAsync(req);
-            if (res.Success)
+            if (IsEditMode && _originalStudent != null)
             {
-                await Shell.Current.DisplayAlert("Success", "Student registered successfully!", "OK");
-                await Shell.Current.GoToAsync("..");
+                var req = new UpdateStudentRequest(
+                    FirstName, LastName, DateOfBirth, Gender, BloodGroup,
+                    _originalStudent.Status, Email, PhoneNumber, Address,
+                    _originalStudent.ProfilePhotoUrl, _originalStudent.CurrentClassSectionId,
+                    EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship);
+
+                var res = await _apiService.UpdateStudentAsync(_originalStudent.Id, req);
+                if (res.Success)
+                {
+                    await Shell.Current.DisplayAlert("Success", "Student details updated successfully!", "OK");
+                    await PopPageAsync();
+                }
+                else
+                {
+                    SetError(res.Message);
+                }
             }
             else
             {
-                SetError(res.Message);
+                var req = new CreateStudentRequest(
+                    AdmissionNumber, FirstName, LastName, DateOfBirth, Gender, BloodGroup,
+                    DateTime.UtcNow, Email, PhoneNumber, Address, null, null,
+                    EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship,
+                    Username, Password);
+
+                var res = await _apiService.CreateStudentAsync(req);
+                if (res.Success)
+                {
+                    await Shell.Current.DisplayAlert("Success", "Student registered successfully!", "OK");
+                    await PopPageAsync();
+                }
+                else
+                {
+                    SetError(res.Message);
+                }
             }
         }
         catch (Exception ex)
@@ -149,6 +203,18 @@ public partial class StudentFormViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private static async Task PopPageAsync()
+    {
+        if (Shell.Current?.Navigation != null && Shell.Current.Navigation.NavigationStack.Count > 1)
+        {
+            await Shell.Current.Navigation.PopAsync();
+        }
+        else
+        {
+            await Shell.Current!.GoToAsync("..");
         }
     }
 }
@@ -791,12 +857,49 @@ public partial class ProfileViewModel : BaseViewModel
     [ObservableProperty] private UserProfileDto? _profile;
     [ObservableProperty] private string _appVersion = "1.0.0 (Build 2026)";
     [ObservableProperty] private string _selectedLanguage = "English (US)";
+    [ObservableProperty] private string _serverUrl = string.Empty;
+    [ObservableProperty] private string _connectionStatus = "Ready to test";
+    [ObservableProperty] private bool _isConnected;
 
     public ProfileViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Profile & Settings";
         Profile = _apiService.CurrentUser;
+        ServerUrl = _apiService.BaseUrl;
+    }
+
+    [RelayCommand]
+    private async Task TestConnectionAsync()
+    {
+        if (IsBusy) return;
+        try
+        {
+            IsBusy = true;
+            _apiService.BaseUrl = ServerUrl;
+            Preferences.Default.Set("api_base_url", ServerUrl);
+
+            var res = await _apiService.CheckConnectionAsync();
+            IsConnected = res.Success;
+            ConnectionStatus = res.Success
+                ? "Live Connected (PostgreSQL Backend)"
+                : "Unreachable (Running in Local Mode)";
+
+            await Shell.Current.DisplayAlert(
+                res.Success ? "Connected" : "Notice",
+                res.Message ?? (res.Success ? "Connected to backend successfully!" : "Could not reach backend."),
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            IsConnected = false;
+            ConnectionStatus = $"Error: {ex.Message}";
+            await Shell.Current.DisplayAlert("Connection Error", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]

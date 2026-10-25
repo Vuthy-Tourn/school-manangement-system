@@ -74,8 +74,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="students" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="👥" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_students.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Students" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Directory &amp; Enrollment" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -90,8 +90,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="attendance" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="📋" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_attendance.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Attendance" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Daily Tracking" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -106,8 +106,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="grades" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="📊" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_grades.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Grades" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Exams &amp; Scoring" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -122,8 +122,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="fees" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="💳" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_fees.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Tuition &amp; Fees" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Invoices &amp; ABA Pay" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -138,8 +138,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="timetables" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="🗓" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_timetable.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Timetable" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Weekly Schedule" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -154,8 +154,8 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="announcements" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                                <Label Text="📢" FontSize="20" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Image Source="icon_announcements.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
                                 <Label Text="Updates" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
                                 <Label Text="Campus Notices" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
@@ -180,7 +180,7 @@
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="TOTAL STUDENTS" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
-                                    <Label Grid.Column="1" Text="🎓" FontSize="14" />
+                                    <Image Grid.Column="1" Source="icon_students.png" WidthRequest="18" HeightRequest="18" />
                                 </Grid>
                                 <Label Text="{Binding Stats.TotalStudents}" FontSize="28" FontAttributes="Bold" TextColor="{StaticResource Secondary}" />
                                 <Label Text="Enrolled Active Students" FontSize="11" TextColor="{StaticResource TextSecondary}" />
@@ -196,7 +196,7 @@
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="FACULTY STAFF" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
-                                    <Label Grid.Column="1" Text="👨‍🏫" FontSize="14" />
+                                    <Image Grid.Column="1" Source="icon_faculty.png" WidthRequest="18" HeightRequest="18" />
                                 </Grid>
                                 <Label Text="{Binding Stats.TotalTeachers}" FontSize="28" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
                                 <Label Text="Teaching Faculty" FontSize="11" TextColor="{StaticResource TextSecondary}" />
@@ -212,7 +212,7 @@
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="ACTIVE SECTIONS" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
-                                    <Label Grid.Column="1" Text="🏫" FontSize="14" />
+                                    <Image Grid.Column="1" Source="icon_classes.png" WidthRequest="18" HeightRequest="18" />
                                 </Grid>
                                 <Label Text="{Binding Stats.TotalClasses}" FontSize="28" FontAttributes="Bold" TextColor="{StaticResource Accent}" />
                                 <Label Text="Grade 10 Classrooms" FontSize="11" TextColor="{StaticResource TextSecondary}" />
@@ -228,7 +228,7 @@
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="DAILY ATTENDANCE" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
-                                    <Label Grid.Column="1" Text="✅" FontSize="14" />
+                                    <Image Grid.Column="1" Source="icon_check.png" WidthRequest="18" HeightRequest="18" />
                                 </Grid>
                                 <Label Text="{Binding Stats.TodayAttendancePercentage, StringFormat='{0:F1}%'}" FontSize="28" FontAttributes="Bold" TextColor="{StaticResource Success}" />
                                 <Label Text="Attendance Recorded Today" FontSize="11" TextColor="{StaticResource TextSecondary}" />

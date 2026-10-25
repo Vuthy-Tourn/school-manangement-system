@@ -45,7 +45,7 @@
                     Padding="20,18">
                 <VerticalStackLayout Spacing="16">
                     <HorizontalStackLayout Spacing="8">
-                        <Label Text="📋" FontSize="16" />
+                        <Image Source="icon_attendance.png" WidthRequest="18" HeightRequest="18" />
                         <Label Text="Academic Identification"
                                FontSize="14"
                                FontAttributes="Bold"
@@ -82,7 +82,7 @@
                     Padding="20,18">
                 <VerticalStackLayout Spacing="16">
                     <HorizontalStackLayout Spacing="8">
-                        <Label Text="👤" FontSize="16" />
+                        <Image Source="icon_profile.png" WidthRequest="18" HeightRequest="18" />
                         <Label Text="Personal Profile"
                                FontSize="14"
                                FontAttributes="Bold"
@@ -209,7 +209,7 @@
                     Padding="20,18">
                 <VerticalStackLayout Spacing="16">
                     <HorizontalStackLayout Spacing="8">
-                        <Label Text="📞" FontSize="16" />
+                        <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" />
                         <Label Text="Contact &amp; Emergency Details"
                                FontSize="14"
                                FontAttributes="Bold"

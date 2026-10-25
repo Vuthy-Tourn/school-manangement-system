@@ -20,13 +20,14 @@
 
                     <!-- Profile Avatar Circle -->
                     <Border StrokeShape="RoundRectangle 36"
-                            BackgroundColor="{StaticResource Primary}"
+                            BackgroundColor="{StaticResource PrimaryLight}"
                             Stroke="{StaticResource PrimaryBorder}"
                             StrokeThickness="1"
                             HeightRequest="72" WidthRequest="72"
                             HorizontalOptions="Center">
-                        <Label Text="👤"
-                               FontSize="30"
+                        <Image Source="icon_profile.png"
+                               WidthRequest="36"
+                               HeightRequest="36"
                                HorizontalOptions="Center"
                                VerticalOptions="Center" />
                     </Border>
@@ -90,6 +91,61 @@
                         <Label Text="Timezone:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
                         <Label Grid.Column="1" Text="Asia/Phnom_Penh (UTC+07:00)" FontSize="12" TextColor="{StaticResource TextPrimary}" />
                     </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 3. Backend & Database Connectivity -->
+            <Border StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,16">
+                <VerticalStackLayout Spacing="14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="API Server &amp; Database Connection"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SecondaryLight}"
+                                Stroke="{StaticResource SecondaryBorder}"
+                                StrokeThickness="1"
+                                Padding="8,2">
+                            <Label Text="{Binding ConnectionStatus}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource SecondaryDark}" />
+                        </Border>
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Server Endpoint URL" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,2"
+                                HeightRequest="44">
+                            <Entry Text="{Binding ServerUrl}"
+                                   Placeholder="http://localhost:5180/"
+                                   PlaceholderColor="{StaticResource TextSubtle}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Button Text="Test Backend Connection"
+                            Command="{Binding TestConnectionCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="{StaticResource Secondary}"
+                            TextColor="{StaticResource White}"
+                            FontAttributes="Bold"
+                            FontSize="12"
+                            HeightRequest="40"
+                            CornerRadius="8" />
                 </VerticalStackLayout>
             </Border>
 

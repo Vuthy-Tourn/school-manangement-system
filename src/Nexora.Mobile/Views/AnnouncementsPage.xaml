@@ -18,7 +18,7 @@
                         Margin="0,20"
                         HorizontalOptions="Center">
                     <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                        <Label Text="📢" FontSize="36" HorizontalOptions="Center" />
+                        <Image Source="icon_announcements.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
                         <Label Text="No Active Announcements"
                                FontSize="15"
                                FontAttributes="Bold"
