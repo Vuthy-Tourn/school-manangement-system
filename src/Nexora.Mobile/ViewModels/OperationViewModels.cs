@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nexora.Application.DTOs;
@@ -457,6 +458,8 @@ public partial class AttendanceViewModel : BaseViewModel
 // 6. Grades & Report Cards ViewModel
 public partial class GradeEntryItemViewModel : ObservableObject
 {
+    private readonly Action<GradeEntryItemViewModel>? _onScoreChanged;
+
     public Guid StudentId { get; set; }
     public string StudentName { get; set; } = string.Empty;
     public string AdmissionNumber { get; set; } = string.Empty;
@@ -465,7 +468,99 @@ public partial class GradeEntryItemViewModel : ObservableObject
     private decimal _scoreObtained;
 
     [ObservableProperty]
+    private string _scoreText = string.Empty;
+
+    [ObservableProperty]
+    private string _gradeLetter = "A";
+
+    [ObservableProperty]
+    private Color _gradeBadgeColor = Color.FromArgb("#15803D");
+
+    [ObservableProperty]
+    private Color _gradeBadgeBg = Color.FromArgb("#DCFCE7");
+
+    [ObservableProperty]
     private string? _remarks;
+
+    [ObservableProperty]
+    private bool _isSaved = true;
+
+    public GradeEntryItemViewModel(Action<GradeEntryItemViewModel>? onScoreChanged = null)
+    {
+        _onScoreChanged = onScoreChanged;
+    }
+
+    public void SetScore(decimal score)
+    {
+        ScoreObtained = score;
+        ScoreText = score.ToString("0.#", CultureInfo.InvariantCulture);
+        RecalculateGrade(score);
+        IsSaved = true;
+    }
+
+    partial void OnScoreTextChanged(string value)
+    {
+        if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+        {
+            if (parsed > 100) parsed = 100;
+            if (parsed < 0) parsed = 0;
+            ScoreObtained = parsed;
+            RecalculateGrade(parsed);
+            IsSaved = false;
+            _onScoreChanged?.Invoke(this);
+        }
+    }
+
+    public void RecalculateGrade(decimal score)
+    {
+        if (score >= 85)
+        {
+            GradeLetter = "A";
+            GradeBadgeColor = Color.FromArgb("#15803D");
+            GradeBadgeBg = Color.FromArgb("#DCFCE7");
+        }
+        else if (score >= 75)
+        {
+            GradeLetter = "B";
+            GradeBadgeColor = Color.FromArgb("#1D4ED8");
+            GradeBadgeBg = Color.FromArgb("#DBEAFE");
+        }
+        else if (score >= 65)
+        {
+            GradeLetter = "C";
+            GradeBadgeColor = Color.FromArgb("#B45309");
+            GradeBadgeBg = Color.FromArgb("#FEF3C7");
+        }
+        else if (score >= 50)
+        {
+            GradeLetter = "D";
+            GradeBadgeColor = Color.FromArgb("#C2410C");
+            GradeBadgeBg = Color.FromArgb("#FFEDD5");
+        }
+        else
+        {
+            GradeLetter = "F";
+            GradeBadgeColor = Color.FromArgb("#B91C1C");
+            GradeBadgeBg = Color.FromArgb("#FEE2E2");
+        }
+    }
+}
+
+public partial class SubjectChipViewModel : ObservableObject
+{
+    public AssessmentComponentDto Component { get; set; } = null!;
+    public string SubjectName => Component.SubjectName;
+    public string ComponentName => Component.Name;
+    public string DisplayTitle => string.IsNullOrWhiteSpace(SubjectName) ? ComponentName : SubjectName;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public SubjectChipViewModel(AssessmentComponentDto component, bool isSelected = false)
+    {
+        Component = component;
+        _isSelected = isSelected;
+    }
 }
 
 public partial class GradesViewModel : BaseViewModel
@@ -478,10 +573,16 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private ObservableCollection<AssessmentComponentDto> _components = new();
     [ObservableProperty] private AssessmentComponentDto? _selectedComponent;
+    [ObservableProperty] private ObservableCollection<SubjectChipViewModel> _subjectChips = new();
     [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _studentGrades = new();
+    [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _filteredGrades = new();
+    [ObservableProperty] private string _searchText = string.Empty;
+    [ObservableProperty] private string _activeSubjectHeader = "Khmer Literature";
+    [ObservableProperty] private string _classSummary = "4 Students Enrolled";
+    [ObservableProperty] private bool _hasUnsavedChanges = false;
     [ObservableProperty] private ReportCardDto? _currentReportCard;
-    [ObservableProperty] private bool _canEditGrades = false; // FAIL-SAFE: Deny editing by default
-    [ObservableProperty] private bool _isReadOnlyGrades = true; // FAIL-SAFE: Read-only by default
+    [ObservableProperty] private bool _canEditGrades = false;
+    [ObservableProperty] private bool _isReadOnlyGrades = true;
     [ObservableProperty] private bool _isStudentView = false;
     [ObservableProperty] private string _portalTitle = "Exams & Grading";
 
@@ -554,8 +655,17 @@ public partial class GradesViewModel : BaseViewModel
             {
                 Components = new ObservableCollection<AssessmentComponentDto>(res.Data);
                 SelectedComponent = Components.FirstOrDefault();
+
+                var chips = new List<SubjectChipViewModel>();
+                foreach (var c in Components)
+                {
+                    chips.Add(new SubjectChipViewModel(c, c.Id == SelectedComponent?.Id));
+                }
+                SubjectChips = new ObservableCollection<SubjectChipViewModel>(chips);
+
                 if (SelectedComponent != null)
                 {
+                    ActiveSubjectHeader = string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName;
                     await LoadGradesAsync();
                 }
             }
@@ -564,6 +674,18 @@ public partial class GradesViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    public async Task SelectSubjectChipAsync(SubjectChipViewModel chip)
+    {
+        if (chip == null) return;
+        foreach (var c in SubjectChips)
+            c.IsSelected = c.Component.Id == chip.Component.Id;
+
+        SelectedComponent = chip.Component;
+        ActiveSubjectHeader = chip.DisplayTitle;
+        await LoadGradesAsync();
     }
 
     [RelayCommand]
@@ -597,15 +719,83 @@ public partial class GradesViewModel : BaseViewModel
                     data = match.Count > 0 ? match : data.Take(1).ToList();
                 }
 
-                var items = data.Select(g => new GradeEntryItemViewModel
+                var items = new List<GradeEntryItemViewModel>();
+                foreach (var g in data)
                 {
-                    StudentId = g.StudentId,
-                    StudentName = g.StudentName,
-                    AdmissionNumber = g.AdmissionNumber,
-                    ScoreObtained = g.ScoreObtained,
-                    Remarks = g.Remarks
-                });
+                    var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
+                    {
+                        StudentId = g.StudentId,
+                        StudentName = g.StudentName,
+                        AdmissionNumber = g.AdmissionNumber,
+                        Remarks = g.Remarks
+                    };
+                    vm.SetScore(g.ScoreObtained);
+                    items.Add(vm);
+                }
+
                 StudentGrades = new ObservableCollection<GradeEntryItemViewModel>(items);
+                ApplySearchFilter();
+                UpdateSummary();
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredGrades = new ObservableCollection<GradeEntryItemViewModel>(StudentGrades);
+        }
+        else
+        {
+            var term = SearchText.Trim();
+            var matches = StudentGrades.Where(s =>
+                s.StudentName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.AdmissionNumber.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
+            FilteredGrades = new ObservableCollection<GradeEntryItemViewModel>(matches);
+        }
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplySearchFilter();
+    }
+
+    private void UpdateSummary()
+    {
+        if (StudentGrades.Count == 0)
+        {
+            ClassSummary = "No students enrolled";
+            HasUnsavedChanges = false;
+            return;
+        }
+        var avg = StudentGrades.Average(s => s.ScoreObtained);
+        var unsavedCount = StudentGrades.Count(s => !s.IsSaved);
+        HasUnsavedChanges = unsavedCount > 0;
+        ClassSummary = $"{StudentGrades.Count} Students • Avg: {avg:F1} • {(HasUnsavedChanges ? $"{unsavedCount} Unsaved" : "All Saved")}";
+    }
+
+    [RelayCommand]
+    public async Task SaveSingleGradeAsync(GradeEntryItemViewModel item)
+    {
+        if (item == null || SelectedComponent == null) return;
+        try
+        {
+            IsBusy = true;
+            var res = await _apiService.RecordSingleGradeAsync(SelectedComponent.Id, item.StudentId, item.ScoreObtained, item.Remarks);
+            if (res.Success)
+            {
+                item.IsSaved = true;
+                UpdateSummary();
+                await Shell.Current.DisplayAlert("Score Saved", $"{item.StudentName}'s grade recorded as {item.ScoreObtained}.", "OK");
+            }
+            else
+            {
+                SetError(res.Message);
             }
         }
         finally
@@ -638,7 +828,11 @@ public partial class GradesViewModel : BaseViewModel
             var res = await _apiService.RecordBatchGradesAsync(req);
             if (res.Success)
             {
-                await Shell.Current.DisplayAlert("Success", "Grades saved successfully!", "OK");
+                foreach (var s in StudentGrades)
+                    s.IsSaved = true;
+
+                UpdateSummary();
+                await Shell.Current.DisplayAlert("Grades Saved", $"All grades for {ActiveSubjectHeader} have been successfully recorded!", "OK");
             }
             else
             {
@@ -830,18 +1024,58 @@ public partial class FeesViewModel : BaseViewModel
     }
 }
 
+public partial class DayChipViewModel : ObservableObject
+{
+    public DayOfWeek Day { get; }
+    public string Name { get; }
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public DayChipViewModel(DayOfWeek day, string name, bool isSelected = false)
+    {
+        Day = day;
+        Name = name;
+        _isSelected = isSelected;
+    }
+}
+
 // 8. Timetables ViewModel
 public partial class TimetablesViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
+    private List<TimetableEntryDto> _cachedClassEntries = new();
 
+    [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
+    [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private DayOfWeek _selectedDay = DayOfWeek.Monday;
+    [ObservableProperty] private ObservableCollection<DayChipViewModel> _days = new();
     [ObservableProperty] private ObservableCollection<TimetableEntryDto> _scheduleSlots = new();
 
     public TimetablesViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Class Timetable";
+
+        var today = DateTime.Today.DayOfWeek;
+        _selectedDay = (today >= DayOfWeek.Monday && today <= DayOfWeek.Friday) ? today : DayOfWeek.Monday;
+
+        _days = new ObservableCollection<DayChipViewModel>
+        {
+            new(DayOfWeek.Monday, "Monday", _selectedDay == DayOfWeek.Monday),
+            new(DayOfWeek.Tuesday, "Tuesday", _selectedDay == DayOfWeek.Tuesday),
+            new(DayOfWeek.Wednesday, "Wednesday", _selectedDay == DayOfWeek.Wednesday),
+            new(DayOfWeek.Thursday, "Thursday", _selectedDay == DayOfWeek.Thursday),
+            new(DayOfWeek.Friday, "Friday", _selectedDay == DayOfWeek.Friday)
+        };
+    }
+
+    partial void OnSelectedClassChanged(ClassSectionDto? value)
+    {
+        if (value != null)
+        {
+            _ = FetchClassTimetableAsync(value.Id);
+        }
     }
 
     [RelayCommand]
@@ -853,16 +1087,20 @@ public partial class TimetablesViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
 
-            var classes = await _apiService.GetClassesAsync();
-            var firstClass = classes.Data?.FirstOrDefault();
-            if (firstClass != null)
+            if (Classes.Count == 0)
             {
-                var res = await _apiService.GetClassTimetableAsync(firstClass.Id);
-                if (res.Success && res.Data != null)
+                var classesRes = await _apiService.GetClassesAsync();
+                if (classesRes.Success && classesRes.Data != null && classesRes.Data.Count > 0)
                 {
-                    var filtered = res.Data.Where(s => s.DayOfWeek == SelectedDay).ToList();
-                    ScheduleSlots = new ObservableCollection<TimetableEntryDto>(filtered);
+                    Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
+                    SelectedClass = Classes.FirstOrDefault();
+                    return;
                 }
+            }
+
+            if (SelectedClass != null)
+            {
+                await FetchClassTimetableAsync(SelectedClass.Id);
             }
         }
         catch (Exception ex)
@@ -875,14 +1113,47 @@ public partial class TimetablesViewModel : BaseViewModel
         }
     }
 
-    [RelayCommand]
-    public async Task SelectDayAsync(string dayStr)
+    private async Task FetchClassTimetableAsync(Guid classId)
     {
-        if (Enum.TryParse<DayOfWeek>(dayStr, out var day))
+        try
         {
-            SelectedDay = day;
-            await LoadTimetableAsync();
+            IsBusy = true;
+            var res = await _apiService.GetClassTimetableAsync(classId);
+            if (res.Success && res.Data != null)
+            {
+                _cachedClassEntries = res.Data;
+            }
+            FilterSlotsForDay();
         }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public void SelectDay(DayChipViewModel chip)
+    {
+        if (chip == null) return;
+        SelectedDay = chip.Day;
+        foreach (var d in Days)
+        {
+            d.IsSelected = (d.Day == chip.Day);
+        }
+        FilterSlotsForDay();
+    }
+
+    private void FilterSlotsForDay()
+    {
+        var filtered = _cachedClassEntries
+            .Where(s => s.DayOfWeek == SelectedDay)
+            .OrderBy(s => s.StartTime)
+            .ToList();
+        ScheduleSlots = new ObservableCollection<TimetableEntryDto>(filtered);
     }
 }
 

@@ -54,6 +54,7 @@ public interface IApiService
     Task<ApiResponse<List<AssessmentComponentDto>>> GetAssessmentComponentsAsync(Guid examId, Guid classId);
     Task<ApiResponse<List<StudentGradeDto>>> GetComponentGradesAsync(Guid componentId);
     Task<ApiResponse<bool>> RecordBatchGradesAsync(BatchGradeEntryRequest request);
+    Task<ApiResponse<bool>> RecordSingleGradeAsync(Guid componentId, Guid studentId, decimal score, string? remarks = null);
     Task<ApiResponse<ReportCardDto>> GetStudentReportCardAsync(Guid studentId, Guid examId);
 
     Task<ApiResponse<List<InvoiceDto>>> GetInvoicesAsync(Guid? studentId = null, InvoiceStatus? status = null);
@@ -395,7 +396,16 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<TeacherDashboardStatsDto>>("api/dashboards/teacher", JsonOptions);
-            if (res?.Data != null) return res;
+            if (res?.Data != null)
+            {
+                var data = res.Data;
+                // If today is weekend or has no classes, provide Monday's classes or mock schedule for display
+                if (data.TodaySchedule == null || data.TodaySchedule.Count == 0)
+                {
+                    data = data with { TodaySchedule = _mockSchedule };
+                }
+                return ApiResponse<TeacherDashboardStatsDto>.Ok(data);
+            }
         }
         catch (Exception ex)
         {
@@ -404,7 +414,7 @@ public class ApiService : IApiService
 
         return ApiResponse<TeacherDashboardStatsDto>.Ok(new TeacherDashboardStatsDto(
             AssignedClassesCount: _mockClasses.Count,
-            AssignedSubjectsCount: 2,
+            AssignedSubjectsCount: 8,
             TotalStudentsTaught: _mockStudents.Count,
             TodaySchedule: _mockSchedule,
             ClassesList: _mockClasses
@@ -424,12 +434,22 @@ public class ApiService : IApiService
         }
 
         var mockStudent = _mockStudents.First();
+        var studentAttendance = _mockAttendance.Where(a => a.StudentId == mockStudent.Id).ToList();
+        decimal attendancePct = studentAttendance.Count > 0
+            ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
+                           studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
+            : 100.0m;
+
+        var today = DateTime.Today.DayOfWeek;
+        var dayToUse = (today >= DayOfWeek.Monday && today <= DayOfWeek.Friday) ? today : DayOfWeek.Monday;
+        var todaySchedule = _mockSchedule.Where(s => s.DayOfWeek == dayToUse && s.ClassName == "10-A").OrderBy(s => s.StartTime).ToList();
+
         return ApiResponse<StudentDashboardStatsDto>.Ok(new StudentDashboardStatsDto(
             Student: mockStudent,
-            OverallAttendancePercentage: 95.0m,
+            OverallAttendancePercentage: attendancePct,
             CurrentGpa: 3.85m,
             PendingFees: 230.0m,
-            TodaySchedule: _mockSchedule,
+            TodaySchedule: todaySchedule,
             Announcements: _mockAnnouncements
         ));
     }
@@ -447,18 +467,32 @@ public class ApiService : IApiService
             LogException("GetParentDashboardAsync", ex);
         }
 
-        var mockStudent = _mockStudents.First();
-        var children = new List<LinkedStudentDto>
-        {
-            new(mockStudent.Id, mockStudent.FullName, mockStudent.AdmissionNumber, mockStudent.CurrentClassName, "Child", true)
-        };
+        var targetStudent = (childId.HasValue ? _mockStudents.FirstOrDefault(s => s.Id == childId.Value) : null) ?? _mockStudents.First();
+        var studentAttendance = _mockAttendance.Where(a => a.StudentId == targetStudent.Id).ToList();
+        decimal attendancePct = studentAttendance.Count > 0
+            ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
+                           studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
+            : 100.0m;
+
+        var children = _mockStudents.Take(2).Select(s => new LinkedStudentDto(
+            s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName, "Child", s.Id == targetStudent.Id
+        )).ToList();
+
+        // Distinct subject grades for the selected child to avoid duplicates
+        var childGrades = _mockGrades
+            .Where(g => g.StudentId == targetStudent.Id)
+            .GroupBy(g => g.SubjectName)
+            .Select(g => g.First())
+            .Take(6)
+            .ToList();
+
         return ApiResponse<ParentDashboardStatsDto>.Ok(new ParentDashboardStatsDto(
             children,
-            mockStudent.Id,
-            mockStudent,
-            95.0m,
+            targetStudent.Id,
+            targetStudent,
+            attendancePct,
             230.0m,
-            _mockGrades
+            childGrades
         ));
     }
 
@@ -733,7 +767,18 @@ public class ApiService : IApiService
             LogException("GetClassTimetableAsync", ex);
         }
 
-        return ApiResponse<List<TimetableEntryDto>>.Ok(_mockSchedule);
+        var list = _mockSchedule.Where(s => s.ClassSectionId == classId).ToList();
+        if (list.Count == 0)
+        {
+            var firstClass = _mockClasses.FirstOrDefault(c => c.Id == classId);
+            var className = firstClass?.Name ?? "10-A";
+            list = _mockSchedule.Where(s => s.ClassName == className).ToList();
+            if (list.Count == 0)
+            {
+                list = _mockSchedule.Where(s => s.ClassName == "10-A").ToList();
+            }
+        }
+        return ApiResponse<List<TimetableEntryDto>>.Ok(list);
     }
 
     public async Task<ApiResponse<List<TimetableEntryDto>>> GetTeacherTimetableAsync(Guid teacherId)
@@ -748,7 +793,8 @@ public class ApiService : IApiService
             LogException("GetTeacherTimetableAsync", ex);
         }
 
-        return ApiResponse<List<TimetableEntryDto>>.Ok(_mockSchedule);
+        var list = _mockSchedule.Where(s => s.TeacherId == teacherId).ToList();
+        return ApiResponse<List<TimetableEntryDto>>.Ok(list.Count > 0 ? list : _mockSchedule);
     }
 
     public async Task<ApiResponse<List<TimetableEntryDto>>> GetStudentTimetableAsync(Guid studentId)
@@ -763,7 +809,10 @@ public class ApiService : IApiService
             LogException("GetStudentTimetableAsync", ex);
         }
 
-        return ApiResponse<List<TimetableEntryDto>>.Ok(_mockSchedule);
+        var student = _mockStudents.FirstOrDefault(s => s.Id == studentId);
+        var className = student?.CurrentClassName ?? "10-A";
+        var list = _mockSchedule.Where(s => s.ClassName == className).ToList();
+        return ApiResponse<List<TimetableEntryDto>>.Ok(list.Count > 0 ? list : _mockSchedule);
     }
 
     public async Task<ApiResponse<TimetableEntryDto>> CreateTimetableEntryAsync(CreateTimetableEntryRequest request)
@@ -944,24 +993,22 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>($"api/grades/exams/{examId}/components?classSectionId={classId}", JsonOptions);
-            if (res?.Data != null) return res;
+            if (res?.Data != null && res.Data.Count > 0) return res;
         }
         catch (Exception ex)
         {
             LogException("GetAssessmentComponentsAsync", ex);
         }
 
-        return ApiResponse<List<AssessmentComponentDto>>.Ok(new List<AssessmentComponentDto>
-        {
-            new(Guid.NewGuid(), examId, "Midterm Exam", Guid.NewGuid(), "Mathematics", classId, "10-A", "Written Exam", 100m, 40m)
-        });
+        var list = _mockComponents.Where(c => classId == Guid.Empty || c.ClassSectionId == classId).ToList();
+        return ApiResponse<List<AssessmentComponentDto>>.Ok(list.Count > 0 ? list : _mockComponents);
     }
 
     public async Task<ApiResponse<List<StudentGradeDto>>> GetComponentGradesAsync(Guid componentId)
     {
         try
         {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<StudentGradeDto>>>($"api/grades/components/{componentId}", JsonOptions);
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<StudentGradeDto>>>($"api/grades/components/{componentId}/grades", JsonOptions);
             if (res?.Data != null && res.Data.Count > 0) return res;
         }
         catch (Exception ex)
@@ -972,17 +1019,31 @@ public class ApiService : IApiService
         var list = _mockGrades.Where(g => g.AssessmentComponentId == componentId).ToList();
         if (list.Count == 0)
         {
+            var comp = _mockComponents.FirstOrDefault(c => c.Id == componentId);
+            var compName = comp?.Name ?? "Midterm Exam";
+            var subjId = comp?.SubjectId ?? Guid.NewGuid();
+            var subjName = comp?.SubjectName ?? "Mathematics";
+
             foreach (var s in _mockStudents.Where(x => x.Status == StudentStatus.Active))
             {
                 var g = new StudentGradeDto(
-                    Guid.NewGuid(), Guid.NewGuid(), "Midterm Exam", componentId, "Mathematics",
-                    s.Id, s.FullName, s.AdmissionNumber, 88m, 100m, 88m, "A", 4.0m, "Very Good"
+                    Guid.NewGuid(), componentId, compName, subjId, subjName,
+                    s.Id, s.FullName, s.AdmissionNumber, 85m, 100m, 85m, "A", 4.0m, "Good performance"
                 );
                 list.Add(g);
                 _mockGrades.Add(g);
             }
         }
         return ApiResponse<List<StudentGradeDto>>.Ok(list);
+    }
+
+    public async Task<ApiResponse<bool>> RecordSingleGradeAsync(Guid componentId, Guid studentId, decimal score, string? remarks = null)
+    {
+        var request = new BatchGradeEntryRequest(
+            componentId,
+            new List<StudentGradeItem> { new(studentId, score, remarks) }
+        );
+        return await RecordBatchGradesAsync(request);
     }
 
     public async Task<ApiResponse<bool>> RecordBatchGradesAsync(BatchGradeEntryRequest request)
@@ -1000,6 +1061,11 @@ public class ApiService : IApiService
         {
             LogException("RecordBatchGradesAsync", ex);
         }
+
+        var comp = _mockComponents.FirstOrDefault(c => c.Id == request.AssessmentComponentId);
+        var compName = comp?.Name ?? "Midterm Exam";
+        var subjId = comp?.SubjectId ?? Guid.NewGuid();
+        var subjName = comp?.SubjectName ?? "Mathematics";
 
         foreach (var entry in request.Grades)
         {
@@ -1024,7 +1090,7 @@ public class ApiService : IApiService
                 _ => 0.0m
             };
             _mockGrades.Add(new StudentGradeDto(
-                Guid.NewGuid(), Guid.NewGuid(), "Midterm Exam", request.AssessmentComponentId, "Mathematics",
+                Guid.NewGuid(), request.AssessmentComponentId, compName, subjId, subjName,
                 entry.StudentId, name, adm, entry.ScoreObtained, 100m, entry.ScoreObtained,
                 gradeLetter, gpa, entry.Remarks
             ));
@@ -1260,6 +1326,7 @@ public class ApiService : IApiService
     private static readonly List<TeacherDto> _mockTeachers = InitializeMockTeachers();
     private static readonly List<ClassSectionDto> _mockClasses = InitializeMockClasses();
     private static readonly List<SubjectDto> _mockSubjects = InitializeMockSubjects();
+    private static readonly List<AssessmentComponentDto> _mockComponents = InitializeMockComponents();
     private static readonly List<TimetableEntryDto> _mockSchedule = InitializeMockSchedule();
     private static readonly List<AttendanceRecordDto> _mockAttendance = InitializeMockAttendance();
     private static readonly List<StudentGradeDto> _mockGrades = InitializeMockGrades();
@@ -1267,85 +1334,249 @@ public class ApiService : IApiService
     private static readonly List<AnnouncementDto> _mockAnnouncements = InitializeMockAnnouncements();
     private static readonly List<AuditLogDto> _mockAudits = InitializeMockAuditLogs();
 
+    private static readonly Guid Class10AId = Guid.Parse("a0000000-0000-0000-0000-000000000001");
+    private static readonly Guid Class10BId = Guid.Parse("a0000000-0000-0000-0000-000000000002");
+    private static readonly Guid ExamMidtermId = Guid.Parse("b0000000-0000-0000-0000-000000000001");
+
+    private static readonly Guid SubjKhmerId = Guid.Parse("10000000-0000-0000-0000-000000000001");
+    private static readonly Guid SubjMathId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+    private static readonly Guid SubjPhysicsId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+    private static readonly Guid SubjChemistryId = Guid.Parse("10000000-0000-0000-0000-000000000004");
+    private static readonly Guid SubjEnglishId = Guid.Parse("10000000-0000-0000-0000-000000000005");
+    private static readonly Guid SubjBiologyId = Guid.Parse("10000000-0000-0000-0000-000000000006");
+    private static readonly Guid SubjHistoryId = Guid.Parse("10000000-0000-0000-0000-000000000007");
+    private static readonly Guid SubjIctId = Guid.Parse("10000000-0000-0000-0000-000000000008");
+
+    private static readonly Guid TeacherSokhaId = Guid.Parse("c0000000-0000-0000-0000-000000000001");
+    private static readonly Guid TeacherDaraId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private static readonly Guid TeacherChendaId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+    private static readonly Guid TeacherRathanaId = Guid.Parse("c0000000-0000-0000-0000-000000000004");
+    private static readonly Guid TeacherJohnId = Guid.Parse("c0000000-0000-0000-0000-000000000005");
+    private static readonly Guid TeacherKolabId = Guid.Parse("c0000000-0000-0000-0000-000000000006");
+    private static readonly Guid TeacherSophalId = Guid.Parse("c0000000-0000-0000-0000-000000000007");
+    private static readonly Guid TeacherSamnangId = Guid.Parse("c0000000-0000-0000-0000-000000000008");
+
+    private static readonly Guid CompKhmerId = Guid.Parse("d0000000-0000-0000-0000-000000000001");
+    private static readonly Guid CompMathId = Guid.Parse("d0000000-0000-0000-0000-000000000002");
+    private static readonly Guid CompPhysicsId = Guid.Parse("d0000000-0000-0000-0000-000000000003");
+    private static readonly Guid CompChemistryId = Guid.Parse("d0000000-0000-0000-0000-000000000004");
+    private static readonly Guid CompEnglishId = Guid.Parse("d0000000-0000-0000-0000-000000000005");
+    private static readonly Guid CompBiologyId = Guid.Parse("d0000000-0000-0000-0000-000000000006");
+    private static readonly Guid CompHistoryId = Guid.Parse("d0000000-0000-0000-0000-000000000007");
+    private static readonly Guid CompIctId = Guid.Parse("d0000000-0000-0000-0000-000000000008");
+
+    private static readonly Guid StudentVisalId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+    private static readonly Guid StudentKanhaId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    private static readonly Guid StudentDaraId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+    private static readonly Guid StudentBophaId = Guid.Parse("22222222-3333-4444-5555-666666666666");
+
     private static List<StudentDto> InitializeMockStudents() => new()
     {
-        new(Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), Guid.NewGuid(), "ADM-2026-0001", "Visal", "Chan", "Visal Chan",
+        new(StudentVisalId, Guid.NewGuid(), "ADM-2026-0001", "Visal", "Chan", "Visal Chan",
             new DateTime(2010, 5, 14), "Male", "O+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "visal.chan@student.angkoracademy.edu.kh", "+855 98 123 456", "Preah Sihanouk Blvd, Phnom Penh", null,
-            Guid.NewGuid(), "10-A", "Keo Bopha", "+855 92 112 233", "Mother"),
-        new(Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff"), Guid.NewGuid(), "ADM-2026-0002", "Kanha", "Sok", "Kanha Sok",
+            Class10AId, "10-A", "Keo Bopha", "+855 92 112 233", "Mother"),
+        new(StudentKanhaId, Guid.NewGuid(), "ADM-2026-0002", "Kanha", "Sok", "Kanha Sok",
             new DateTime(2010, 8, 22), "Female", "A+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "kanha.sok@student.angkoracademy.edu.kh", "+855 98 654 321", "Norodom Blvd, Phnom Penh", null,
-            Guid.NewGuid(), "10-A", "Sok Vichea", "+855 97 554 332", "Father"),
-        new(Guid.Parse("11111111-2222-3333-4444-555555555555"), Guid.NewGuid(), "ADM-2026-0003", "Dara", "Meng", "Dara Meng",
+            Class10AId, "10-A", "Sok Vichea", "+855 97 554 332", "Father"),
+        new(StudentDaraId, Guid.NewGuid(), "ADM-2026-0003", "Dara", "Meng", "Dara Meng",
             new DateTime(2010, 2, 10), "Male", "B+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "dara.meng@student.angkoracademy.edu.kh", "+855 98 333 444", "Toul Kork, Phnom Penh", null,
-            Guid.NewGuid(), "10-A", "Meng Chhay", "+855 12 999 888", "Father"),
-        new(Guid.Parse("22222222-3333-4444-5555-666666666666"), Guid.NewGuid(), "ADM-2026-0004", "Bopha", "Keo", "Bopha Keo",
+            Class10AId, "10-A", "Meng Chhay", "+855 12 999 888", "Father"),
+        new(StudentBophaId, Guid.NewGuid(), "ADM-2026-0004", "Bopha", "Keo", "Bopha Keo",
             new DateTime(2010, 11, 5), "Female", "AB+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "bopha.keo@student.angkoracademy.edu.kh", "+855 98 777 888", "Chamkarmon, Phnom Penh", null,
-            Guid.NewGuid(), "10-A", "Keo Sarath", "+855 12 777 666", "Father")
+            Class10AId, "10-A", "Keo Sarath", "+855 12 777 666", "Father")
     };
 
     private static List<TeacherDto> InitializeMockTeachers() => new()
     {
-        new(Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"), Guid.NewGuid(), "EMP-00101", "Dara", "Sok", "Dara Sok",
+        new(TeacherDaraId, Guid.NewGuid(), "EMP-00101", "Dara", "Sok", "Dara Sok",
             "dara.sok@angkoracademy.edu.kh", "+855 12 345 678", new DateTime(2021, 9, 1), "Master of Mathematics Education",
             "Advanced Mathematics", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Guid.NewGuid(), "10-A", Guid.NewGuid(), "Mathematics", "MATH101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101")
             }),
-        new(Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"), Guid.NewGuid(), "EMP-00102", "Chenda", "Chan", "Chenda Chan",
+        new(TeacherChendaId, Guid.NewGuid(), "EMP-00102", "Chenda", "Chan", "Chenda Chan",
             "chenda.chan@angkoracademy.edu.kh", "+855 12 456 789", new DateTime(2022, 10, 1), "Bachelor of Science in Physics",
             "Applied Physics", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Guid.NewGuid(), "10-A", Guid.NewGuid(), "Physics", "PHY101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101")
+            }),
+        new(TeacherSokhaId, Guid.NewGuid(), "EMP-00103", "Sokha", "Mean", "Sokha Mean",
+            "sokha.mean@angkoracademy.edu.kh", "+855 12 567 890", new DateTime(2020, 8, 15), "Master of Khmer Literature",
+            "Classical Literature", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101")
+            }),
+        new(TeacherRathanaId, Guid.NewGuid(), "EMP-00104", "Rathana", "Vong", "Rathana Vong",
+            "rathana.vong@angkoracademy.edu.kh", "+855 12 678 901", new DateTime(2021, 11, 1), "Master of Chemical Sciences",
+            "General Chemistry", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjChemistryId, "Chemistry", "CHM101")
+            }),
+        new(TeacherJohnId, Guid.NewGuid(), "EMP-00105", "John", "Smith", "John Smith",
+            "john.smith@angkoracademy.edu.kh", "+855 12 789 012", new DateTime(2019, 7, 1), "MA in Applied Linguistics",
+            "English Communication", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101")
+            }),
+        new(TeacherKolabId, Guid.NewGuid(), "EMP-00106", "Kolab", "Pich", "Kolab Pich",
+            "kolab.pich@angkoracademy.edu.kh", "+855 12 890 123", new DateTime(2022, 1, 10), "M.Sc in Biological Sciences",
+            "Cellular Biology", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjBiologyId, "Biology", "BIO101")
+            }),
+        new(TeacherSophalId, Guid.NewGuid(), "EMP-00107", "Sophal", "Tep", "Sophal Tep",
+            "sophal.tep@angkoracademy.edu.kh", "+855 12 901 234", new DateTime(2020, 5, 20), "Master of Southeast Asian History",
+            "Cambodian History", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjHistoryId, "History", "HIS101")
+            }),
+        new(TeacherSamnangId, Guid.NewGuid(), "EMP-00108", "Samnang", "Ly", "Samnang Ly",
+            "samnang.ly@angkoracademy.edu.kh", "+855 12 012 345", new DateTime(2023, 2, 1), "B.Sc in Software Engineering",
+            "Computer Science", true, new List<TeacherSubjectAssignmentDto>
+            {
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjIctId, "Computer Science & ICT", "ICT101")
             })
     };
 
     private static List<ClassSectionDto> InitializeMockClasses() => new()
     {
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-A", "Room 201", 35, Guid.NewGuid(), "Dara Sok", 34),
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-B", "Room 202", 35, Guid.NewGuid(), "Chenda Chan", 32)
+        new(Class10AId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-A", "Room 201", 35, TeacherDaraId, "Dara Sok", 34),
+        new(Class10BId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-B", "Room 202", 35, TeacherChendaId, "Chenda Chan", 32)
     };
 
     private static List<SubjectDto> InitializeMockSubjects() => new()
     {
-        new(Guid.NewGuid(), Guid.NewGuid(), "Mathematics", "MATH101", "Algebra & Calculus", 4),
-        new(Guid.NewGuid(), Guid.NewGuid(), "Physics", "PHY101", "Mechanics & Optics", 3),
-        new(Guid.NewGuid(), Guid.NewGuid(), "Khmer Literature", "KHM101", "Classical Khmer Literature", 4),
-        new(Guid.NewGuid(), Guid.NewGuid(), "English Communication", "ENG101", "Academic English", 3)
+        new(SubjKhmerId, Guid.NewGuid(), "Khmer Literature", "KHM101", "Cambodian Classical Literature and Grammar", 4),
+        new(SubjMathId, Guid.NewGuid(), "Mathematics", "MATH101", "Algebra, Geometry & Calculus", 4),
+        new(SubjPhysicsId, Guid.NewGuid(), "Physics", "PHY101", "Mechanics, Optics & Thermodynamics", 3),
+        new(SubjChemistryId, Guid.NewGuid(), "Chemistry", "CHM101", "General, Inorganic & Organic Chemistry", 3),
+        new(SubjEnglishId, Guid.NewGuid(), "English Communication", "ENG101", "Academic English, Writing & Public Speaking", 3),
+        new(SubjBiologyId, Guid.NewGuid(), "Biology", "BIO101", "Cellular Biology, Anatomy & Genetics", 3),
+        new(SubjHistoryId, Guid.NewGuid(), "History", "HIS101", "Cambodian History & World Civilizations", 2),
+        new(SubjIctId, Guid.NewGuid(), "Computer Science & ICT", "ICT101", "Algorithms, Web Design & Applied Computing", 2)
+    };
+
+    private static List<AssessmentComponentDto> InitializeMockComponents() => new()
+    {
+        new(CompKhmerId, ExamMidtermId, "Semester 1 Midterm", SubjKhmerId, "Khmer Literature", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompMathId, ExamMidtermId, "Semester 1 Midterm", SubjMathId, "Mathematics", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompPhysicsId, ExamMidtermId, "Semester 1 Midterm", SubjPhysicsId, "Physics", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompChemistryId, ExamMidtermId, "Semester 1 Midterm", SubjChemistryId, "Chemistry", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompEnglishId, ExamMidtermId, "Semester 1 Midterm", SubjEnglishId, "English Communication", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompBiologyId, ExamMidtermId, "Semester 1 Midterm", SubjBiologyId, "Biology", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompHistoryId, ExamMidtermId, "Semester 1 Midterm", SubjHistoryId, "History", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+        new(CompIctId, ExamMidtermId, "Semester 1 Midterm", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Midterm Exam", 100m, 40m)
     };
 
     private static List<TimetableEntryDto> InitializeMockSchedule() => new()
     {
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "10-A", Guid.NewGuid(), "Mathematics", "MATH101", Guid.NewGuid(), "Dara Sok", DayOfWeek.Monday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 201"),
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "10-A", Guid.NewGuid(), "Physics", "PHY101", Guid.NewGuid(), "Chenda Chan", DayOfWeek.Monday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Physics Lab"),
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "10-A", Guid.NewGuid(), "Khmer Literature", "KHM101", Guid.NewGuid(), "Sokha Mean", DayOfWeek.Tuesday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 201")
+        // === MONDAY (Class 10-A) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101", TeacherDaraId, "Dara Sok", DayOfWeek.Monday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101", TeacherChendaId, "Chenda Chan", DayOfWeek.Monday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Physics Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101", TeacherSokhaId, "Sokha Mean", DayOfWeek.Monday, new TimeSpan(13, 0, 0), new TimeSpan(14, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101", TeacherJohnId, "John Smith", DayOfWeek.Monday, new TimeSpan(15, 0, 0), new TimeSpan(16, 30, 0), "Room 201"),
+
+        // === TUESDAY (Class 10-A) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjChemistryId, "Chemistry", "CHM101", TeacherRathanaId, "Rathana Vong", DayOfWeek.Tuesday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Chemistry Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjBiologyId, "Biology", "BIO101", TeacherKolabId, "Kolab Pich", DayOfWeek.Tuesday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Biology Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101", TeacherDaraId, "Dara Sok", DayOfWeek.Tuesday, new TimeSpan(13, 0, 0), new TimeSpan(14, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjHistoryId, "History", "HIS101", TeacherSophalId, "Sophal Tep", DayOfWeek.Tuesday, new TimeSpan(15, 0, 0), new TimeSpan(16, 30, 0), "Room 201"),
+
+        // === WEDNESDAY (Class 10-A) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjIctId, "Computer Science & ICT", "ICT101", TeacherSamnangId, "Samnang Ly", DayOfWeek.Wednesday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Computer Lab 1"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101", TeacherSokhaId, "Sokha Mean", DayOfWeek.Wednesday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101", TeacherJohnId, "John Smith", DayOfWeek.Wednesday, new TimeSpan(13, 0, 0), new TimeSpan(14, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101", TeacherChendaId, "Chenda Chan", DayOfWeek.Wednesday, new TimeSpan(15, 0, 0), new TimeSpan(16, 30, 0), "Physics Lab"),
+
+        // === THURSDAY (Class 10-A) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101", TeacherDaraId, "Dara Sok", DayOfWeek.Thursday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjChemistryId, "Chemistry", "CHM101", TeacherRathanaId, "Rathana Vong", DayOfWeek.Thursday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Chemistry Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjHistoryId, "History", "HIS101", TeacherSophalId, "Sophal Tep", DayOfWeek.Thursday, new TimeSpan(13, 0, 0), new TimeSpan(14, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjBiologyId, "Biology", "BIO101", TeacherKolabId, "Kolab Pich", DayOfWeek.Thursday, new TimeSpan(15, 0, 0), new TimeSpan(16, 30, 0), "Biology Lab"),
+
+        // === FRIDAY (Class 10-A) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101", TeacherSokhaId, "Sokha Mean", DayOfWeek.Friday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101", TeacherJohnId, "John Smith", DayOfWeek.Friday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Room 201"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjIctId, "Computer Science & ICT", "ICT101", TeacherSamnangId, "Samnang Ly", DayOfWeek.Friday, new TimeSpan(13, 0, 0), new TimeSpan(14, 30, 0), "Computer Lab 1"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101", TeacherChendaId, "Chenda Chan", DayOfWeek.Friday, new TimeSpan(15, 0, 0), new TimeSpan(16, 30, 0), "Physics Lab"),
+
+        // === MONDAY to FRIDAY (Class 10-B Alternate Slots) ===
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjKhmerId, "Khmer Literature", "KHM101", TeacherSokhaId, "Sokha Mean", DayOfWeek.Monday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 202"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjMathId, "Mathematics", "MATH101", TeacherDaraId, "Dara Sok", DayOfWeek.Monday, new TimeSpan(10, 0, 0), new TimeSpan(11, 30, 0), "Room 202"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjPhysicsId, "Physics", "PHY101", TeacherChendaId, "Chenda Chan", DayOfWeek.Tuesday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Physics Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjChemistryId, "Chemistry", "CHM101", TeacherRathanaId, "Rathana Vong", DayOfWeek.Wednesday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Chemistry Lab"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjEnglishId, "English Communication", "ENG101", TeacherJohnId, "John Smith", DayOfWeek.Thursday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Room 202"),
+        new(Guid.NewGuid(), Guid.NewGuid(), Class10BId, "10-B", SubjBiologyId, "Biology", "BIO101", TeacherKolabId, "Kolab Pich", DayOfWeek.Friday, new TimeSpan(8, 0, 0), new TimeSpan(9, 30, 0), "Biology Lab")
     };
 
     private static List<AttendanceRecordDto> InitializeMockAttendance()
     {
-        var date = DateOnly.FromDateTime(DateTime.Today);
-        var classId = Guid.NewGuid();
-        return new List<AttendanceRecordDto>
+        var records = new List<AttendanceRecordDto>();
+        var baseDate = DateOnly.FromDateTime(DateTime.Today);
+
+        // 10 recent attendance days for Visal Chan (100% attendance: 10/10 Present)
+        for (int i = 0; i < 10; i++)
         {
-            new(Guid.NewGuid(), Guid.NewGuid(), classId, "10-A", Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), "Visal Chan", "ADM-2026-0001", date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null),
-            new(Guid.NewGuid(), Guid.NewGuid(), classId, "10-A", Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff"), "Kanha Sok", "ADM-2026-0002", date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null),
-            new(Guid.NewGuid(), Guid.NewGuid(), classId, "10-A", Guid.Parse("11111111-2222-3333-4444-555555555555"), "Dara Meng", "ADM-2026-0003", date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null),
-            new(Guid.NewGuid(), Guid.NewGuid(), classId, "10-A", Guid.Parse("22222222-3333-4444-5555-666666666666"), "Bopha Keo", "ADM-2026-0004", date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null)
-        };
+            var d = baseDate.AddDays(-i);
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVisalId, "Visal Chan", "ADM-2026-0001", d, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null));
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", d, (i == 1 ? AttendanceStatus.Late : AttendanceStatus.Present), (i == 1 ? "Traffic delay" : null), DateTime.UtcNow, "Admin", null, null, null));
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentDaraId, "Dara Meng", "ADM-2026-0003", d, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null));
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentBophaId, "Bopha Keo", "ADM-2026-0004", d, (i == 3 ? AttendanceStatus.Late : AttendanceStatus.Present), null, DateTime.UtcNow, "Admin", null, null, null));
+        }
+
+        return records;
     }
 
     private static List<StudentGradeDto> InitializeMockGrades() => new()
     {
-        new(Guid.NewGuid(), Guid.NewGuid(), "Midterm Exam", Guid.NewGuid(), "Mathematics", Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), "Visal Chan", "ADM-2026-0001", 94.5m, 100m, 94.5m, "A", 4.0m, "Excellent"),
-        new(Guid.NewGuid(), Guid.NewGuid(), "Midterm Exam", Guid.NewGuid(), "Physics", Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), "Visal Chan", "ADM-2026-0001", 88.0m, 100m, 88.0m, "B", 3.0m, "Very Good")
+        // Visal Chan Grades across all subjects
+        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Excellent Khmer composition and rhetoric"),
+        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 95.0m, 100m, 95.0m, "A", 4.0m, "Outstanding algebraic and calculus problem solving"),
+        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Strong communicative fluency and essay analysis"),
+        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 88.0m, 100m, 88.0m, "B", 3.0m, "Very good experimental accuracy and wave physics"),
+        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 86.5m, 100m, 86.5m, "B", 3.0m, "Solid chemical reactions and stoichiometry calculations"),
+        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 90.0m, 100m, 90.0m, "A", 4.0m, "Great understanding of genetics and cellular structures"),
+        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.5m, 100m, 91.5m, "A", 4.0m, "Thorough knowledge of Cambodian and world history"),
+        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 98.0m, 100m, 98.0m, "A", 4.0m, "Exceptional coding logic and software projects"),
+
+        // Kanha Sok Grades
+        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 95.0m, 100m, 95.0m, "A", 4.0m, "Top scores in classical literature analysis"),
+        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 89.0m, 100m, 89.0m, "B", 3.0m, "Very good geometric reasoning"),
+        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 97.0m, 100m, 97.0m, "A", 4.0m, "Distinction in English debates and presentations"),
+        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 84.0m, 100m, 84.0m, "B", 3.0m, "Good lab work and scientific writeup"),
+        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 91.0m, 100m, 91.0m, "A", 4.0m, "Excellent laboratory procedure compliance"),
+        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 88.0m, 100m, 88.0m, "B", 3.0m, "Solid grasp of evolutionary biology"),
+        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 93.0m, 100m, 93.0m, "A", 4.0m, "Active historical analysis and source evaluation"),
+        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 94.0m, 100m, 94.0m, "A", 4.0m, "Well executed interactive website project"),
+
+        // Dara Meng Grades
+        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentDaraId, "Dara Meng", "ADM-2026-0003", 85.0m, 100m, 85.0m, "A", 4.0m, "Strong analysis of Khmer poetry"),
+        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentDaraId, "Dara Meng", "ADM-2026-0003", 91.0m, 100m, 91.0m, "A", 4.0m, "Proficient trigonometric solutions"),
+        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentDaraId, "Dara Meng", "ADM-2026-0003", 86.0m, 100m, 86.0m, "B", 3.0m, "Effective technical presentation"),
+        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentDaraId, "Dara Meng", "ADM-2026-0003", 87.0m, 100m, 87.0m, "B", 3.0m, "Accurate mechanics experiments"),
+        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentDaraId, "Dara Meng", "ADM-2026-0003", 83.0m, 100m, 83.0m, "B", 3.0m, "Competent titration procedures"),
+        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentDaraId, "Dara Meng", "ADM-2026-0003", 89.0m, 100m, 89.0m, "B", 3.0m, "Clear botanical classifications"),
+        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentDaraId, "Dara Meng", "ADM-2026-0003", 88.0m, 100m, 88.0m, "B", 3.0m, "Good contextual historical analysis"),
+        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentDaraId, "Dara Meng", "ADM-2026-0003", 92.0m, 100m, 92.0m, "A", 4.0m, "Solid database schema construction"),
+
+        // Bopha Keo Grades
+        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 88.0m, 100m, 88.0m, "B", 3.0m, "Good critical reflections on folklore"),
+        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 84.0m, 100m, 84.0m, "B", 3.0m, "Solid algebraic expressions"),
+        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 90.0m, 100m, 90.0m, "A", 4.0m, "Expressive conversational fluency"),
+        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 82.0m, 100m, 82.0m, "B", 3.0m, "Good physics coursework"),
+        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 85.5m, 100m, 85.5m, "A", 4.0m, "Strong organic chemistry foundation"),
+        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 92.0m, 100m, 92.0m, "A", 4.0m, "Great physiology dissection work"),
+        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 86.0m, 100m, 86.0m, "B", 3.0m, "Well written historical essays"),
+        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 95.0m, 100m, 95.0m, "A", 4.0m, "Creative responsive web design")
     };
 
     private static List<InvoiceDto> InitializeMockInvoices() => new()
     {
-        new(Guid.NewGuid(), Guid.NewGuid(), Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), "Visal Chan", "ADM-2026-0001", "10-A",
+        new(Guid.NewGuid(), Guid.NewGuid(), StudentVisalId, "Visal Chan", "ADM-2026-0001", "10-A",
             Guid.NewGuid(), "2026-2027", "INV-2026-00001", DateTime.UtcNow.AddDays(-30), DateTime.UtcNow.AddDays(15),
             730.0m, 500.0m, 230.0m, InvoiceStatus.PartiallyPaid, "Semester 1 Fee Package",
             new List<InvoiceItemDto>
@@ -1355,7 +1586,7 @@ public class ApiService : IApiService
             },
             new List<PaymentDto>
             {
-                new(Guid.NewGuid(), Guid.NewGuid(), "INV-2026-00001", Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"), "Visal Chan", "REC-2026-00001", 500m, DateTime.UtcNow.AddDays(-15), PaymentMethod.ABA, "ABA-981245", "Partial payment via ABA", "Admin")
+                new(Guid.NewGuid(), Guid.NewGuid(), "INV-2026-00001", StudentVisalId, "Visal Chan", "REC-2026-00001", 500m, DateTime.UtcNow.AddDays(-15), PaymentMethod.ABA, "ABA-981245", "Partial payment via ABA", "Admin")
             })
     };
 

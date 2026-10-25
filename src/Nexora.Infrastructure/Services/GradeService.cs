@@ -155,38 +155,96 @@ public class GradeService : IGradeService
 
         var scales = await _context.GradeScales.OrderByDescending(s => s.MinPercentage).ToListAsync(ct);
 
-        var grades = await _context.StudentGrades
+        var enrollments = await _context.StudentEnrollments
+            .Where(e => e.ClassSectionId == component.ClassSectionId && e.Status == EnrollmentStatus.Enrolled)
+            .Include(e => e.Student)
+            .OrderBy(e => e.Student!.LastName)
+            .ThenBy(e => e.Student!.FirstName)
+            .ToListAsync(ct);
+
+        var existingGrades = await _context.StudentGrades
             .Where(g => g.AssessmentComponentId == assessmentComponentId)
             .Include(g => g.AssessmentComponent)
                 .ThenInclude(ac => ac!.Subject)
             .Include(g => g.Student)
-            .OrderBy(g => g.Student!.LastName)
-            .ThenBy(g => g.Student!.FirstName)
             .ToListAsync(ct);
 
-        var dtoList = grades.Select(g =>
-        {
-            var maxScore = g.AssessmentComponent?.MaxScore ?? 100m;
-            var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
-            var matchingScale = scales.FirstOrDefault(s => percentage >= s.MinPercentage && percentage <= s.MaxPercentage);
+        var gradeMap = existingGrades.ToDictionary(g => g.StudentId);
+        var maxScore = component.MaxScore > 0 ? component.MaxScore : 100m;
+        var dtoList = new List<StudentGradeDto>();
 
-            return new StudentGradeDto(
-                g.Id,
-                g.AssessmentComponentId,
-                g.AssessmentComponent?.Name ?? string.Empty,
-                g.AssessmentComponent?.SubjectId ?? Guid.Empty,
-                g.AssessmentComponent?.Subject?.Name ?? string.Empty,
-                g.StudentId,
-                g.Student?.FullName ?? string.Empty,
-                g.Student?.AdmissionNumber ?? string.Empty,
-                g.ScoreObtained,
-                maxScore,
-                percentage,
-                matchingScale?.GradeLetter ?? "F",
-                matchingScale?.GradePoint ?? 0.0m,
-                g.Remarks
-            );
-        }).ToList();
+        foreach (var enrollment in enrollments)
+        {
+            var student = enrollment.Student;
+            if (student == null) continue;
+
+            if (gradeMap.TryGetValue(student.Id, out var g))
+            {
+                var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
+                var matchingScale = scales.FirstOrDefault(s => percentage >= s.MinPercentage && percentage <= s.MaxPercentage);
+                dtoList.Add(new StudentGradeDto(
+                    g.Id,
+                    component.Id,
+                    component.Name,
+                    component.SubjectId,
+                    component.Subject?.Name ?? string.Empty,
+                    student.Id,
+                    student.FullName,
+                    student.AdmissionNumber,
+                    g.ScoreObtained,
+                    maxScore,
+                    percentage,
+                    matchingScale?.GradeLetter ?? "F",
+                    matchingScale?.GradePoint ?? 0.0m,
+                    g.Remarks
+                ));
+            }
+            else
+            {
+                dtoList.Add(new StudentGradeDto(
+                    Guid.NewGuid(),
+                    component.Id,
+                    component.Name,
+                    component.SubjectId,
+                    component.Subject?.Name ?? string.Empty,
+                    student.Id,
+                    student.FullName,
+                    student.AdmissionNumber,
+                    0m,
+                    maxScore,
+                    0m,
+                    "F",
+                    0.0m,
+                    null
+                ));
+            }
+        }
+
+        // Fallback to existing grades if no enrollments found
+        if (dtoList.Count == 0 && existingGrades.Count > 0)
+        {
+            dtoList = existingGrades.Select(g =>
+            {
+                var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
+                var matchingScale = scales.FirstOrDefault(s => percentage >= s.MinPercentage && percentage <= s.MaxPercentage);
+                return new StudentGradeDto(
+                    g.Id,
+                    g.AssessmentComponentId,
+                    g.AssessmentComponent?.Name ?? component.Name,
+                    g.AssessmentComponent?.SubjectId ?? component.SubjectId,
+                    g.AssessmentComponent?.Subject?.Name ?? string.Empty,
+                    g.StudentId,
+                    g.Student?.FullName ?? string.Empty,
+                    g.Student?.AdmissionNumber ?? string.Empty,
+                    g.ScoreObtained,
+                    maxScore,
+                    percentage,
+                    matchingScale?.GradeLetter ?? "F",
+                    matchingScale?.GradePoint ?? 0.0m,
+                    g.Remarks
+                );
+            }).ToList();
+        }
 
         return ApiResponse<List<StudentGradeDto>>.Ok(dtoList);
     }

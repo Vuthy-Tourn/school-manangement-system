@@ -140,26 +140,29 @@
                                     <Label Text="{Binding StudentName}"
                                            FontSize="14"
                                            FontAttributes="Bold"
-                                           TextColor="{StaticResource TextPrimary}" />
-                                    <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{Binding AdmissionNumber}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource SecondaryDark}"
-                                               FontAttributes="Bold" />
-                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
-                                        <Label Text="{Binding Status, StringFormat='State: {0}'}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextSecondary}" />
-                                    </HorizontalStackLayout>
+                                           TextColor="{StaticResource TextPrimary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           FontSize="11">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding AdmissionNumber}" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                                                <Span Text=" • " TextColor="{StaticResource TextSubtle}" />
+                                                <Span Text="{Binding Status}" TextColor="{StaticResource TextSecondary}" />
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
                                 </VerticalStackLayout>
 
                                 <!-- Status Selection Chips -->
-                                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                                     <!-- Present -->
                                     <Button Text="P"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Present"
-                                            WidthRequest="36" HeightRequest="36"
+                                            WidthRequest="32" HeightRequest="32"
                                             CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource SuccessLight}"
@@ -171,7 +174,7 @@
                                     <Button Text="L"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Late"
-                                            WidthRequest="36" HeightRequest="36"
+                                            WidthRequest="32" HeightRequest="32"
                                             CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource WarningLight}"
@@ -183,7 +186,7 @@
                                     <Button Text="A"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Absent"
-                                            WidthRequest="36" HeightRequest="36"
+                                            WidthRequest="32" HeightRequest="32"
                                             CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource DangerLight}"
@@ -195,7 +198,7 @@
                                     <Button Text="E"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Excused"
-                                            WidthRequest="36" HeightRequest="36"
+                                            WidthRequest="32" HeightRequest="32"
                                             CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource InfoLight}"

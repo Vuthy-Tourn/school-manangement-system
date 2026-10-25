@@ -175,33 +175,72 @@
                         Stroke="{StaticResource SurfaceBorder}"
                         Padding="18,16">
                     <VerticalStackLayout Spacing="14">
-                        <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                            <Image Source="icon_timetable.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                            <Label Text="Today's Teaching Periods"
-                                   FontSize="15"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   VerticalOptions="Center" />
+                        <!-- Card Header -->
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                    <Image Source="icon_timetable.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                                    <Label Text="{Binding ScheduleHeaderTitle}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding DaySubtitle}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextMuted}" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- Day Filter Chips (Mon - Fri) -->
+                        <HorizontalStackLayout BindableLayout.ItemsSource="{Binding DayChips}"
+                                               Spacing="8"
+                                               HorizontalOptions="Fill">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DayChipViewModel">
+                                    <Button Text="{Binding Name}"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TeacherDashboardViewModel}}, Path=SelectDayCommand}"
+                                            CommandParameter="{Binding .}"
+                                            CornerRadius="8"
+                                            Padding="14,6"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            HeightRequest="34">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                                <Setter Property="TextColor" Value="{StaticResource White}" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="False">
+                                                <Setter Property="BackgroundColor" Value="{StaticResource SurfaceLight}" />
+                                                <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                                <Setter Property="BorderColor" Value="{StaticResource SurfaceBorder}" />
+                                                <Setter Property="BorderWidth" Value="1" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
                         </HorizontalStackLayout>
 
-                        <!-- Schedule Items -->
-                        <CollectionView ItemsSource="{Binding TodaySchedule}" SelectionMode="None">
-                            <CollectionView.EmptyView>
-                                <VerticalStackLayout Spacing="6" Padding="0,20" HorizontalOptions="Center">
-                                    <Image Source="icon_timetable.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" Opacity="0.5" />
-                                    <Label Text="No classes scheduled for today."
-                                           FontSize="12"
-                                           TextColor="{StaticResource TextMuted}"
-                                           HorizontalOptions="Center" />
-                                </VerticalStackLayout>
-                            </CollectionView.EmptyView>
-                            <CollectionView.ItemTemplate>
+                        <!-- Empty State for Selected Day -->
+                        <VerticalStackLayout Spacing="6" Padding="0,16" HorizontalOptions="Center"
+                                             IsVisible="{Binding HasNoScheduleForSelectedDay}">
+                            <Image Source="icon_timetable.png" WidthRequest="28" HeightRequest="28" HorizontalOptions="Center" Opacity="0.5" />
+                            <Label Text="{Binding EmptyScheduleMessage}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                        <!-- Teaching Period Cards -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding DisplayedSchedule}" Spacing="8">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="dto:TimetableEntryDto">
                                     <Border StrokeShape="RoundRectangle 10"
                                             BackgroundColor="{StaticResource SurfaceLight}"
                                             Stroke="{StaticResource SurfaceBorder}"
-                                            Padding="14,12"
-                                            Margin="0,0,0,8">
+                                            Padding="14,12">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
                                             <!-- Time Badge -->
                                             <Border Grid.Column="0"
@@ -230,7 +269,7 @@
                                                        FontAttributes="Bold"
                                                        TextColor="{StaticResource TextPrimary}" />
                                                 <HorizontalStackLayout Spacing="6">
-                                                    <Label Text="{Binding ClassName}" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                                    <Label Text="{Binding ClassName, StringFormat='Class {0}'}" FontSize="11" TextColor="{StaticResource TextSecondary}" />
                                                     <Label Text="•" FontSize="11" TextColor="{StaticResource Gray400}" />
                                                     <Label Text="{Binding SubjectCode}" FontSize="11" TextColor="{StaticResource TextMuted}" />
                                                 </HorizontalStackLayout>
@@ -243,7 +282,7 @@
                                                     Stroke="{StaticResource SecondaryBorder}"
                                                     Padding="8,4"
                                                     VerticalOptions="Center">
-                                                <Label Text="{Binding RoomNumber, StringFormat='Room {0}'}"
+                                                <Label Text="{Binding RoomNumber}"
                                                        FontSize="10"
                                                        FontAttributes="Bold"
                                                        TextColor="{StaticResource SecondaryDark}" />
@@ -251,8 +290,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -272,17 +311,16 @@
                         </HorizontalStackLayout>
 
                         <!-- Classes Collection -->
-                        <CollectionView ItemsSource="{Binding AssignedClasses}" SelectionMode="None">
-                            <CollectionView.ItemTemplate>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding AssignedClasses}" Spacing="8">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="dto:ClassSectionDto">
                                     <Border StrokeShape="RoundRectangle 10"
                                             BackgroundColor="{StaticResource SurfaceLight}"
                                             Stroke="{StaticResource SurfaceBorder}"
-                                            Padding="14,12"
-                                            Margin="0,0,0,8">
+                                            Padding="14,12">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
                                             <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
-                                                <Label Text="{Binding Name}"
+                                                <Label Text="{Binding Name, StringFormat='Class {0}'}"
                                                        FontSize="13"
                                                        FontAttributes="Bold"
                                                        TextColor="{StaticResource TextPrimary}" />
@@ -311,8 +349,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 

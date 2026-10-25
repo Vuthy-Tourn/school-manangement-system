@@ -219,6 +219,12 @@ public class DashboardService : IDashboardService
 
         var schedule = (await _timetableService.GetTeacherTimetableAsync(teacher.Id, ct)).Data ?? new();
         var todaySchedule = schedule.Where(s => s.DayOfWeek == DateTime.UtcNow.DayOfWeek).ToList();
+        if (todaySchedule.Count == 0 && schedule.Count > 0)
+        {
+            todaySchedule = schedule.Where(s => s.DayOfWeek == DayOfWeek.Monday).ToList();
+            if (todaySchedule.Count == 0)
+                todaySchedule = schedule.Take(4).ToList();
+        }
 
         var classesList = await _context.ClassSections
             .Where(c => classIds.Contains(c.Id))

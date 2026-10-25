@@ -33,7 +33,10 @@ public record AssessmentComponentDto(
     string Name,
     decimal MaxScore,
     decimal WeightPercentage
-);
+)
+{
+    public string DisplayTitle => string.IsNullOrWhiteSpace(SubjectName) ? Name : $"{SubjectName} ({Name})";
+}
 
 public record CreateAssessmentComponentRequest(
     Guid ExamId,

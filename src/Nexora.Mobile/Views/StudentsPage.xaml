@@ -100,12 +100,14 @@
                                 </Border>
 
                                 <!-- Student Information -->
-                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                                     <HorizontalStackLayout Spacing="8">
                                         <Label Text="{Binding FullName}"
                                                FontSize="15"
                                                FontAttributes="Bold"
-                                               TextColor="{StaticResource TextPrimary}" />
+                                               TextColor="{StaticResource TextPrimary}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
 
                                         <!-- Class Badge -->
                                         <Border StrokeShape="RoundRectangle 6"
@@ -121,21 +123,18 @@
                                         </Border>
                                     </HorizontalStackLayout>
 
-                                    <!-- Identification and Contact -->
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding AdmissionNumber}"
-                                               FontSize="11"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource SecondaryDark}" />
-                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
-                                        <Label Text="{Binding Gender}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextSecondary}" />
-                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
-                                        <Label Text="{Binding EmergencyContactPhone, StringFormat='Emergency: {0}'}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextMuted}" />
-                                    </HorizontalStackLayout>
+                                    <!-- Identification and Details -->
+                                    <Label LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           FontSize="11">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding AdmissionNumber}" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                                                <Span Text=" • " TextColor="{StaticResource TextSubtle}" />
+                                                <Span Text="{Binding Gender}" TextColor="{StaticResource TextSecondary}" />
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
                                 </VerticalStackLayout>
 
                                 <!-- Status Badge and Actions -->

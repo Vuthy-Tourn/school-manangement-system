@@ -10,71 +10,69 @@
 
     <Grid RowDefinitions="Auto,*" Padding="20,16,20,20">
 
-        <!-- Weekday Segmented Selector Chips -->
-        <ScrollView Grid.Row="0" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,0,0,16">
-            <HorizontalStackLayout Spacing="8">
-                <Button Text="Monday"
-                        Command="{Binding SelectDayCommand}"
-                        CommandParameter="Monday"
-                        CornerRadius="8"
+        <!-- Class Section & Day Selection Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,16">
+            <!-- Class Selector -->
+            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                    <Label Text="Weekly Class Timetable"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+                    <Label Text="Select class and academic day to view class hours"
+                           FontSize="11"
+                           TextColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="12,0"
                         HeightRequest="36"
-                        Padding="14,0"
-                        FontSize="12"
-                        FontAttributes="Bold"
-                        BackgroundColor="{StaticResource SecondaryLight}"
-                        TextColor="{StaticResource Secondary}"
-                        BorderColor="{StaticResource SecondaryBorder}"
-                        BorderWidth="1" />
-                <Button Text="Tuesday"
-                        Command="{Binding SelectDayCommand}"
-                        CommandParameter="Tuesday"
-                        CornerRadius="8"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        FontSize="12"
-                        FontAttributes="Bold"
-                        BackgroundColor="{StaticResource SecondaryLight}"
-                        TextColor="{StaticResource Secondary}"
-                        BorderColor="{StaticResource SecondaryBorder}"
-                        BorderWidth="1" />
-                <Button Text="Wednesday"
-                        Command="{Binding SelectDayCommand}"
-                        CommandParameter="Wednesday"
-                        CornerRadius="8"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        FontSize="12"
-                        FontAttributes="Bold"
-                        BackgroundColor="{StaticResource SecondaryLight}"
-                        TextColor="{StaticResource Secondary}"
-                        BorderColor="{StaticResource SecondaryBorder}"
-                        BorderWidth="1" />
-                <Button Text="Thursday"
-                        Command="{Binding SelectDayCommand}"
-                        CommandParameter="Thursday"
-                        CornerRadius="8"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        FontSize="12"
-                        FontAttributes="Bold"
-                        BackgroundColor="{StaticResource SecondaryLight}"
-                        TextColor="{StaticResource Secondary}"
-                        BorderColor="{StaticResource SecondaryBorder}"
-                        BorderWidth="1" />
-                <Button Text="Friday"
-                        Command="{Binding SelectDayCommand}"
-                        CommandParameter="Friday"
-                        CornerRadius="8"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        FontSize="12"
-                        FontAttributes="Bold"
-                        BackgroundColor="{StaticResource SecondaryLight}"
-                        TextColor="{StaticResource Secondary}"
-                        BorderColor="{StaticResource SecondaryBorder}"
-                        BorderWidth="1" />
-            </HorizontalStackLayout>
-        </ScrollView>
+                        VerticalOptions="Center">
+                    <Picker ItemsSource="{Binding Classes}"
+                            ItemDisplayBinding="{Binding Name, StringFormat='Class {0}'}"
+                            SelectedItem="{Binding SelectedClass}"
+                            TextColor="{StaticResource Primary}"
+                            FontAttributes="Bold"
+                            FontSize="12"
+                            VerticalOptions="Center" />
+                </Border>
+            </Grid>
+
+            <!-- Weekday Segmented Selector Chips -->
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Days}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DayChipViewModel">
+                            <Button Text="{Binding Name}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TimetablesViewModel}}, Path=SelectDayCommand}"
+                                    CommandParameter="{Binding .}"
+                                    CornerRadius="8"
+                                    HeightRequest="36"
+                                    Padding="14,0"
+                                    FontSize="12"
+                                    FontAttributes="Bold">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                                        <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                                        <Setter Property="BorderWidth" Value="1" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource SecondaryLight}" />
+                                        <Setter Property="TextColor" Value="{StaticResource SecondaryDark}" />
+                                        <Setter Property="BorderColor" Value="{StaticResource SecondaryBorder}" />
+                                        <Setter Property="BorderWidth" Value="1" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
+        </VerticalStackLayout>
 
         <!-- Time Slots Schedule List -->
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadTimetableCommand}">
