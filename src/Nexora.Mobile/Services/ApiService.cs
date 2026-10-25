@@ -80,7 +80,7 @@ public class ApiService : IApiService
 
     public string BaseUrl
     {
-        get => _httpClient.BaseAddress?.ToString() ?? "http://localhost:5000";
+        get => _httpClient.BaseAddress?.ToString() ?? "http://localhost:5180";
         set => _httpClient.BaseAddress = new Uri(value.TrimEnd('/') + "/");
     }
 
@@ -91,7 +91,7 @@ public class ApiService : IApiService
     {
         _httpClient = httpClient;
         // On Android emulator: 10.0.2.2 connects to host machine's localhost
-        var defaultHost = DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5000/" : "http://localhost:5000/";
+        var defaultHost = DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5180/" : "http://localhost:5180/";
         _httpClient.BaseAddress = new Uri(defaultHost);
         _httpClient.Timeout = TimeSpan.FromSeconds(15);
     }

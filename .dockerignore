@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+src/Nexora.Mobile
+tests/
+Library/
+.dotnet/
+.local/
+assignment-student-management/
