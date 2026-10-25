@@ -13,23 +13,17 @@
         <!-- Search Bar and Action Bar -->
         <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,16">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <!-- Search Box -->
-                <Border Grid.Column="0"
-                        StrokeShape="RoundRectangle 8"
-                        Stroke="{StaticResource SurfaceBorder}"
-                        StrokeThickness="1"
-                        BackgroundColor="{StaticResource SurfaceCard}"
-                        Padding="12,0"
-                        HeightRequest="44">
-                    <SearchBar Text="{Binding SearchTerm}"
-                               Placeholder="Search by student name or admission number..."
-                               PlaceholderColor="{StaticResource TextSubtle}"
-                               TextColor="{StaticResource TextPrimary}"
-                               SearchCommand="{Binding LoadStudentsCommand}"
-                               BackgroundColor="Transparent"
-                               FontSize="13"
-                               VerticalOptions="Center" />
-                </Border>
+                <!-- Search Box (No background wrapper) -->
+                <SearchBar Grid.Column="0"
+                           Text="{Binding SearchTerm}"
+                           Placeholder="Search by student name or admission number..."
+                           PlaceholderColor="{StaticResource TextSubtle}"
+                           TextColor="{StaticResource TextPrimary}"
+                           SearchCommand="{Binding LoadStudentsCommand}"
+                           BackgroundColor="Transparent"
+                           FontSize="13"
+                           HeightRequest="44"
+                           VerticalOptions="Center" />
 
                 <!-- Add Student Button -->
                 <Button Grid.Column="1"

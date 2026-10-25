@@ -475,6 +475,18 @@ public partial class GradeEntryItemViewModel : ObservableObject
         ? ComponentName
         : AdmissionNumber;
 
+    public string StudentInitials
+    {
+        get
+        {
+            var name = IsStudentView ? SubjectName : StudentName;
+            if (string.IsNullOrWhiteSpace(name)) return "ST";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+            return parts[0].Length >= 2 ? parts[0].Substring(0, 2).ToUpper() : parts[0].ToUpper();
+        }
+    }
+
     [ObservableProperty]
     private decimal _scoreObtained;
 
@@ -565,7 +577,14 @@ public partial class SubjectChipViewModel : ObservableObject
     public string DisplayTitle => string.IsNullOrWhiteSpace(SubjectName) ? ComponentName : SubjectName;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ChipBackground))]
+    [NotifyPropertyChangedFor(nameof(ChipTextColor))]
+    [NotifyPropertyChangedFor(nameof(ChipBorderColor))]
     private bool _isSelected;
+
+    public Color ChipBackground => IsSelected ? Color.FromArgb("#0F2942") : Colors.White;
+    public Color ChipTextColor => IsSelected ? Colors.White : Color.FromArgb("#475569");
+    public Color ChipBorderColor => IsSelected ? Color.FromArgb("#0F2942") : Color.FromArgb("#CBD5E1");
 
     public SubjectChipViewModel(AssessmentComponentDto component, bool isSelected = false)
     {
@@ -624,6 +643,22 @@ public partial class GradesViewModel : BaseViewModel
         Title = PortalTitle;
     }
 
+    partial void OnSelectedClassChanged(ClassSectionDto? value)
+    {
+        if (value != null && SelectedExam != null && !IsBusy)
+        {
+            _ = LoadComponentsAsync();
+        }
+    }
+
+    partial void OnSelectedExamChanged(ExamDto? value)
+    {
+        if (value != null && SelectedClass != null && !IsBusy)
+        {
+            _ = LoadComponentsAsync();
+        }
+    }
+
     [RelayCommand]
     public async Task InitializeAsync()
     {
@@ -673,7 +708,7 @@ public partial class GradesViewModel : BaseViewModel
                 var allComponents = res.Data;
                 var role = _apiService.CurrentUser?.Role;
 
-                // Teacher Subject Scoping: Teachers only manage grades based on their assigned teaching subjects
+                // Teacher Subject Scoping: Teachers only manage grades based on their assigned teaching subjects in this class
                 if (role == UserRole.Teacher)
                 {
                     var teachersRes = await _apiService.GetTeachersAsync();
@@ -714,13 +749,13 @@ public partial class GradesViewModel : BaseViewModel
 
                 foreach (var c in Components)
                 {
-                    chips.Add(new SubjectChipViewModel(c, c.Id == SelectedComponent?.Id));
+                    chips.Add(new SubjectChipViewModel(c, !IsStudentView && c.Id == SelectedComponent?.Id));
                 }
                 SubjectChips = new ObservableCollection<SubjectChipViewModel>(chips);
 
                 if (SelectedComponent != null)
                 {
-                    ActiveSubjectHeader = string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName;
+                    ActiveSubjectHeader = SelectedComponent.Id == Guid.Empty ? "All Subjects" : (string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName);
                     await LoadGradesAsync();
                 }
                 else
@@ -763,21 +798,53 @@ public partial class GradesViewModel : BaseViewModel
             var items = new List<GradeEntryItemViewModel>();
             var role = _apiService.CurrentUser?.Role;
 
-            if (IsStudentView && SelectedComponent.Id == Guid.Empty)
+            if (IsStudentView)
             {
-                // Load all subject grades for student or parent to review complete curriculum
                 var studentName = (role == UserRole.Student) ? (_apiService.CurrentUser?.FullName ?? "Visal Chan") : "Visal Chan";
                 var firstName = studentName.Split(' ').FirstOrDefault() ?? "Visal";
+                var studentId = _apiService.CurrentUser?.LinkedProfileId;
 
-                foreach (var comp in Components)
+                if (SelectedComponent.Id == Guid.Empty)
                 {
-                    var compGradesRes = await _apiService.GetComponentGradesAsync(comp.Id);
-                    if (compGradesRes.Success && compGradesRes.Data != null)
+                    // Load all subject grades for student or parent to review complete curriculum
+                    foreach (var comp in Components)
                     {
-                        var match = compGradesRes.Data.FirstOrDefault(g =>
+                        var compGradesRes = await _apiService.GetComponentGradesAsync(comp.Id);
+                        if (compGradesRes.Success && compGradesRes.Data != null)
+                        {
+                            var match = compGradesRes.Data.FirstOrDefault(g =>
+                                (studentId.HasValue && g.StudentId == studentId.Value) ||
+                                g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase) ||
+                                g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase));
+
+                            if (match != null)
+                            {
+                                var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
+                                {
+                                    StudentId = match.StudentId,
+                                    StudentName = match.StudentName,
+                                    AdmissionNumber = match.AdmissionNumber,
+                                    SubjectName = !string.IsNullOrWhiteSpace(comp.SubjectName) ? comp.SubjectName : match.SubjectName,
+                                    ComponentName = comp.Name,
+                                    Remarks = match.Remarks,
+                                    IsStudentView = true
+                                };
+                                vm.SetScore(match.ScoreObtained);
+                                items.Add(vm);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Single subject selected
+                    var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
+                    if (res.Success && res.Data != null)
+                    {
+                        var match = res.Data.FirstOrDefault(g =>
+                            (studentId.HasValue && g.StudentId == studentId.Value) ||
                             g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase) ||
-                            g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase) ||
-                            (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && g.StudentId == _apiService.CurrentUser.LinkedProfileId.Value));
+                            g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase));
 
                         if (match != null)
                         {
@@ -786,8 +853,8 @@ public partial class GradesViewModel : BaseViewModel
                                 StudentId = match.StudentId,
                                 StudentName = match.StudentName,
                                 AdmissionNumber = match.AdmissionNumber,
-                                SubjectName = string.IsNullOrWhiteSpace(match.SubjectName) ? comp.SubjectName : match.SubjectName,
-                                ComponentName = comp.Name,
+                                SubjectName = !string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.SubjectName : match.SubjectName,
+                                ComponentName = SelectedComponent.Name,
                                 Remarks = match.Remarks,
                                 IsStudentView = true
                             };
@@ -799,25 +866,34 @@ public partial class GradesViewModel : BaseViewModel
             }
             else
             {
+                // Teacher or Administrator view: strictly scoped to SelectedClass
                 var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
                 if (res.Success && res.Data != null)
                 {
                     var data = res.Data;
+                    if (SelectedClass != null)
+                    {
+                        var classStudentsRes = await _apiService.GetStudentsAsync();
+                        if (classStudentsRes.Success && classStudentsRes.Data != null)
+                        {
+                            var classStudentIds = new HashSet<Guid>();
+                            foreach (var s in classStudentsRes.Data.Items)
+                            {
+                                if (s.CurrentClassSectionId == SelectedClass.Id)
+                                    classStudentIds.Add(s.Id);
+                            }
 
-                    if (role == UserRole.Student)
-                    {
-                        var studentName = _apiService.CurrentUser?.FullName ?? "Visal Chan";
-                        var firstName = studentName.Split(' ').FirstOrDefault() ?? "Visal";
-                        var match = data.Where(g => g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase)
-                                                 || g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase)
-                                                 || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && g.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
-                        data = match.Count > 0 ? match : data.Take(1).ToList();
-                    }
-                    else if (role == UserRole.Parent)
-                    {
-                        var match = data.Where(g => g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)
-                                                 || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && g.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
-                        data = match.Count > 0 ? match : data.Take(1).ToList();
+                            if (classStudentIds.Count > 0)
+                            {
+                                var classGrades = new List<StudentGradeDto>();
+                                foreach (var g in data)
+                                {
+                                    if (classStudentIds.Contains(g.StudentId))
+                                        classGrades.Add(g);
+                                }
+                                data = classGrades;
+                            }
+                        }
                     }
 
                     foreach (var g in data)
@@ -830,7 +906,7 @@ public partial class GradesViewModel : BaseViewModel
                             SubjectName = string.IsNullOrWhiteSpace(g.SubjectName) ? SelectedComponent.SubjectName : g.SubjectName,
                             ComponentName = SelectedComponent.Name,
                             Remarks = g.Remarks,
-                            IsStudentView = IsStudentView
+                            IsStudentView = false
                         };
                         vm.SetScore(g.ScoreObtained);
                         items.Add(vm);

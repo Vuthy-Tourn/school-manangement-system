@@ -34,7 +34,7 @@
                                 <Picker ItemsSource="{Binding Exams}"
                                         ItemDisplayBinding="{Binding Name}"
                                         SelectedItem="{Binding SelectedExam}"
-                                        SelectedIndexChanged="OnFilterChanged"
+                                        SelectedIndexChanged="OnExamChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -55,7 +55,7 @@
                                 <Picker ItemsSource="{Binding Classes}"
                                         ItemDisplayBinding="{Binding Name}"
                                         SelectedItem="{Binding SelectedClass}"
-                                        SelectedIndexChanged="OnFilterChanged"
+                                        SelectedIndexChanged="OnClassSectionChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -98,6 +98,7 @@
                                 <Picker ItemsSource="{Binding StudentOptions}"
                                         ItemDisplayBinding="{Binding DisplayName}"
                                         SelectedItem="{Binding SelectedStudentFilter}"
+                                        SelectedIndexChanged="OnStudentFilterPickerChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -139,6 +140,8 @@
                         <DataTemplate x:DataType="vm:SubjectChipViewModel">
                             <Border StrokeShape="RoundRectangle 16"
                                     StrokeThickness="1"
+                                    BackgroundColor="{Binding ChipBackground}"
+                                    Stroke="{Binding ChipBorderColor}"
                                     HeightRequest="34"
                                     Padding="14,6">
                                 <Border.GestureRecognizers>
@@ -148,27 +151,9 @@
                                 <Label Text="{Binding DisplayTitle}"
                                        FontSize="11"
                                        FontAttributes="Bold"
+                                       TextColor="{Binding ChipTextColor}"
                                        VerticalOptions="Center"
-                                       HorizontalOptions="Center">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
-                                            <Setter Property="TextColor" Value="{StaticResource White}" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
-                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
-                                        <Setter Property="Stroke" Value="{StaticResource Primary}" />
-                                    </DataTrigger>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
-                                        <Setter Property="BackgroundColor" Value="{StaticResource SurfaceCard}" />
-                                        <Setter Property="Stroke" Value="{StaticResource SurfaceBorder}" />
-                                    </DataTrigger>
-                                </Border.Triggers>
+                                       HorizontalOptions="Center" />
                             </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
@@ -208,12 +193,28 @@
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
                                 StrokeThickness="1"
-                                Padding="14,10"
+                                Padding="12,10"
                                 Margin="0,0,0,8">
-                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
+
+                                <!-- Avatar / Initials Pill -->
+                                <Border Grid.Column="0"
+                                        StrokeShape="RoundRectangle 18"
+                                        BackgroundColor="{StaticResource SecondaryLight}"
+                                        Stroke="{StaticResource SecondaryBorder}"
+                                        StrokeThickness="1"
+                                        HeightRequest="36" WidthRequest="36"
+                                        VerticalOptions="Center">
+                                    <Label Text="{Binding StudentInitials}"
+                                           TextColor="{StaticResource SecondaryDark}"
+                                           FontAttributes="Bold"
+                                           FontSize="11"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
 
                                 <!-- Subject / Student Details -->
-                                <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                                     <Label Text="{Binding DisplayTitle}"
                                            FontSize="13"
                                            FontAttributes="Bold"
@@ -227,7 +228,7 @@
                                 </VerticalStackLayout>
 
                                 <!-- Live Grade Letter Badge -->
-                                <Border Grid.Column="1"
+                                <Border Grid.Column="2"
                                         StrokeShape="RoundRectangle 6"
                                         BackgroundColor="{Binding GradeBadgeBg}"
                                         Padding="8,4"
@@ -240,7 +241,7 @@
                                 </Border>
 
                                 <!-- Score Input (For Teachers/Admins) -->
-                                <Border Grid.Column="2"
+                                <Border Grid.Column="3"
                                         StrokeShape="RoundRectangle 8"
                                         BackgroundColor="{StaticResource SurfaceLight}"
                                         Stroke="{StaticResource SurfaceBorder}"
@@ -259,7 +260,7 @@
                                 </Border>
 
                                 <!-- Read-Only Score Badge (For Students/Parents) -->
-                                <Border Grid.Column="2"
+                                <Border Grid.Column="3"
                                         StrokeShape="RoundRectangle 8"
                                         BackgroundColor="{StaticResource PrimaryLight}"
                                         Stroke="{StaticResource PrimaryBorder}"
@@ -274,37 +275,21 @@
                                            VerticalOptions="Center" />
                                 </Border>
 
-                                <!-- Action Buttons: Quick Save or Report Card -->
-                                <HorizontalStackLayout Grid.Column="3" Spacing="6" VerticalOptions="Center">
-                                    <!-- Quick Save Checkmark for Teacher -->
-                                    <Button Text="Save"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SaveSingleGradeCommand}"
-                                            CommandParameter="{Binding .}"
-                                            BackgroundColor="{StaticResource PrimaryLight}"
-                                            TextColor="{StaticResource Primary}"
-                                            BorderColor="{StaticResource PrimaryBorder}"
-                                            BorderWidth="1"
-                                            FontSize="11"
-                                            FontAttributes="Bold"
-                                            HeightRequest="34"
-                                            Padding="10,0"
-                                            CornerRadius="6"
-                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=CanEditGrades}" />
-
-                                    <!-- Report Card Link Button -->
-                                    <Button Text="Report Card"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=ViewReportCardCommand}"
-                                            CommandParameter="{Binding .}"
-                                            BackgroundColor="{StaticResource SecondaryLight}"
-                                            TextColor="{StaticResource Secondary}"
-                                            BorderColor="{StaticResource SecondaryBorder}"
-                                            BorderWidth="1"
-                                            FontSize="11"
-                                            FontAttributes="Bold"
-                                            HeightRequest="34"
-                                            Padding="10,0"
-                                            CornerRadius="6" />
-                                </HorizontalStackLayout>
+                                <!-- Quick Save Checkmark for Teacher (No Report Card Button) -->
+                                <Button Grid.Column="4"
+                                        Text="Save"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SaveSingleGradeCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        TextColor="{StaticResource Primary}"
+                                        BorderColor="{StaticResource PrimaryBorder}"
+                                        BorderWidth="1"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        HeightRequest="36"
+                                        Padding="12,0"
+                                        CornerRadius="6"
+                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=CanEditGrades}" />
 
                             </Grid>
                         </Border>

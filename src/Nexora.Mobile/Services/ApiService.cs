@@ -1045,7 +1045,10 @@ public class ApiService : IApiService
     {
         try
         {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>($"api/grades/exams/{examId}/components?classSectionId={classId}", JsonOptions);
+            var url = classId != Guid.Empty
+                ? $"api/grades/components?examId={examId}&classSectionId={classId}"
+                : $"api/grades/components?examId={examId}";
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>(url, JsonOptions);
             if (res?.Data != null && res.Data.Count > 0) return res;
         }
         catch (Exception ex)
@@ -1054,7 +1057,7 @@ public class ApiService : IApiService
         }
 
         var list = _mockComponents.Where(c => classId == Guid.Empty || c.ClassSectionId == classId).ToList();
-        return ApiResponse<List<AssessmentComponentDto>>.Ok(list.Count > 0 ? list : _mockComponents);
+        return ApiResponse<List<AssessmentComponentDto>>.Ok(list);
     }
 
     public async Task<ApiResponse<List<StudentGradeDto>>> GetComponentGradesAsync(Guid componentId)
@@ -1076,8 +1079,13 @@ public class ApiService : IApiService
             var compName = comp?.Name ?? "Midterm Exam";
             var subjId = comp?.SubjectId ?? Guid.NewGuid();
             var subjName = comp?.SubjectName ?? "Mathematics";
+            var classId = comp?.ClassSectionId ?? Class10AId;
 
-            foreach (var s in _mockStudents.Where(x => x.Status == StudentStatus.Active))
+            var targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active && x.CurrentClassSectionId == classId).ToList();
+            if (targetStudents.Count == 0)
+                targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active).Take(4).ToList();
+
+            foreach (var s in targetStudents)
             {
                 var g = new StudentGradeDto(
                     Guid.NewGuid(), componentId, compName, subjId, subjName,
@@ -1497,10 +1505,24 @@ public class ApiService : IApiService
     private static readonly Guid CompHistoryId = Guid.Parse("d0000000-0000-0000-0000-000000000007");
     private static readonly Guid CompIctId = Guid.Parse("d0000000-0000-0000-0000-000000000008");
 
+    private static readonly Guid CompKhmer10BId = Guid.Parse("d0000000-0000-0000-0000-000000000011");
+    private static readonly Guid CompMath10BId = Guid.Parse("d0000000-0000-0000-0000-000000000012");
+    private static readonly Guid CompPhysics10BId = Guid.Parse("d0000000-0000-0000-0000-000000000013");
+    private static readonly Guid CompChemistry10BId = Guid.Parse("d0000000-0000-0000-0000-000000000014");
+    private static readonly Guid CompEnglish10BId = Guid.Parse("d0000000-0000-0000-0000-000000000015");
+    private static readonly Guid CompBiology10BId = Guid.Parse("d0000000-0000-0000-0000-000000000016");
+    private static readonly Guid CompHistory10BId = Guid.Parse("d0000000-0000-0000-0000-000000000017");
+    private static readonly Guid CompIct10BId = Guid.Parse("d0000000-0000-0000-0000-000000000018");
+
     private static readonly Guid StudentVisalId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     private static readonly Guid StudentKanhaId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
     private static readonly Guid StudentDaraId = Guid.Parse("11111111-2222-3333-4444-555555555555");
     private static readonly Guid StudentBophaId = Guid.Parse("22222222-3333-4444-5555-666666666666");
+
+    private static readonly Guid StudentRithyId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private static readonly Guid StudentSreypovId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid StudentVannakId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    private static readonly Guid StudentThidaId = Guid.Parse("66666666-6666-6666-6666-666666666666");
 
     private static List<StudentDto> InitializeMockStudents() => new()
     {
@@ -1519,7 +1541,25 @@ public class ApiService : IApiService
         new(StudentBophaId, Guid.NewGuid(), "ADM-2026-0004", "Bopha", "Keo", "Bopha Keo",
             new DateTime(2010, 11, 5), "Female", "AB+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "bopha.keo@student.angkoracademy.edu.kh", "+855 98 777 888", "Chamkarmon, Phnom Penh", null,
-            Class10AId, "10-A", "Keo Sarath", "+855 12 777 666", "Father")
+            Class10AId, "10-A", "Keo Sarath", "+855 12 777 666", "Father"),
+
+        // Class 10-B Students
+        new(StudentRithyId, Guid.NewGuid(), "ADM-2026-0005", "Rithy", "Srun", "Rithy Srun",
+            new DateTime(2010, 3, 11), "Male", "O+", new DateTime(2026, 9, 1), StudentStatus.Active,
+            "rithy.srun@student.angkoracademy.edu.kh", "+855 98 111 222", "Khan Sen Sok, Phnom Penh", null,
+            Class10BId, "10-B", "Srun Meng", "+855 12 111 333", "Father"),
+        new(StudentSreypovId, Guid.NewGuid(), "ADM-2026-0006", "Sreypov", "Lim", "Sreypov Lim",
+            new DateTime(2010, 7, 18), "Female", "B+", new DateTime(2026, 9, 1), StudentStatus.Active,
+            "sreypov.lim@student.angkoracademy.edu.kh", "+855 98 222 333", "Khan Daun Penh, Phnom Penh", null,
+            Class10BId, "10-B", "Lim Sovann", "+855 12 222 444", "Mother"),
+        new(StudentVannakId, Guid.NewGuid(), "ADM-2026-0007", "Vannak", "Heng", "Vannak Heng",
+            new DateTime(2010, 9, 25), "Male", "A+", new DateTime(2026, 9, 1), StudentStatus.Active,
+            "vannak.heng@student.angkoracademy.edu.kh", "+855 98 333 444", "Khan Toul Kork, Phnom Penh", null,
+            Class10BId, "10-B", "Heng Rith", "+855 12 333 555", "Father"),
+        new(StudentThidaId, Guid.NewGuid(), "ADM-2026-0008", "Thida", "Meas", "Thida Meas",
+            new DateTime(2010, 12, 1), "Female", "AB+", new DateTime(2026, 9, 1), StudentStatus.Active,
+            "thida.meas@student.angkoracademy.edu.kh", "+855 98 444 555", "Khan Chamkarmon, Phnom Penh", null,
+            Class10BId, "10-B", "Meas Chea", "+855 12 444 666", "Mother")
     };
 
     private static List<TeacherDto> InitializeMockTeachers() => new()
@@ -1528,49 +1568,57 @@ public class ApiService : IApiService
             "dara.sok@angkoracademy.edu.kh", "+855 12 345 678", new DateTime(2021, 9, 1), "Master of Mathematics Education",
             "Advanced Mathematics", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjMathId, "Mathematics", "MATH101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjMathId, "Mathematics", "MATH101")
             }),
         new(TeacherChendaId, Guid.NewGuid(), "EMP-00102", "Chenda", "Chan", "Chenda Chan",
             "chenda.chan@angkoracademy.edu.kh", "+855 12 456 789", new DateTime(2022, 10, 1), "Bachelor of Science in Physics",
             "Applied Physics", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjPhysicsId, "Physics", "PHY101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjPhysicsId, "Physics", "PHY101")
             }),
         new(TeacherSokhaId, Guid.NewGuid(), "EMP-00103", "Sokha", "Mean", "Sokha Mean",
             "sokha.mean@angkoracademy.edu.kh", "+855 12 567 890", new DateTime(2020, 8, 15), "Master of Khmer Literature",
             "Classical Literature", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjKhmerId, "Khmer Literature", "KHM101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjKhmerId, "Khmer Literature", "KHM101")
             }),
         new(TeacherRathanaId, Guid.NewGuid(), "EMP-00104", "Rathana", "Vong", "Rathana Vong",
             "rathana.vong@angkoracademy.edu.kh", "+855 12 678 901", new DateTime(2021, 11, 1), "Master of Chemical Sciences",
             "General Chemistry", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjChemistryId, "Chemistry", "CHM101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjChemistryId, "Chemistry", "CHM101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjChemistryId, "Chemistry", "CHM101")
             }),
         new(TeacherJohnId, Guid.NewGuid(), "EMP-00105", "John", "Smith", "John Smith",
             "john.smith@angkoracademy.edu.kh", "+855 12 789 012", new DateTime(2019, 7, 1), "MA in Applied Linguistics",
             "English Communication", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjEnglishId, "English Communication", "ENG101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjEnglishId, "English Communication", "ENG101")
             }),
         new(TeacherKolabId, Guid.NewGuid(), "EMP-00106", "Kolab", "Pich", "Kolab Pich",
             "kolab.pich@angkoracademy.edu.kh", "+855 12 890 123", new DateTime(2022, 1, 10), "M.Sc in Biological Sciences",
             "Cellular Biology", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjBiologyId, "Biology", "BIO101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjBiologyId, "Biology", "BIO101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjBiologyId, "Biology", "BIO101")
             }),
         new(TeacherSophalId, Guid.NewGuid(), "EMP-00107", "Sophal", "Tep", "Sophal Tep",
             "sophal.tep@angkoracademy.edu.kh", "+855 12 901 234", new DateTime(2020, 5, 20), "Master of Southeast Asian History",
             "Cambodian History", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjHistoryId, "History", "HIS101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjHistoryId, "History", "HIS101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjHistoryId, "History", "HIS101")
             }),
         new(TeacherSamnangId, Guid.NewGuid(), "EMP-00108", "Samnang", "Ly", "Samnang Ly",
             "samnang.ly@angkoracademy.edu.kh", "+855 12 012 345", new DateTime(2023, 2, 1), "B.Sc in Software Engineering",
             "Computer Science", true, new List<TeacherSubjectAssignmentDto>
             {
-                new(Guid.NewGuid(), Class10AId, "10-A", SubjIctId, "Computer Science & ICT", "ICT101")
+                new(Guid.NewGuid(), Class10AId, "10-A", SubjIctId, "Computer Science & ICT", "ICT101"),
+                new(Guid.NewGuid(), Class10BId, "10-B", SubjIctId, "Computer Science & ICT", "ICT101")
             })
     };
 
@@ -1601,7 +1649,17 @@ public class ApiService : IApiService
         new(CompEnglishId, ExamMidtermId, "Semester 1 Midterm", SubjEnglishId, "English Communication", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompBiologyId, ExamMidtermId, "Semester 1 Midterm", SubjBiologyId, "Biology", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompHistoryId, ExamMidtermId, "Semester 1 Midterm", SubjHistoryId, "History", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
-        new(CompIctId, ExamMidtermId, "Semester 1 Midterm", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Midterm Exam", 100m, 40m)
+        new(CompIctId, ExamMidtermId, "Semester 1 Midterm", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+
+        // Class 10-B Components
+        new(CompKhmer10BId, ExamMidtermId, "Semester 1 Midterm", SubjKhmerId, "Khmer Literature", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompMath10BId, ExamMidtermId, "Semester 1 Midterm", SubjMathId, "Mathematics", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompPhysics10BId, ExamMidtermId, "Semester 1 Midterm", SubjPhysicsId, "Physics", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompChemistry10BId, ExamMidtermId, "Semester 1 Midterm", SubjChemistryId, "Chemistry", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompEnglish10BId, ExamMidtermId, "Semester 1 Midterm", SubjEnglishId, "English Communication", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompBiology10BId, ExamMidtermId, "Semester 1 Midterm", SubjBiologyId, "Biology", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompHistory10BId, ExamMidtermId, "Semester 1 Midterm", SubjHistoryId, "History", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
+        new(CompIct10BId, ExamMidtermId, "Semester 1 Midterm", SubjIctId, "Computer Science & ICT", Class10BId, "10-B", "Midterm Exam", 100m, 40m)
     };
 
     private static List<TimetableEntryDto> InitializeMockSchedule() => new()
@@ -1703,7 +1761,48 @@ public class ApiService : IApiService
         new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 85.5m, 100m, 85.5m, "A", 4.0m, "Strong organic chemistry foundation"),
         new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 92.0m, 100m, 92.0m, "A", 4.0m, "Great physiology dissection work"),
         new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 86.0m, 100m, 86.0m, "B", 3.0m, "Well written historical essays"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 95.0m, 100m, 95.0m, "A", 4.0m, "Creative responsive web design")
+        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 95.0m, 100m, 95.0m, "A", 4.0m, "Creative responsive web design"),
+
+        // === Class 10-B Grades ===
+        // Rithy Srun
+        new(Guid.NewGuid(), CompKhmer10BId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 88.0m, 100m, 88.0m, "B", 3.0m, "Strong comprehension"),
+        new(Guid.NewGuid(), CompMath10BId, "Midterm Exam", SubjMathId, "Mathematics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 94.0m, 100m, 94.0m, "A", 4.0m, "Excellent algebra"),
+        new(Guid.NewGuid(), CompPhysics10BId, "Midterm Exam", SubjPhysicsId, "Physics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 89.0m, 100m, 89.0m, "B", 3.0m, "Good lab work"),
+        new(Guid.NewGuid(), CompChemistry10BId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 91.0m, 100m, 91.0m, "A", 4.0m, "Accurate titration"),
+        new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 90.0m, 100m, 90.0m, "A", 4.0m, "Clear communication"),
+        new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 87.0m, 100m, 87.0m, "B", 3.0m, "Good genetics grasp"),
+        new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid essays"),
+        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 96.0m, 100m, 96.0m, "A", 4.0m, "Top coder"),
+
+        // Sreypov Lim
+        new(Guid.NewGuid(), CompKhmer10BId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 93.0m, 100m, 93.0m, "A", 4.0m, "Eloquent essays"),
+        new(Guid.NewGuid(), CompMath10BId, "Midterm Exam", SubjMathId, "Mathematics", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 87.0m, 100m, 87.0m, "B", 3.0m, "Consistent homework"),
+        new(Guid.NewGuid(), CompPhysics10BId, "Midterm Exam", SubjPhysicsId, "Physics", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid theory"),
+        new(Guid.NewGuid(), CompChemistry10BId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 88.0m, 100m, 88.0m, "B", 3.0m, "Good lab work"),
+        new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 95.0m, 100m, 95.0m, "A", 4.0m, "Fluent speaker"),
+        new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 91.0m, 100m, 91.0m, "A", 4.0m, "Great drawings"),
+        new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 90.0m, 100m, 90.0m, "A", 4.0m, "Deep analysis"),
+        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 92.0m, 100m, 92.0m, "A", 4.0m, "Clean code"),
+
+        // Vannak Heng
+        new(Guid.NewGuid(), CompKhmer10BId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 86.0m, 100m, 86.0m, "B", 3.0m, "Good effort"),
+        new(Guid.NewGuid(), CompMath10BId, "Midterm Exam", SubjMathId, "Mathematics", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 92.0m, 100m, 92.0m, "A", 4.0m, "Great calculation"),
+        new(Guid.NewGuid(), CompPhysics10BId, "Midterm Exam", SubjPhysicsId, "Physics", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 90.0m, 100m, 90.0m, "A", 4.0m, "Thorough report"),
+        new(Guid.NewGuid(), CompChemistry10BId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 84.0m, 100m, 84.0m, "B", 3.0m, "Passionate student"),
+        new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 88.0m, 100m, 88.0m, "B", 3.0m, "Good vocab"),
+        new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 86.0m, 100m, 86.0m, "B", 3.0m, "Clear writeups"),
+        new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 87.0m, 100m, 87.0m, "B", 3.0m, "Good facts"),
+        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 94.0m, 100m, 94.0m, "A", 4.0m, "Great web app"),
+
+        // Thida Meas
+        new(Guid.NewGuid(), CompKhmer10BId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentThidaId, "Thida Meas", "ADM-2026-0008", 94.0m, 100m, 94.0m, "A", 4.0m, "Top essays"),
+        new(Guid.NewGuid(), CompMath10BId, "Midterm Exam", SubjMathId, "Mathematics", StudentThidaId, "Thida Meas", "ADM-2026-0008", 89.0m, 100m, 89.0m, "B", 3.0m, "Good geometry"),
+        new(Guid.NewGuid(), CompPhysics10BId, "Midterm Exam", SubjPhysicsId, "Physics", StudentThidaId, "Thida Meas", "ADM-2026-0008", 86.0m, 100m, 86.0m, "B", 3.0m, "Accurate graphs"),
+        new(Guid.NewGuid(), CompChemistry10BId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentThidaId, "Thida Meas", "ADM-2026-0008", 89.0m, 100m, 89.0m, "B", 3.0m, "Solid analysis"),
+        new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentThidaId, "Thida Meas", "ADM-2026-0008", 96.0m, 100m, 96.0m, "A", 4.0m, "Excellent grammar"),
+        new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentThidaId, "Thida Meas", "ADM-2026-0008", 93.0m, 100m, 93.0m, "A", 4.0m, "Great knowledge"),
+        new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentThidaId, "Thida Meas", "ADM-2026-0008", 92.0m, 100m, 92.0m, "A", 4.0m, "High marks"),
+        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentThidaId, "Thida Meas", "ADM-2026-0008", 97.0m, 100m, 97.0m, "A", 4.0m, "Great UI design")
     };
 
     private static List<InvoiceDto> InitializeMockInvoices() => new()
