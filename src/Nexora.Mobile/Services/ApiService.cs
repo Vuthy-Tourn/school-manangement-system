@@ -25,6 +25,8 @@ public interface IApiService
     Task<ApiResponse<TeacherDashboardStatsDto>> GetTeacherDashboardAsync();
     Task<ApiResponse<StudentDashboardStatsDto>> GetStudentDashboardAsync();
     Task<ApiResponse<ParentDashboardStatsDto>> GetParentDashboardAsync(Guid? childId = null);
+    Task<ApiResponse<List<LinkedStudentDto>>> GetParentChildrenAsync();
+    Guid? CurrentSelectedChildId { get; set; }
 
     Task<ApiResponse<PaginatedResult<StudentDto>>> GetStudentsAsync(string? search = null, Guid? classId = null);
     Task<ApiResponse<StudentDto>> GetStudentByIdAsync(Guid id);
@@ -127,6 +129,7 @@ public class ApiService : IApiService
     }
 
     public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken ?? _sharedAccessToken) && CurrentUser != null;
+    public Guid? CurrentSelectedChildId { get; set; }
 
     public static UserRole InferRoleFromUsername(string? username)
     {
@@ -497,14 +500,35 @@ public class ApiService : IApiService
         ));
     }
 
+    public async Task<ApiResponse<List<LinkedStudentDto>>> GetParentChildrenAsync()
+    {
+        var dashboardRes = await GetParentDashboardAsync(CurrentSelectedChildId);
+        if (dashboardRes.Success && dashboardRes.Data?.Children != null && dashboardRes.Data.Children.Count > 0)
+        {
+            return ApiResponse<List<LinkedStudentDto>>.Ok(dashboardRes.Data.Children);
+        }
+
+        var fallbackChildren = _mockStudents.Take(2).Select(s => new LinkedStudentDto(
+            s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", s.Id == (CurrentSelectedChildId ?? StudentVisalId)
+        )).ToList();
+        return ApiResponse<List<LinkedStudentDto>>.Ok(fallbackChildren);
+    }
+
     public async Task<ApiResponse<ParentDashboardStatsDto>> GetParentDashboardAsync(Guid? childId = null)
     {
+        var activeChildId = childId ?? CurrentSelectedChildId;
+        if (childId.HasValue)
+        {
+            CurrentSelectedChildId = childId.Value;
+        }
+
         try
         {
-            var query = childId.HasValue ? $"?childId={childId.Value}" : string.Empty;
+            var query = activeChildId.HasValue ? $"?childId={activeChildId.Value}" : string.Empty;
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<ParentDashboardStatsDto>>($"api/dashboards/parent{query}", JsonOptions);
             if (res?.Data != null)
             {
+                if (activeChildId.HasValue) CurrentSelectedChildId = activeChildId.Value;
                 if (res.Data.StudentDetails?.AdmissionNumber == "ADM-2026-0001" ||
                     res.Data.StudentDetails?.FullName?.Contains("Visal") == true ||
                     res.Data.Children.Any(c => c.AdmissionNumber == "ADM-2026-0001"))
@@ -519,7 +543,8 @@ public class ApiService : IApiService
             LogException("GetParentDashboardAsync", ex);
         }
 
-        var targetStudent = (childId.HasValue ? _mockStudents.FirstOrDefault(s => s.Id == childId.Value) : null) ?? _mockStudents.First();
+        var targetStudent = (activeChildId.HasValue ? _mockStudents.FirstOrDefault(s => s.Id == activeChildId.Value) : null) ?? _mockStudents.First();
+        CurrentSelectedChildId = targetStudent.Id;
         var studentAttendance = _mockAttendance.Where(a => a.StudentId == targetStudent.Id).ToList();
         decimal attendancePct = (targetStudent.AdmissionNumber == "ADM-2026-0001" || targetStudent.FullName.Contains("Visal"))
             ? 100.0m
@@ -1050,7 +1075,7 @@ public class ApiService : IApiService
                 ? $"api/grades/components?examId={examId}&classSectionId={classId}"
                 : $"api/grades/components?examId={examId}";
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>(url, JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count >= 8) return res;
         }
         catch (Exception ex)
         {
@@ -1059,6 +1084,10 @@ public class ApiService : IApiService
 
         var targetClassId = classId != Guid.Empty ? classId : Class10AId;
         var list = _mockComponents.Where(c => c.ClassSectionId == targetClassId).ToList();
+        if (list.Count == 0)
+        {
+            list = _mockComponents.Where(c => c.ClassSectionId == Class10AId).ToList();
+        }
         return ApiResponse<List<AssessmentComponentDto>>.Ok(list);
     }
 
@@ -1135,7 +1164,30 @@ public class ApiService : IApiService
         var studentGrades = _mockGrades.Where(g => g.StudentId == studentId).ToList();
         if (studentGrades.Count == 0)
         {
-            studentGrades = _mockGrades.Where(g => g.StudentId == StudentVisalId).ToList();
+            var studentObj = _mockStudents.FirstOrDefault(s => s.Id == studentId);
+            var studentName = studentObj?.FullName ?? "Enrolled Student";
+            var admNo = studentObj?.AdmissionNumber ?? "ADM-2026-0001";
+            var baseScores = new (Guid compId, Guid subjId, string subjName, decimal score, string letter, decimal gp, string remarks)[]
+            {
+                (CompKhmerId, SubjKhmerId, "Khmer Literature", 92.0m, "A", 4.0m, "Excellent Khmer composition and rhetoric"),
+                (CompMathId, SubjMathId, "Mathematics", 95.0m, "A", 4.0m, "Outstanding algebraic and calculus problem solving"),
+                (CompEnglishId, SubjEnglishId, "English Communication", 94.0m, "A", 4.0m, "Strong communicative fluency and essay analysis"),
+                (CompPhysicsId, SubjPhysicsId, "Physics", 88.0m, "B", 3.0m, "Very good experimental accuracy and wave physics"),
+                (CompChemistryId, SubjChemistryId, "Chemistry", 86.5m, "B", 3.0m, "Solid chemical reactions and stoichiometry calculations"),
+                (CompBiologyId, SubjBiologyId, "Biology", 90.0m, "A", 4.0m, "Great understanding of genetics and cellular structures"),
+                (CompHistoryId, SubjHistoryId, "History", 91.5m, "A", 4.0m, "Thorough knowledge of Cambodian and world history"),
+                (CompIctId, SubjIctId, "Computer Science & ICT", 98.0m, "A", 4.0m, "Exceptional coding logic and software projects")
+            };
+
+            studentGrades = baseScores.Select(b => new StudentGradeDto(
+                Guid.NewGuid(), b.compId, "Midterm Exam", b.subjId, b.subjName,
+                studentId, studentName, admNo, b.score, 100m, b.score, b.letter, b.gp, b.remarks
+            )).ToList();
+
+            foreach (var g in studentGrades)
+            {
+                _mockGrades.Add(g);
+            }
         }
 
         // Deduplicate by SubjectName

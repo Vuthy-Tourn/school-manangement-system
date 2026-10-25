@@ -459,7 +459,12 @@ public class DatabaseSeeder
                 // Kanha Sok
                 new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = mathComp.Id, StudentId = studentKanha.Id, ScoreObtained = 89.0m, Remarks = "Well done", GradedByUserId = teacherDaraUser.Id, GradedAtUtc = DateTime.UtcNow },
                 new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = khmerComp.Id, StudentId = studentKanha.Id, ScoreObtained = 95.0m, Remarks = "Top class score", GradedByUserId = teacherDaraUser.Id, GradedAtUtc = DateTime.UtcNow },
-                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = engComp.Id, StudentId = studentKanha.Id, ScoreObtained = 97.0m, Remarks = "Excellent communication skills", GradedByUserId = teacherChendaUser.Id, GradedAtUtc = DateTime.UtcNow }
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = engComp.Id, StudentId = studentKanha.Id, ScoreObtained = 97.0m, Remarks = "Excellent communication skills", GradedByUserId = teacherChendaUser.Id, GradedAtUtc = DateTime.UtcNow },
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = phyComp.Id, StudentId = studentKanha.Id, ScoreObtained = 84.0m, Remarks = "Good lab work and scientific writeup", GradedByUserId = teacherChendaUser.Id, GradedAtUtc = DateTime.UtcNow },
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = chemComp.Id, StudentId = studentKanha.Id, ScoreObtained = 91.0m, Remarks = "Excellent laboratory procedure compliance", GradedByUserId = teacherChendaUser.Id, GradedAtUtc = DateTime.UtcNow },
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = bioComp.Id, StudentId = studentKanha.Id, ScoreObtained = 88.0m, Remarks = "Solid grasp of evolutionary biology", GradedByUserId = teacherChendaUser.Id, GradedAtUtc = DateTime.UtcNow },
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = histComp.Id, StudentId = studentKanha.Id, ScoreObtained = 93.0m, Remarks = "Active historical analysis and source evaluation", GradedByUserId = teacherDaraUser.Id, GradedAtUtc = DateTime.UtcNow },
+                new StudentGrade { Id = Guid.NewGuid(), SchoolId = school.Id, AssessmentComponentId = ictComp.Id, StudentId = studentKanha.Id, ScoreObtained = 94.0m, Remarks = "Well executed interactive website project", GradedByUserId = teacherDaraUser.Id, GradedAtUtc = DateTime.UtcNow }
             );
 
             // 12. Fee Categories & Invoices

@@ -13,17 +13,19 @@
 
         <!-- Class Section & Day Selection Header -->
         <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,16">
-            <!-- Class Selector -->
+            <!-- Class Selector & Enrolled Class Header -->
             <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                 <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                    <Label Text="Weekly Class Timetable"
+                    <Label Text="{Binding PageHeaderTitle}"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}" />
-                    <Label Text="Select class and academic day to view class hours"
+                    <Label Text="{Binding PageHeaderSubtitle}"
                            FontSize="11"
                            TextColor="{StaticResource TextSecondary}" />
                 </VerticalStackLayout>
+
+                <!-- Class Dropdown (Faculty/Admin only) -->
                 <Border Grid.Column="1"
                         StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource SurfaceCard}"
@@ -33,7 +35,8 @@
                         WidthRequest="140"
                         MinimumWidthRequest="130"
                         HorizontalOptions="End"
-                        VerticalOptions="Center">
+                        VerticalOptions="Center"
+                        IsVisible="{Binding CanSwitchClass}">
                     <Picker ItemsSource="{Binding Classes}"
                             ItemDisplayBinding="{Binding Name, StringFormat='Class {0}'}"
                             SelectedItem="{Binding SelectedClass}"
@@ -41,6 +44,23 @@
                             FontAttributes="Bold"
                             FontSize="12"
                             VerticalOptions="Center" />
+                </Border>
+
+                <!-- Enrolled Class Section Badge (Student / Parent view - single class locked) -->
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource PrimaryLight}"
+                        Stroke="{StaticResource PrimaryBorder}"
+                        Padding="14,0"
+                        HeightRequest="36"
+                        HorizontalOptions="End"
+                        VerticalOptions="Center"
+                        IsVisible="{Binding IsStudentOrParent}">
+                    <Label Text="{Binding EnrolledClassBadgeText}"
+                           TextColor="{StaticResource Primary}"
+                           FontAttributes="Bold"
+                           FontSize="12"
+                           VerticalOptions="Center" />
                 </Border>
             </Grid>
 

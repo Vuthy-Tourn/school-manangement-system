@@ -63,8 +63,8 @@
                             </Border>
                         </VerticalStackLayout>
 
-                        <!-- Student Badge (Student/Parent view) -->
-                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding IsReadOnlyGrades}">
+                        <!-- Student Badge (Student only view) -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding IsStudentOnlyView}">
                             <Label Text="Student Academic Record"
                                    FontSize="11"
                                    FontAttributes="Bold"
@@ -74,11 +74,32 @@
                                     BackgroundColor="{StaticResource PrimaryLight}"
                                     Padding="10,0"
                                     HeightRequest="38">
-                                <Label Text="Enrolled Student"
+                                <Label Text="{Binding StudentDisplayName}"
                                        TextColor="{StaticResource Primary}"
                                        FontAttributes="Bold"
                                        FontSize="11"
                                        VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Child Selector Picker (Parent view) -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding IsParentView}">
+                            <Label Text="Viewing Child"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="8,0"
+                                    HeightRequest="38">
+                                <Picker ItemsSource="{Binding ParentChildren}"
+                                        ItemDisplayBinding="{Binding FullName}"
+                                        SelectedItem="{Binding SelectedChild}"
+                                        Title="Select Child"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="11"
+                                        VerticalOptions="Center" />
                             </Border>
                         </VerticalStackLayout>
                     </Grid>

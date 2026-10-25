@@ -639,6 +639,11 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private bool _canEditGrades = false;
     [ObservableProperty] private bool _isReadOnlyGrades = true;
     [ObservableProperty] private bool _isStudentView = false;
+    [ObservableProperty] private bool _isParentView = false;
+    [ObservableProperty] private bool _isStudentOnlyView = false;
+    [ObservableProperty] private ObservableCollection<LinkedStudentDto> _parentChildren = new();
+    [ObservableProperty] private LinkedStudentDto? _selectedChild;
+    [ObservableProperty] private string _studentDisplayName = "Enrolled Student";
     [ObservableProperty] private string _portalTitle = "Exams & Grading";
 
     public GradesViewModel(IApiService apiService)
@@ -655,6 +660,8 @@ public partial class GradesViewModel : BaseViewModel
         CanEditGrades = isFacultyOrAdmin;
         IsReadOnlyGrades = !isFacultyOrAdmin;
         IsStudentView = role is UserRole.Student or UserRole.Parent;
+        IsParentView = role == UserRole.Parent;
+        IsStudentOnlyView = role == UserRole.Student;
         PortalTitle = role switch
         {
             UserRole.Student => "My Grades & Assessments",
@@ -662,6 +669,16 @@ public partial class GradesViewModel : BaseViewModel
             _ => "Exams & Grading"
         };
         Title = PortalTitle;
+    }
+
+    partial void OnSelectedChildChanged(LinkedStudentDto? value)
+    {
+        if (value != null && IsParentView)
+        {
+            _apiService.CurrentSelectedChildId = value.StudentId;
+            StudentDisplayName = $"{value.FullName} ({value.ClassName ?? "Class 10-A"})";
+            _ = LoadGradesAsync();
+        }
     }
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
@@ -702,6 +719,30 @@ public partial class GradesViewModel : BaseViewModel
             {
                 Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
                 SelectedClass = Classes.FirstOrDefault();
+            }
+
+            var role = _apiService.CurrentUser?.Role;
+            if (IsParentView)
+            {
+                var childrenRes = await _apiService.GetParentChildrenAsync();
+                if (childrenRes.Success && childrenRes.Data != null && childrenRes.Data.Count > 0)
+                {
+                    ParentChildren = new ObservableCollection<LinkedStudentDto>(childrenRes.Data);
+                    SelectedChild = ParentChildren.FirstOrDefault(c => c.StudentId == _apiService.CurrentSelectedChildId)
+                        ?? ParentChildren.FirstOrDefault();
+                    if (SelectedChild != null)
+                    {
+                        _apiService.CurrentSelectedChildId = SelectedChild.StudentId;
+                        StudentDisplayName = $"{SelectedChild.FullName} ({SelectedChild.ClassName ?? "Class 10-A"})";
+                    }
+                }
+            }
+            else if (role == UserRole.Student)
+            {
+                var currentStudent = _apiService.CurrentUser;
+                StudentDisplayName = !string.IsNullOrEmpty(currentStudent?.FullName)
+                    ? $"{currentStudent.FullName} (Class 10-A)"
+                    : "Enrolled Student";
             }
 
             await LoadComponentsAsync();
@@ -753,6 +794,15 @@ public partial class GradesViewModel : BaseViewModel
                         {
                             allComponents = teacherComps;
                         }
+                    }
+                }
+
+                if (IsStudentView && allComponents.Count < 8)
+                {
+                    var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(SelectedExam?.Id ?? Guid.Empty, Guid.Empty);
+                    if (fallbackComponents.Success && fallbackComponents.Data != null && fallbackComponents.Data.Count > allComponents.Count)
+                    {
+                        allComponents = fallbackComponents.Data;
                     }
                 }
 
@@ -829,7 +879,20 @@ public partial class GradesViewModel : BaseViewModel
 
             if (IsStudentView)
             {
-                var studentId = _apiService.CurrentUser?.LinkedProfileId ?? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+                Guid studentId;
+                if (IsParentView)
+                {
+                    studentId = SelectedChild?.StudentId
+                        ?? _apiService.CurrentSelectedChildId
+                        ?? ParentChildren.FirstOrDefault()?.StudentId
+                        ?? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+                }
+                else
+                {
+                    studentId = _apiService.CurrentUser?.LinkedProfileId
+                        ?? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+                }
+
                 var allGradesRes = await _apiService.GetStudentAllGradesAsync(studentId, SelectedExam?.Id ?? Guid.Empty);
                 var allGrades = allGradesRes.Data ?? new List<StudentGradeDto>();
 
@@ -979,7 +1042,8 @@ public partial class GradesViewModel : BaseViewModel
     {
         IEnumerable<GradeEntryItemViewModel> list = StudentGrades;
 
-        if (SelectedStudentFilter != null && SelectedStudentFilter.StudentId != Guid.Empty)
+        // SelectedStudentFilter is only for Teacher/Admin gradebook roster filtering, never for Student/Parent views
+        if (!IsStudentView && SelectedStudentFilter != null && SelectedStudentFilter.StudentId != Guid.Empty)
         {
             list = list.Where(s => s.StudentId == SelectedStudentFilter.StudentId);
         }
@@ -1283,6 +1347,11 @@ public partial class TimetablesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<TimetableEntryDto> _scheduleSlots = new();
     [ObservableProperty] private bool _hasNoSlots;
     [ObservableProperty] private string _dayHeaderTitle = "Monday Schedule";
+    [ObservableProperty] private bool _canSwitchClass = true;
+    [ObservableProperty] private bool _isStudentOrParent = false;
+    [ObservableProperty] private string _pageHeaderTitle = "Weekly Class Timetable";
+    [ObservableProperty] private string _pageHeaderSubtitle = "Select class and academic day to view class hours";
+    [ObservableProperty] private string _enrolledClassBadgeText = "Class 10-A";
 
     public TimetablesViewModel(IApiService apiService)
     {
@@ -1326,6 +1395,10 @@ public partial class TimetablesViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
 
+            var role = _apiService.CurrentUser?.Role;
+            IsStudentOrParent = role is UserRole.Student or UserRole.Parent;
+            CanSwitchClass = !IsStudentOrParent;
+
             if (Classes.Count == 0)
             {
                 var classesRes = await _apiService.GetClassesAsync();
@@ -1343,9 +1416,34 @@ public partial class TimetablesViewModel : BaseViewModel
                 }
             }
 
-            if (SelectedClass == null && Classes.Count > 0)
+            if (role == UserRole.Student)
             {
-                SelectedClass = Classes.FirstOrDefault(c => c.Name.Equals("10-A", StringComparison.OrdinalIgnoreCase)) ?? Classes.FirstOrDefault();
+                PageHeaderTitle = "My Class Timetable";
+                var targetClass = Classes.FirstOrDefault(c => c.Name.Equals("10-A", StringComparison.OrdinalIgnoreCase)) ?? Classes.FirstOrDefault();
+                SelectedClass = targetClass;
+                EnrolledClassBadgeText = $"Class {SelectedClass?.Name ?? "10-A"}";
+                PageHeaderSubtitle = $"Class {SelectedClass?.Name ?? "10-A"} • {SelectedClass?.RoomNumber ?? "Room 201"} • Grade 10";
+            }
+            else if (role == UserRole.Parent)
+            {
+                var childRes = await _apiService.GetParentChildrenAsync();
+                var activeChild = childRes.Data?.FirstOrDefault(c => c.StudentId == _apiService.CurrentSelectedChildId) ?? childRes.Data?.FirstOrDefault();
+                var childName = activeChild?.FullName ?? "Child";
+                var className = activeChild?.ClassName ?? "10-A";
+                PageHeaderTitle = $"{childName}'s Class Timetable";
+                var targetClass = Classes.FirstOrDefault(c => c.Name.Contains(className, StringComparison.OrdinalIgnoreCase)) ?? Classes.FirstOrDefault();
+                SelectedClass = targetClass;
+                EnrolledClassBadgeText = $"Class {SelectedClass?.Name ?? "10-A"}";
+                PageHeaderSubtitle = $"Class {SelectedClass?.Name ?? "10-A"} • {SelectedClass?.RoomNumber ?? "Room 201"} • Grade 10";
+            }
+            else
+            {
+                PageHeaderTitle = "Weekly Class Timetable";
+                PageHeaderSubtitle = "Select class and academic day to view class hours";
+                if (SelectedClass == null && Classes.Count > 0)
+                {
+                    SelectedClass = Classes.FirstOrDefault(c => c.Name.Equals("10-A", StringComparison.OrdinalIgnoreCase)) ?? Classes.FirstOrDefault();
+                }
             }
 
             var classId = SelectedClass?.Id ?? Guid.Parse("a0000000-0000-0000-0000-000000000001");
