@@ -6,4 +6,18 @@
     Title="Nexora"
     FlyoutBehavior="Disabled">
 
+    <Shell.TitleView>
+        <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+            <Image Source="logo_icon_transparent.png"
+                   HeightRequest="26"
+                   WidthRequest="32"
+                   Aspect="AspectFit"
+                   VerticalOptions="Center" />
+            <Image Source="logo_wordmark_transparent.png"
+                   HeightRequest="16"
+                   Aspect="AspectFit"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+    </Shell.TitleView>
+
 </Shell>

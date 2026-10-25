@@ -222,6 +222,19 @@
                                 CornerRadius="6" />
                     </Grid>
 
+                    <!-- Official Nexora Branding Badge -->
+                    <Border StrokeShape="RoundRectangle 8"
+                            BackgroundColor="{StaticResource SurfaceLight}"
+                            Stroke="{StaticResource SurfaceBorderSubtle}"
+                            StrokeThickness="1"
+                            Padding="12,8"
+                            HorizontalOptions="Fill">
+                        <Image Source="logo_horizontal_transparent.png"
+                               HeightRequest="34"
+                               Aspect="AspectFit"
+                               HorizontalOptions="Center" />
+                    </Border>
+
                     <!-- Version & Status Row -->
                     <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                         <VerticalStackLayout Grid.Column="0" Spacing="2">

@@ -11,44 +11,22 @@
         <Grid Padding="24,40,24,32" VerticalOptions="Center" MaximumWidthRequest="500">
             <VerticalStackLayout Spacing="24">
 
-                <!-- Brand Header -->
-                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                    <!-- Brand Icon Badge -->
-                    <Border StrokeShape="RoundRectangle 20"
-                            BackgroundColor="{StaticResource Primary}"
-                            HeightRequest="72" WidthRequest="72"
-                            Stroke="{StaticResource PrimaryBorder}"
-                            StrokeThickness="1"
-                            HorizontalOptions="Center">
-                        <Grid>
-                            <Label Text="NX"
-                                   TextColor="{StaticResource White}"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
-
-                    <Label Text="Nexora"
-                           FontSize="28"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalTextAlignment="Center" />
-
-                    <Label Text="Smart School Management System"
-                           FontSize="14"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalTextAlignment="Center" />
+                <!-- Brand Header with Official Nexora Logo -->
+                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Image Source="logo_full_transparent.png"
+                           WidthRequest="220"
+                           HeightRequest="180"
+                           Aspect="AspectFit"
+                           HorizontalOptions="Center" />
 
                     <!-- School Institution Pill -->
                     <Border StrokeShape="RoundRectangle 16"
                             BackgroundColor="{StaticResource PrimaryLight}"
                             Stroke="{StaticResource PrimaryBorder}"
                             StrokeThickness="1"
-                            Padding="12,4"
+                            Padding="14,5"
                             HorizontalOptions="Center"
-                            Margin="0,4,0,0">
+                            Margin="0,0,0,0">
                         <Label Text="Angkor International Academy"
                                FontSize="12"
                                FontAttributes="Bold"
