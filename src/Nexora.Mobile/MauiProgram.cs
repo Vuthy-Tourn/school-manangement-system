@@ -47,6 +47,9 @@ public static class MauiProgram
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<AdminDashboardPage>();
+        builder.Services.AddTransient<TeacherDashboardPage>();
+        builder.Services.AddTransient<StudentDashboardPage>();
+        builder.Services.AddTransient<ParentDashboardPage>();
         builder.Services.AddTransient<StudentsPage>();
         builder.Services.AddTransient<StudentFormPage>();
         builder.Services.AddTransient<AttendancePage>();

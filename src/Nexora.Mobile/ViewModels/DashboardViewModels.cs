@@ -121,6 +121,12 @@ public partial class TeacherDashboardViewModel : BaseViewModel
     {
         await Shell.Current.GoToAsync("///grades");
     }
+
+    [RelayCommand]
+    private async Task NavigateToAsync(string route)
+    {
+        await Shell.Current.GoToAsync($"///{route}");
+    }
 }
 
 public partial class StudentDashboardViewModel : BaseViewModel
@@ -167,6 +173,12 @@ public partial class StudentDashboardViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task NavigateToAsync(string route)
+    {
+        await Shell.Current.GoToAsync($"///{route}");
     }
 }
 
@@ -226,5 +238,11 @@ public partial class ParentDashboardViewModel : BaseViewModel
         if (child == null) return;
         SelectedChild = child;
         await LoadDashboardAsync(child.StudentId);
+    }
+
+    [RelayCommand]
+    private async Task NavigateToAsync(string route)
+    {
+        await Shell.Current.GoToAsync($"///{route}");
     }
 }

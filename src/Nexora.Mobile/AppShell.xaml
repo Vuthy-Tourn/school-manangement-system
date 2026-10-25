@@ -3,35 +3,7 @@
     x:Class="Nexora.Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:Nexora.Mobile.Views"
     Title="Nexora"
     FlyoutBehavior="Disabled">
-
-    <TabBar>
-        <Tab Title="Dashboard" Icon="icon_dashboard.png">
-            <ShellContent ContentTemplate="{DataTemplate views:AdminDashboardPage}" Route="dashboard" />
-        </Tab>
-        <Tab Title="Students" Icon="icon_students.png">
-            <ShellContent ContentTemplate="{DataTemplate views:StudentsPage}" Route="students" />
-        </Tab>
-        <Tab Title="Attendance" Icon="icon_attendance.png">
-            <ShellContent ContentTemplate="{DataTemplate views:AttendancePage}" Route="attendance" />
-        </Tab>
-        <Tab Title="Grades" Icon="icon_grades.png">
-            <ShellContent ContentTemplate="{DataTemplate views:GradesPage}" Route="grades" />
-        </Tab>
-        <Tab Title="Fees" Icon="icon_fees.png">
-            <ShellContent ContentTemplate="{DataTemplate views:FeesPage}" Route="fees" />
-        </Tab>
-        <Tab Title="Timetable" Icon="icon_timetable.png">
-            <ShellContent ContentTemplate="{DataTemplate views:TimetablesPage}" Route="timetables" />
-        </Tab>
-        <Tab Title="Updates" Icon="icon_announcements.png">
-            <ShellContent ContentTemplate="{DataTemplate views:AnnouncementsPage}" Route="announcements" />
-        </Tab>
-        <Tab Title="Profile" Icon="icon_profile.png">
-            <ShellContent ContentTemplate="{DataTemplate views:ProfilePage}" Route="profile" />
-        </Tab>
-    </TabBar>
 
 </Shell>

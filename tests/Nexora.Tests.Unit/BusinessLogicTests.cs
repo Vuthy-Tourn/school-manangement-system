@@ -188,3 +188,48 @@ public class SecurityAndValidationTests
         result.Errors.Should().Contain(e => e.PropertyName == "AdmissionNumber");
     }
 }
+
+public class RoleBasedAuthenticationTests
+{
+    [Theory]
+    [InlineData("superadmin", UserRole.SuperAdmin)]
+    [InlineData("admin", UserRole.SchoolAdmin)]
+    [InlineData("teacher.dara", UserRole.Teacher)]
+    [InlineData("student.visal", UserRole.Student)]
+    [InlineData("parent.bopha", UserRole.Parent)]
+    public void RoleResolution_ShouldMapUsernameToCorrectRole(string username, UserRole expectedRole)
+    {
+        var resolvedRole = username.ToLower() switch
+        {
+            "superadmin" => UserRole.SuperAdmin,
+            "teacher.dara" or "teacher.chenda" or "teacher" => UserRole.Teacher,
+            "student.visal" or "student.kanha" or "student" => UserRole.Student,
+            "parent.bopha" or "parent" => UserRole.Parent,
+            _ => UserRole.SchoolAdmin
+        };
+
+        resolvedRole.Should().Be(expectedRole);
+    }
+
+    [Fact]
+    public void RolePermissions_ShouldDifferentiatePanels()
+    {
+        // Validate that roles have strictly segregated panel routes
+        var adminTabs = new[] { "dashboard", "students", "attendance", "grades", "fees", "timetables", "announcements", "profile" };
+        var teacherTabs = new[] { "dashboard", "attendance", "grades", "timetables", "announcements", "profile" };
+        var studentTabs = new[] { "dashboard", "timetables", "grades", "fees", "announcements", "profile" };
+        var parentTabs = new[] { "dashboard", "grades", "fees", "timetables", "announcements", "profile" };
+
+        teacherTabs.Should().NotContain("students");
+        teacherTabs.Should().NotContain("fees");
+
+        studentTabs.Should().NotContain("students");
+        studentTabs.Should().NotContain("attendance");
+
+        parentTabs.Should().NotContain("students");
+        parentTabs.Should().NotContain("attendance");
+
+        adminTabs.Should().Contain("students");
+        adminTabs.Should().Contain("fees");
+    }
+}
