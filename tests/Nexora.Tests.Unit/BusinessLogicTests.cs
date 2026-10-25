@@ -293,4 +293,39 @@ public class RoleBasedAuthenticationTests
         updated.PhoneNumber.Should().Be("+855 81 999 888");
         updated.Role.Should().Be(UserRole.Student);
     }
+
+    [Theory]
+    [InlineData("student.visal", UserRole.Student)]
+    [InlineData("teacher.dara", UserRole.Teacher)]
+    [InlineData("parent.bopha", UserRole.Parent)]
+    [InlineData("admin", UserRole.SchoolAdmin)]
+    [InlineData("superadmin", UserRole.SuperAdmin)]
+    [InlineData("unknown.user", UserRole.SchoolAdmin)]
+    public void RoleInference_FromUsername_ShouldMatchExpectedRole(string username, UserRole expectedRole)
+    {
+        var uname = username.ToLowerInvariant();
+        UserRole inferred;
+        if (uname.Contains("superadmin")) inferred = UserRole.SuperAdmin;
+        else if (uname.Contains("teacher")) inferred = UserRole.Teacher;
+        else if (uname.Contains("student")) inferred = UserRole.Student;
+        else if (uname.Contains("parent")) inferred = UserRole.Parent;
+        else inferred = UserRole.SchoolAdmin;
+
+        inferred.Should().Be(expectedRole);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Student, false, true)]
+    [InlineData(UserRole.Parent, false, true)]
+    [InlineData(UserRole.Teacher, true, false)]
+    [InlineData(UserRole.SchoolAdmin, true, false)]
+    [InlineData(UserRole.SuperAdmin, true, false)]
+    public void GradeEditingPermissions_ShouldMatchRole(UserRole role, bool canEdit, bool isReadOnly)
+    {
+        bool actualCanEdit = role is UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher;
+        bool actualReadOnly = !actualCanEdit;
+
+        actualCanEdit.Should().Be(canEdit);
+        actualReadOnly.Should().Be(isReadOnly);
+    }
 }

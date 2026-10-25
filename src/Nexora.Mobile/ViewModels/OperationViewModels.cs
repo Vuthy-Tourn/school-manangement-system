@@ -480,8 +480,8 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private AssessmentComponentDto? _selectedComponent;
     [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _studentGrades = new();
     [ObservableProperty] private ReportCardDto? _currentReportCard;
-    [ObservableProperty] private bool _canEditGrades = true;
-    [ObservableProperty] private bool _isReadOnlyGrades = false;
+    [ObservableProperty] private bool _canEditGrades = false; // FAIL-SAFE: Deny editing by default
+    [ObservableProperty] private bool _isReadOnlyGrades = true; // FAIL-SAFE: Read-only by default
     [ObservableProperty] private bool _isStudentView = false;
     [ObservableProperty] private string _portalTitle = "Exams & Grading";
 
@@ -489,6 +489,23 @@ public partial class GradesViewModel : BaseViewModel
     {
         _apiService = apiService;
         Title = "Academic Grading";
+        ApplyRolePermissions();
+    }
+
+    private void ApplyRolePermissions()
+    {
+        var role = _apiService.CurrentUser?.Role;
+        bool isFacultyOrAdmin = role is UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher;
+        CanEditGrades = isFacultyOrAdmin;
+        IsReadOnlyGrades = !isFacultyOrAdmin;
+        IsStudentView = role is UserRole.Student or UserRole.Parent;
+        PortalTitle = role switch
+        {
+            UserRole.Student => "My Grades & Assessments",
+            UserRole.Parent => "Student Academic Grades",
+            _ => "Exams & Grading"
+        };
+        Title = PortalTitle;
     }
 
     [RelayCommand]
@@ -497,17 +514,7 @@ public partial class GradesViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
-            CanEditGrades = role is UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher;
-            IsReadOnlyGrades = !CanEditGrades;
-            IsStudentView = role is UserRole.Student or UserRole.Parent;
-            PortalTitle = role switch
-            {
-                UserRole.Student => "My Grades & Assessments",
-                UserRole.Parent => "Student Academic Grades",
-                _ => "Exams & Grading"
-            };
-            Title = PortalTitle;
+            ApplyRolePermissions();
 
             var examsRes = await _apiService.GetExamsAsync();
             if (examsRes.Success && examsRes.Data != null)
@@ -566,22 +573,27 @@ public partial class GradesViewModel : BaseViewModel
         try
         {
             IsBusy = true;
+            ApplyRolePermissions();
+
             var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
             if (res.Success && res.Data != null)
             {
-                var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
+                var role = _apiService.CurrentUser?.Role;
                 var data = res.Data;
 
                 if (role == UserRole.Student)
                 {
                     var studentName = _apiService.CurrentUser?.FullName ?? "Visal Chan";
+                    var firstName = studentName.Split(' ').FirstOrDefault() ?? "Visal";
                     var match = data.Where(g => g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase)
-                                             || g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                                             || g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase)
+                                             || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && g.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
                     data = match.Count > 0 ? match : data.Take(1).ToList();
                 }
                 else if (role == UserRole.Parent)
                 {
-                    var match = data.Where(g => g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    var match = data.Where(g => g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)
+                                             || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && g.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
                     data = match.Count > 0 ? match : data.Take(1).ToList();
                 }
 
@@ -605,7 +617,14 @@ public partial class GradesViewModel : BaseViewModel
     [RelayCommand]
     public async Task SaveGradesAsync()
     {
-        if (!CanEditGrades || SelectedComponent == null || StudentGrades.Count == 0) return;
+        var role = _apiService.CurrentUser?.Role;
+        if (!CanEditGrades || role is not (UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher))
+        {
+            await Shell.Current.DisplayAlert("Access Denied", "Only teachers and administrators are authorized to save exam grades.", "OK");
+            return;
+        }
+
+        if (SelectedComponent == null || StudentGrades.Count == 0) return;
         try
         {
             IsBusy = true;
@@ -667,15 +686,29 @@ public partial class FeesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<InvoiceDto> _invoices = new();
     [ObservableProperty] private FinancialSummaryDto? _summary;
     [ObservableProperty] private InvoiceDto? _selectedInvoice;
-    [ObservableProperty] private bool _canRecordPayment = true;
-    [ObservableProperty] private bool _isReadOnlyInvoice = false;
-    [ObservableProperty] private bool _isAdminView = true;
+    [ObservableProperty] private bool _canRecordPayment = false; // FAIL-SAFE: Deny recording payment by default
+    [ObservableProperty] private bool _isReadOnlyInvoice = true; // FAIL-SAFE: Read-only by default
+    [ObservableProperty] private bool _isAdminView = false;      // FAIL-SAFE: Hide admin summaries by default
     [ObservableProperty] private string _pageTitle = "Tuition & Fees";
 
     public FeesViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Tuition & Fees";
+        ApplyRolePermissions();
+    }
+
+    private void ApplyRolePermissions()
+    {
+        var role = _apiService.CurrentUser?.Role;
+        bool isAdmin = role is UserRole.SuperAdmin or UserRole.SchoolAdmin;
+        CanRecordPayment = isAdmin;
+        IsReadOnlyInvoice = !isAdmin;
+        IsAdminView = isAdmin;
+        PageTitle = role == UserRole.Student 
+            ? "My Tuition Invoices" 
+            : (role == UserRole.Parent ? "Family Tuition Statements" : "Tuition & Fees");
+        Title = PageTitle;
     }
 
     [RelayCommand]
@@ -686,14 +719,9 @@ public partial class FeesViewModel : BaseViewModel
         {
             IsBusy = true;
             ClearError();
+            ApplyRolePermissions();
 
-            var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
-            CanRecordPayment = role is UserRole.SuperAdmin or UserRole.SchoolAdmin;
-            IsReadOnlyInvoice = !CanRecordPayment;
-            IsAdminView = CanRecordPayment;
-            PageTitle = role == UserRole.Student ? "My Tuition Invoices" : (role == UserRole.Parent ? "Family Tuition Statements" : "Tuition & Fees");
-            Title = PageTitle;
-
+            var role = _apiService.CurrentUser?.Role;
             var res = await _apiService.GetInvoicesAsync();
             if (res.Success && res.Data != null)
             {
@@ -701,13 +729,16 @@ public partial class FeesViewModel : BaseViewModel
                 if (role == UserRole.Student)
                 {
                     var studentName = _apiService.CurrentUser?.FullName ?? "Visal Chan";
+                    var firstName = studentName.Split(' ').FirstOrDefault() ?? "Visal";
                     var match = invoices.Where(inv => inv.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase)
-                                                   || inv.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                                                   || inv.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase)
+                                                   || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && inv.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
                     invoices = match.Count > 0 ? match : invoices.Take(1).ToList();
                 }
                 else if (role == UserRole.Parent)
                 {
-                    var match = invoices.Where(inv => inv.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    var match = invoices.Where(inv => inv.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)
+                                                   || (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && inv.StudentId == _apiService.CurrentUser.LinkedProfileId.Value)).ToList();
                     invoices = match.Count > 0 ? match : invoices.Take(1).ToList();
                 }
 
@@ -750,7 +781,14 @@ public partial class FeesViewModel : BaseViewModel
     [RelayCommand]
     public async Task RecordPaymentPromptAsync(InvoiceDto invoice)
     {
-        if (!CanRecordPayment || invoice == null) return;
+        var role = _apiService.CurrentUser?.Role;
+        if (!CanRecordPayment || role is not (UserRole.SuperAdmin or UserRole.SchoolAdmin))
+        {
+            await Shell.Current.DisplayAlert("Access Denied", "Only school finance administrators are authorized to record tuition fee payments.", "OK");
+            return;
+        }
+
+        if (invoice == null) return;
         if (invoice.RemainingBalance <= 0)
         {
             await Shell.Current.DisplayAlert("Paid", "This invoice is already fully paid.", "OK");
@@ -978,11 +1016,11 @@ public partial class ProfileViewModel : BaseViewModel
         }
         else
         {
-            FullName = "Administrator";
-            Email = "admin@angkoracademy.edu.kh";
-            PhoneNumber = "+855 23 888 101";
-            RoleBadge = "School Administrator";
-            RoleDepartment = "Academic & Campus Administration";
+            FullName = "Guest User";
+            Email = "guest@nexora.edu";
+            PhoneNumber = string.Empty;
+            RoleBadge = "Unauthenticated";
+            RoleDepartment = "Guest Portal";
         }
     }
 
@@ -1037,7 +1075,15 @@ public partial class ProfileViewModel : BaseViewModel
         await _apiService.LogoutAsync();
         if (Microsoft.Maui.Controls.Application.Current != null)
         {
-            Microsoft.Maui.Controls.Application.Current.MainPage = new NavigationPage(new Views.LoginPage(new LoginViewModel(_apiService)));
+            var loginPage = new NavigationPage(new Views.LoginPage(new LoginViewModel(_apiService)));
+            if (Microsoft.Maui.Controls.Application.Current.Windows.Count > 0)
+            {
+                Microsoft.Maui.Controls.Application.Current.Windows[0].Page = loginPage;
+            }
+            else
+            {
+                Microsoft.Maui.Controls.Application.Current.MainPage = loginPage;
+            }
         }
     }
 }

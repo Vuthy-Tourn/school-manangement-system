@@ -22,8 +22,14 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // 1. HTTP Client & API Service
-        builder.Services.AddHttpClient<IApiService, ApiService>();
+        // 1. HTTP Client & API Service (Registered as Singleton so all ViewModels and Pages share authenticated state)
+        builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<IApiService>(sp =>
+        {
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient();
+            return new ApiService(client);
+        });
 
         // 2. ViewModels
         builder.Services.AddTransient<LoginViewModel>();

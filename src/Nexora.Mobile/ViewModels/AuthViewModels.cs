@@ -114,7 +114,15 @@ public partial class LoginViewModel : BaseViewModel
             // Navigate to main AppShell or role dashboard
             if (Microsoft.Maui.Controls.Application.Current != null)
             {
-                Microsoft.Maui.Controls.Application.Current.MainPage = new AppShell(_apiService);
+                var appShell = new AppShell(_apiService);
+                if (Microsoft.Maui.Controls.Application.Current.Windows.Count > 0)
+                {
+                    Microsoft.Maui.Controls.Application.Current.Windows[0].Page = appShell;
+                }
+                else
+                {
+                    Microsoft.Maui.Controls.Application.Current.MainPage = appShell;
+                }
             }
         }
         catch (Exception ex)

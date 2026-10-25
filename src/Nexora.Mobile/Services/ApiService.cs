@@ -73,6 +73,9 @@ public class ApiService : IApiService
     private readonly HttpClient _httpClient;
     private string? _accessToken;
     private UserProfileDto? _currentUser;
+    private static string? _sharedAccessToken;
+    private static UserProfileDto? _sharedCurrentUser;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -108,8 +111,28 @@ public class ApiService : IApiService
         }
     }
 
-    public UserProfileDto? CurrentUser => _currentUser;
-    public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken) && _currentUser != null;
+    public UserProfileDto? CurrentUser
+    {
+        get => _currentUser ?? _sharedCurrentUser;
+        private set
+        {
+            _currentUser = value;
+            _sharedCurrentUser = value;
+        }
+    }
+
+    public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken ?? _sharedAccessToken) && CurrentUser != null;
+
+    public static UserRole InferRoleFromUsername(string? username)
+    {
+        var uname = (username ?? string.Empty).ToLowerInvariant();
+        if (uname.Contains("superadmin")) return UserRole.SuperAdmin;
+        if (uname.Contains("teacher")) return UserRole.Teacher;
+        if (uname.Contains("student")) return UserRole.Student;
+        if (uname.Contains("parent")) return UserRole.Parent;
+        if (uname.Contains("admin")) return UserRole.SchoolAdmin;
+        return UserRole.SchoolAdmin;
+    }
 
     public ApiService(HttpClient httpClient)
     {
@@ -124,11 +147,21 @@ public class ApiService : IApiService
             _httpClient.BaseAddress = new Uri(GetDefaultBaseUrl());
         }
         _httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+        if (!string.IsNullOrEmpty(_sharedAccessToken))
+        {
+            SetAuthorizationHeader(_sharedAccessToken);
+        }
+        if (_sharedCurrentUser != null)
+        {
+            _currentUser = _sharedCurrentUser;
+        }
     }
 
     private void SetAuthorizationHeader(string? token)
     {
         _accessToken = token;
+        _sharedAccessToken = token;
         if (!string.IsNullOrEmpty(token))
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -173,7 +206,13 @@ public class ApiService : IApiService
                 if (result?.Data != null)
                 {
                     SetAuthorizationHeader(result.Data.AccessToken);
-                    _currentUser = result.Data.User;
+                    var user = result.Data.User;
+                    if (user != null && (int)user.Role == 0)
+                    {
+                        var inferredRole = InferRoleFromUsername(user.Username);
+                        user = user with { Role = inferredRole };
+                    }
+                    CurrentUser = user;
                     try
                     {
                         await SecureStorage.Default.SetAsync("auth_token", result.Data.AccessToken);
@@ -263,7 +302,7 @@ public class ApiService : IApiService
             null
         );
 
-        _currentUser = user;
+        CurrentUser = user;
         SetAuthorizationHeader("offline_mock_token");
         AuthStateChanged?.Invoke();
 
@@ -274,28 +313,28 @@ public class ApiService : IApiService
 
     public async Task<ApiResponse<UserProfileDto>> UpdateProfileAsync(string fullName, string email, string? phoneNumber)
     {
-        if (_currentUser == null)
+        if (CurrentUser == null)
             return ApiResponse<UserProfileDto>.Fail("No active user session found.");
 
         var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        var first = parts.Length > 0 ? parts[0] : _currentUser.FirstName;
-        var last = parts.Length > 1 ? parts[1] : (parts.Length > 0 ? parts[0] : _currentUser.LastName);
+        var first = parts.Length > 0 ? parts[0] : CurrentUser.FirstName;
+        var last = parts.Length > 1 ? parts[1] : (parts.Length > 0 ? parts[0] : CurrentUser.LastName);
 
         var updated = new UserProfileDto(
-            _currentUser.Id,
-            _currentUser.SchoolId,
-            _currentUser.SchoolName,
-            _currentUser.Username,
+            CurrentUser.Id,
+            CurrentUser.SchoolId,
+            CurrentUser.SchoolName,
+            CurrentUser.Username,
             email,
             first,
             last,
             fullName,
-            _currentUser.Role,
+            CurrentUser.Role,
             phoneNumber,
-            _currentUser.LinkedProfileId
+            CurrentUser.LinkedProfileId
         );
 
-        _currentUser = updated;
+        CurrentUser = updated;
         AuthStateChanged?.Invoke();
         return ApiResponse<UserProfileDto>.Ok(updated, "Profile updated successfully.");
     }
@@ -304,6 +343,9 @@ public class ApiService : IApiService
     {
         SetAuthorizationHeader(null);
         _currentUser = null;
+        _sharedCurrentUser = null;
+        _accessToken = null;
+        _sharedAccessToken = null;
         try
         {
             SecureStorage.Default.Remove("auth_token");

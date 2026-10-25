@@ -23,7 +23,7 @@ public partial class AppShell : Shell
     {
         Items.Clear();
 
-        var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
+        var role = _apiService.CurrentUser?.Role ?? UserRole.Student;
         var tabBar = new TabBar();
 
         switch (role)
