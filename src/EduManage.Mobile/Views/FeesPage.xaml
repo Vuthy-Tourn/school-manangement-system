@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:EduManage.Mobile.ViewModels"
+             xmlns:dto="clr-namespace:EduManage.Application.DTOs;assembly=EduManage.Application"
+             x:Class="EduManage.Mobile.Views.FeesPage"
+             x:DataType="vm:FeesViewModel"
+             Title="Tuition &amp; Fees"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadInvoicesCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="16" Padding="16,16,16,32">
+
+                <!-- Financial Balance Summary -->
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <Border Grid.Column="0" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="INVOICED" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding Summary.TotalInvoiced, StringFormat='${0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="COLLECTED" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding Summary.TotalCollected, StringFormat='${0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="OUTSTANDING" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding Summary.TotalOutstanding, StringFormat='${0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Warning}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- Invoices Header -->
+                <Label Text="Student Invoices &amp; Accounts" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" Margin="0,6,0,0" />
+
+                <!-- Invoices List -->
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Invoices}" Spacing="12">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="dto:InvoiceDto">
+                            <Border StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                                <VerticalStackLayout Spacing="10">
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                            <Label Text="{Binding StudentName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                            <Label Text="{Binding InvoiceNumber}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                                        </VerticalStackLayout>
+
+                                        <Border Grid.Column="1" StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource WarningLight}" Padding="8,4" StrokeThickness="0">
+                                            <Label Text="{Binding Status}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Warning}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Amounts Breakdown -->
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6" BackgroundColor="{StaticResource SurfaceLight}" Padding="10">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                            <Label Text="Total" FontSize="10" TextColor="{StaticResource TextSecondary}" />
+                                            <Label Text="{Binding TotalAmount, StringFormat='${0:N2}'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="Paid" FontSize="10" TextColor="{StaticResource TextSecondary}" />
+                                            <Label Text="{Binding PaidAmount, StringFormat='${0:N2}'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                            <Label Text="Balance" FontSize="10" TextColor="{StaticResource TextSecondary}" />
+                                            <Label Text="{Binding RemainingBalance, StringFormat='${0:N2}'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Danger}" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                                        <Label Text="{Binding DueDate, StringFormat='Due: {0:MMM dd, yyyy}'}" FontSize="11" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
+
+                                        <Button Grid.Column="1"
+                                                Text="Record Payment"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=RecordPaymentPromptCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="{StaticResource Primary}"
+                                                TextColor="White"
+                                                FontSize="12" FontAttributes="Bold"
+                                                HeightRequest="36" Padding="12,0" CornerRadius="8" />
+                                    </Grid>
+
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

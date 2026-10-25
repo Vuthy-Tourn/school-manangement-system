@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:EduManage.Mobile.ViewModels"
+             xmlns:dto="clr-namespace:EduManage.Application.DTOs;assembly=EduManage.Application"
+             x:Class="EduManage.Mobile.Views.StudentsPage"
+             x:DataType="vm:StudentsViewModel"
+             Title="Students"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <Grid RowDefinitions="Auto,*" Padding="16,16,16,20">
+
+        <!-- Search Bar and Add Button Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,14">
+            <Border Grid.Column="0"
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Padding="12,0">
+                <SearchBar Text="{Binding SearchTerm}"
+                           Placeholder="Search by name, ID, or email..."
+                           SearchCommand="{Binding LoadStudentsCommand}"
+                           BackgroundColor="Transparent"
+                           FontSize="13" />
+            </Border>
+
+            <Button Grid.Column="1"
+                    Text="+ Add"
+                    Clicked="OnAddStudentClicked"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="10"
+                    HeightRequest="44" Padding="14,0" />
+        </Grid>
+
+        <!-- Student Cards List -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadStudentsCommand}">
+            <CollectionView ItemsSource="{Binding Students}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center" Padding="40">
+                        <Label Text="🔍" FontSize="40" HorizontalOptions="Center" />
+                        <Label Text="No Students Found" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                        <Label Text="Tap '+ Add' to register a new student or adjust your search filter." FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dto:StudentDto">
+                        <Border StrokeShape="RoundRectangle 14"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                Padding="16" Margin="0,0,0,12">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalOptions="Center">
+                                
+                                <!-- Student Avatar Badge -->
+                                <Border Grid.Column="0"
+                                        StrokeShape="RoundRectangle 22"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        HeightRequest="44" WidthRequest="44"
+                                        StrokeThickness="0">
+                                    <Label Text="🎓" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+
+                                <!-- Student Details -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding FullName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="{Binding AdmissionNumber, StringFormat='ID: {0}'}" FontSize="12" TextColor="{StaticResource Primary}" FontAttributes="Bold" />
+                                    <Label Text="{Binding CurrentClassName, StringFormat='Class: {0}'}" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                                    <Label Text="{Binding EmergencyContactPhone, StringFormat='Emergency: {0}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                                </VerticalStackLayout>
+
+                                <!-- Actions -->
+                                <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource SuccessLight}" Padding="6,2" StrokeThickness="0">
+                                        <Label Text="{Binding Status}" FontSize="10" TextColor="{StaticResource Success}" FontAttributes="Bold" />
+                                    </Border>
+                                    <Button Text="Deactivate"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:StudentsViewModel}}, Path=DeactivateStudentCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="{StaticResource DangerLight}"
+                                            TextColor="{StaticResource Danger}"
+                                            FontSize="10" HeightRequest="28" Padding="6,0" />
+                                </VerticalStackLayout>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+    </Grid>
+
+</ContentPage>

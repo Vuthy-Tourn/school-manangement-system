@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexora_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexora_school_db}
+      POSTGRES_USER: ${POSTGRES_USER:-nexora_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexora_secure_password_2026!}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - nexora_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexora_user} -d ${POSTGRES_DB:-nexora_school_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexora_network
+
+  api:
+    build:
+      context: .
+      dockerfile: src/EduManage.Api/Dockerfile
+    container_name: nexora_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-nexora_school_db};Username=${POSTGRES_USER:-nexora_user};Password=${POSTGRES_PASSWORD:-nexora_secure_password_2026!}"
+      Jwt__SecretKey: ${JWT_SECRET:-NexoraSchoolManagement_SuperSecret_JwtKey_2026_Cambodia_EdTech!}
+      Jwt__Issuer: EduManageServer
+      Jwt__Audience: EduManageClients
+      Jwt__ExpiryMinutes: 120
+      Jwt__RefreshTokenExpiryDays: 7
+    ports:
+      - "${API_PORT:-5180}:8080"
+    networks:
+      - nexora_network
+
+volumes:
+  nexora_pgdata:
+    driver: local
+
+networks:
+  nexora_network:
+    driver: bridge
