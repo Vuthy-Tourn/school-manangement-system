@@ -80,11 +80,31 @@ public class AnnouncementsController : BaseApiController
         return HandleResult(await _announcementService.GetAnnouncementsAsync(ct));
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> GetAnnouncement(Guid id, CancellationToken ct)
+    {
+        return HandleResult(await _announcementService.GetAnnouncementByIdAsync(id, ct));
+    }
+
     [HttpPost]
     [Authorize(Roles = "SuperAdmin,SchoolAdmin,Teacher")]
     public async Task<ActionResult<ApiResponse<AnnouncementDto>>> CreateAnnouncement([FromBody] CreateAnnouncementRequest request, CancellationToken ct)
     {
         return HandleResult(await _announcementService.CreateAnnouncementAsync(request, ct));
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,SchoolAdmin,Teacher")]
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> UpdateAnnouncement(Guid id, [FromBody] UpdateAnnouncementRequest request, CancellationToken ct)
+    {
+        return HandleResult(await _announcementService.UpdateAnnouncementAsync(id, request, ct));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,SchoolAdmin,Teacher")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteAnnouncement(Guid id, CancellationToken ct)
+    {
+        return HandleResult(await _announcementService.DeleteAnnouncementAsync(id, ct));
     }
 
     [HttpPost("{id:guid}/read")]

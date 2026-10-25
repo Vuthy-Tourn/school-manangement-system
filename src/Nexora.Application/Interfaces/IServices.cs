@@ -94,7 +94,10 @@ public interface IFeeService
 public interface IAnnouncementService
 {
     Task<ApiResponse<List<AnnouncementDto>>> GetAnnouncementsAsync(CancellationToken ct = default);
+    Task<ApiResponse<AnnouncementDto>> GetAnnouncementByIdAsync(Guid id, CancellationToken ct = default);
     Task<ApiResponse<AnnouncementDto>> CreateAnnouncementAsync(CreateAnnouncementRequest request, CancellationToken ct = default);
+    Task<ApiResponse<AnnouncementDto>> UpdateAnnouncementAsync(Guid id, UpdateAnnouncementRequest request, CancellationToken ct = default);
+    Task<ApiResponse<bool>> DeleteAnnouncementAsync(Guid id, CancellationToken ct = default);
     Task<ApiResponse<bool>> MarkAsReadAsync(Guid announcementId, CancellationToken ct = default);
 }
 

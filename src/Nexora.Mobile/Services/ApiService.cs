@@ -63,7 +63,10 @@ public interface IApiService
     Task<ApiResponse<FinancialSummaryDto>> GetFinancialSummaryAsync();
 
     Task<ApiResponse<List<AnnouncementDto>>> GetAnnouncementsAsync();
+    Task<ApiResponse<AnnouncementDto>> GetAnnouncementByIdAsync(Guid id);
     Task<ApiResponse<AnnouncementDto>> CreateAnnouncementAsync(CreateAnnouncementRequest request);
+    Task<ApiResponse<AnnouncementDto>> UpdateAnnouncementAsync(Guid id, UpdateAnnouncementRequest request);
+    Task<ApiResponse<bool>> DeleteAnnouncementAsync(Guid id);
     Task<ApiResponse<bool>> MarkAnnouncementAsReadAsync(Guid id);
 
     Task<ApiResponse<List<AuditLogDto>>> GetAuditLogsAsync();
@@ -379,6 +382,15 @@ public class ApiService : IApiService
         var totalPaid = _mockInvoices.Sum(i => i.PaidAmount);
         var totalDue = _mockInvoices.Sum(i => i.RemainingBalance);
 
+        var weeklyTrend = new List<AttendanceTrendItemDto>
+        {
+            new("Mon", 98.0m),
+            new("Tue", 96.5m),
+            new("Wed", 100.0m),
+            new("Thu", 97.5m),
+            new("Fri", 99.0m)
+        };
+
         return ApiResponse<AdminDashboardStatsDto>.Ok(new AdminDashboardStatsDto(
             TotalStudents: activeStudents,
             TotalTeachers: _mockTeachers.Count,
@@ -387,7 +399,8 @@ public class ApiService : IApiService
             TotalFeesCollected: totalPaid > 0 ? totalPaid : 64200.0m,
             TotalFeesOutstanding: totalDue > 0 ? totalDue : 8900.0m,
             RecentAnnouncements: _mockAnnouncements.Take(3).ToList(),
-            RecentAudits: _mockAudits.Take(4).ToList()
+            RecentAudits: _mockAudits.Take(4).ToList(),
+            WeeklyAttendanceTrend: weeklyTrend
         ));
     }
 
@@ -1280,6 +1293,24 @@ public class ApiService : IApiService
         return ApiResponse<List<AnnouncementDto>>.Ok(_mockAnnouncements);
     }
 
+    public async Task<ApiResponse<AnnouncementDto>> GetAnnouncementByIdAsync(Guid id)
+    {
+        try
+        {
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<AnnouncementDto>>($"api/announcements/{id}", JsonOptions);
+            if (res?.Data != null) return res;
+        }
+        catch (Exception ex)
+        {
+            LogException("GetAnnouncementByIdAsync", ex);
+        }
+
+        var found = _mockAnnouncements.FirstOrDefault(a => a.Id == id);
+        return found != null
+            ? ApiResponse<AnnouncementDto>.Ok(found)
+            : ApiResponse<AnnouncementDto>.Fail("Announcement not found.");
+    }
+
     public async Task<ApiResponse<AnnouncementDto>> CreateAnnouncementAsync(CreateAnnouncementRequest request)
     {
         try
@@ -1305,6 +1336,67 @@ public class ApiService : IApiService
             request.TargetRole, request.TargetClassSectionId, "10-A", request.Priority, false, DateTime.UtcNow, "Admin", false);
         _mockAnnouncements.Insert(0, a);
         return ApiResponse<AnnouncementDto>.Ok(a, "Announcement published.");
+    }
+
+    public async Task<ApiResponse<AnnouncementDto>> UpdateAnnouncementAsync(Guid id, UpdateAnnouncementRequest request)
+    {
+        try
+        {
+            var res = await _httpClient.PutAsJsonAsync($"api/announcements/{id}", request);
+            if (res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadFromJsonAsync<ApiResponse<AnnouncementDto>>(JsonOptions);
+                if (body?.Data != null)
+                {
+                    var idx = _mockAnnouncements.FindIndex(a => a.Id == id);
+                    if (idx >= 0) _mockAnnouncements[idx] = body.Data;
+                    return body;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("UpdateAnnouncementAsync", ex);
+        }
+
+        var existingIdx = _mockAnnouncements.FindIndex(a => a.Id == id);
+        if (existingIdx >= 0)
+        {
+            var existing = _mockAnnouncements[existingIdx];
+            var updated = existing with
+            {
+                Title = request.Title,
+                Content = request.Content,
+                TargetRole = request.TargetRole,
+                TargetClassSectionId = request.TargetClassSectionId,
+                Priority = request.Priority,
+                IsArchived = request.IsArchived
+            };
+            _mockAnnouncements[existingIdx] = updated;
+            return ApiResponse<AnnouncementDto>.Ok(updated, "Announcement updated.");
+        }
+
+        return ApiResponse<AnnouncementDto>.Fail("Announcement not found.");
+    }
+
+    public async Task<ApiResponse<bool>> DeleteAnnouncementAsync(Guid id)
+    {
+        try
+        {
+            var res = await _httpClient.DeleteAsync($"api/announcements/{id}");
+            if (res.IsSuccessStatusCode)
+            {
+                _mockAnnouncements.RemoveAll(a => a.Id == id);
+                return ApiResponse<bool>.Ok(true, "Announcement deleted.");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("DeleteAnnouncementAsync", ex);
+        }
+
+        _mockAnnouncements.RemoveAll(a => a.Id == id);
+        return ApiResponse<bool>.Ok(true, "Announcement deleted.");
     }
 
     public async Task<ApiResponse<bool>> MarkAnnouncementAsReadAsync(Guid id)

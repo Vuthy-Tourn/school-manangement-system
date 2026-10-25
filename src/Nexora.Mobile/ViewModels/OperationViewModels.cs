@@ -1249,11 +1249,29 @@ public partial class AnnouncementsViewModel : BaseViewModel
     private readonly IApiService _apiService;
 
     [ObservableProperty] private ObservableCollection<AnnouncementDto> _announcements = new();
+    [ObservableProperty] private bool _canManage;
+    [ObservableProperty] private bool _isFormVisible;
+    [ObservableProperty] private string _formDialogTitle = "New Announcement";
+    [ObservableProperty] private Guid? _editingId;
+    [ObservableProperty] private string _titleInput = string.Empty;
+    [ObservableProperty] private string _contentInput = string.Empty;
+    [ObservableProperty] private string _selectedPriority = "Normal";
+    [ObservableProperty] private string _selectedTargetRole = "All";
+
+    public ObservableCollection<string> PriorityOptions { get; } = new() { "Normal", "High", "Urgent" };
+    public ObservableCollection<string> TargetRoleOptions { get; } = new() { "All", "Teachers", "Students", "Parents" };
 
     public AnnouncementsViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Announcements";
+        UpdatePermissions();
+    }
+
+    private void UpdatePermissions()
+    {
+        var role = _apiService.CurrentUser?.Role;
+        CanManage = role is UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher;
     }
 
     [RelayCommand]
@@ -1264,6 +1282,7 @@ public partial class AnnouncementsViewModel : BaseViewModel
         {
             IsBusy = true;
             ClearError();
+            UpdatePermissions();
 
             var res = await _apiService.GetAnnouncementsAsync();
             if (res.Success && res.Data != null)
@@ -1274,6 +1293,126 @@ public partial class AnnouncementsViewModel : BaseViewModel
         catch (Exception ex)
         {
             SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenCreateDialog()
+    {
+        EditingId = null;
+        FormDialogTitle = "New Announcement";
+        TitleInput = string.Empty;
+        ContentInput = string.Empty;
+        SelectedPriority = "Normal";
+        SelectedTargetRole = "All";
+        IsFormVisible = true;
+    }
+
+    [RelayCommand]
+    public void OpenEditDialog(AnnouncementDto item)
+    {
+        if (item == null) return;
+        EditingId = item.Id;
+        FormDialogTitle = "Edit Announcement";
+        TitleInput = item.Title;
+        ContentInput = item.Content;
+        SelectedPriority = item.Priority.ToString();
+        SelectedTargetRole = item.TargetRole.ToString();
+        IsFormVisible = true;
+    }
+
+    [RelayCommand]
+    public void CloseDialog()
+    {
+        IsFormVisible = false;
+        EditingId = null;
+    }
+
+    [RelayCommand]
+    public async Task SaveAnnouncementAsync()
+    {
+        if (string.IsNullOrWhiteSpace(TitleInput) || string.IsNullOrWhiteSpace(ContentInput))
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please enter both title and content.", "OK");
+            return;
+        }
+
+        var priority = Enum.TryParse<AnnouncementPriority>(SelectedPriority, true, out var p) ? p : AnnouncementPriority.Normal;
+        var targetRole = Enum.TryParse<AnnouncementTarget>(SelectedTargetRole, true, out var t) ? t : AnnouncementTarget.All;
+
+        try
+        {
+            IsBusy = true;
+            if (EditingId.HasValue)
+            {
+                var req = new UpdateAnnouncementRequest(TitleInput.Trim(), ContentInput.Trim(), targetRole, null, priority, false);
+                var res = await _apiService.UpdateAnnouncementAsync(EditingId.Value, req);
+                if (res.Success && res.Data != null)
+                {
+                    var idx = Announcements.ToList().FindIndex(a => a.Id == EditingId.Value);
+                    if (idx >= 0) Announcements[idx] = res.Data;
+                    IsFormVisible = false;
+                    await Shell.Current.DisplayAlert("Updated", "Announcement updated successfully.", "OK");
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Error", res.Message ?? "Failed to update announcement.", "OK");
+                }
+            }
+            else
+            {
+                var req = new CreateAnnouncementRequest(TitleInput.Trim(), ContentInput.Trim(), targetRole, null, priority);
+                var res = await _apiService.CreateAnnouncementAsync(req);
+                if (res.Success && res.Data != null)
+                {
+                    Announcements.Insert(0, res.Data);
+                    IsFormVisible = false;
+                    await Shell.Current.DisplayAlert("Published", "Announcement published successfully.", "OK");
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Error", res.Message ?? "Failed to publish announcement.", "OK");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteAnnouncementAsync(AnnouncementDto item)
+    {
+        if (item == null) return;
+        bool confirm = await Shell.Current.DisplayAlert("Delete Announcement", $"Are you sure you want to delete '{item.Title}'?", "Delete", "Cancel");
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            var res = await _apiService.DeleteAnnouncementAsync(item.Id);
+            if (res.Success)
+            {
+                Announcements.Remove(item);
+                await Shell.Current.DisplayAlert("Deleted", "Announcement removed.", "OK");
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert("Error", res.Message ?? "Failed to delete announcement.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
         }
         finally
         {

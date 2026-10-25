@@ -7,6 +7,27 @@ using Nexora.Mobile.Services;
 
 namespace Nexora.Mobile.ViewModels;
 
+public class AttendanceChartColumn
+{
+    public string Day { get; set; } = string.Empty;
+    public decimal Percentage { get; set; }
+    public string FormattedPercentage => $"{Percentage:F1}%";
+    public double BarHeight => (double)Math.Clamp(Percentage * 1.15m, 20m, 120m);
+    public bool IsPeak { get; set; }
+    public Color BarColor => IsPeak ? Color.FromArgb("#16A34A") : Color.FromArgb("#1E40AF");
+    public Color TrackColor => IsPeak ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#DBEAFE");
+    public Color BadgeColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#1E40AF");
+}
+
+public class GradeDistributionSegment
+{
+    public string Grade { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int Percentage { get; set; }
+    public string FormattedPercentage => $"{Percentage}%";
+    public Color SegmentColor { get; set; } = Colors.Gray;
+}
+
 public partial class AdminDashboardViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
@@ -20,10 +41,49 @@ public partial class AdminDashboardViewModel : BaseViewModel
     [ObservableProperty]
     private ObservableCollection<AuditLogDto> _recentAudits = new();
 
+    [ObservableProperty]
+    private ObservableCollection<AttendanceChartColumn> _weeklyAttendance = new();
+
+    [ObservableProperty]
+    private decimal _weeklyAverageAttendance = 98.2m;
+
+    [ObservableProperty]
+    private decimal _feeCollectionPercentage = 87.8m;
+
+    [ObservableProperty]
+    private GridLength _collectedWidth = new(88, GridUnitType.Star);
+
+    [ObservableProperty]
+    private GridLength _outstandingWidth = new(12, GridUnitType.Star);
+
+    [ObservableProperty]
+    private ObservableCollection<GradeDistributionSegment> _gradeDistribution = new();
+
     public AdminDashboardViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "School Administrator";
+        InitializeDefaultGraphs();
+    }
+
+    private void InitializeDefaultGraphs()
+    {
+        WeeklyAttendance = new ObservableCollection<AttendanceChartColumn>
+        {
+            new() { Day = "Mon", Percentage = 98.0m, IsPeak = false },
+            new() { Day = "Tue", Percentage = 96.5m, IsPeak = false },
+            new() { Day = "Wed", Percentage = 100.0m, IsPeak = true },
+            new() { Day = "Thu", Percentage = 97.5m, IsPeak = false },
+            new() { Day = "Fri", Percentage = 99.0m, IsPeak = false }
+        };
+
+        GradeDistribution = new ObservableCollection<GradeDistributionSegment>
+        {
+            new() { Grade = "Grade A", Description = "Distinction (90-100%)", Percentage = 48, SegmentColor = Color.FromArgb("#15803D") },
+            new() { Grade = "Grade B", Description = "Merit (80-89%)", Percentage = 34, SegmentColor = Color.FromArgb("#2563EB") },
+            new() { Grade = "Grade C", Description = "Satisfactory (70-79%)", Percentage = 14, SegmentColor = Color.FromArgb("#D97706") },
+            new() { Grade = "Grade D/F", Description = "Review Needed (<70%)", Percentage = 4, SegmentColor = Color.FromArgb("#DC2626") }
+        };
     }
 
     [RelayCommand]
@@ -41,6 +101,41 @@ public partial class AdminDashboardViewModel : BaseViewModel
                 Stats = res.Data;
                 RecentAnnouncements = new ObservableCollection<AnnouncementDto>(res.Data.RecentAnnouncements);
                 RecentAudits = new ObservableCollection<AuditLogDto>(res.Data.RecentAudits);
+
+                // Update Weekly Attendance Trends
+                var trends = res.Data.WeeklyAttendanceTrend ?? new List<AttendanceTrendItemDto>
+                {
+                    new("Mon", 98.0m),
+                    new("Tue", 96.5m),
+                    new("Wed", 100.0m),
+                    new("Thu", 97.5m),
+                    new("Fri", 99.0m)
+                };
+
+                var maxVal = trends.Max(t => t.Percentage);
+                WeeklyAttendance = new ObservableCollection<AttendanceChartColumn>(
+                    trends.Select(t => new AttendanceChartColumn
+                    {
+                        Day = t.Day,
+                        Percentage = t.Percentage,
+                        IsPeak = t.Percentage == maxVal
+                    })
+                );
+
+                if (WeeklyAttendance.Count > 0)
+                {
+                    WeeklyAverageAttendance = Math.Round(WeeklyAttendance.Average(x => x.Percentage), 1);
+                }
+
+                // Update Fee Collection Graph
+                var totalFees = res.Data.TotalFeesCollected + res.Data.TotalFeesOutstanding;
+                if (totalFees > 0)
+                {
+                    FeeCollectionPercentage = Math.Round((res.Data.TotalFeesCollected / totalFees) * 100m, 1);
+                    var collectedRatio = Math.Clamp((int)FeeCollectionPercentage, 1, 99);
+                    CollectedWidth = new GridLength(collectedRatio, GridUnitType.Star);
+                    OutstandingWidth = new GridLength(100 - collectedRatio, GridUnitType.Star);
+                }
             }
             else
             {

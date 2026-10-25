@@ -258,7 +258,242 @@
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- 4. Campus Announcements -->
+                <!-- 4. Institutional Analytics & Visual Graphs -->
+                <VerticalStackLayout Spacing="14">
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Institutional Analytics &amp; Trends"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="Weekly Attendance &amp; Tuition Performance Graphs"
+                                   FontSize="11"
+                                   TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                Stroke="{StaticResource PrimaryBorder}"
+                                Padding="8,4">
+                            <Label Text="Live Analytics" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Graph 1: Weekly Attendance Trend Bar Chart -->
+                    <Border StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="18,16">
+                        <VerticalStackLayout Spacing="14">
+                            <!-- Header -->
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Weekly Attendance Trend"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Monday – Friday Campus Attendance Rate"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource SuccessLight}"
+                                        Stroke="{StaticResource SuccessBorder}"
+                                        Padding="8,4">
+                                    <Label Text="{Binding WeeklyAverageAttendance, StringFormat='Avg: {0:F1}%'}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource SuccessText}" />
+                                </Border>
+                            </Grid>
+
+                            <!-- 5-Day Bar Visualizer -->
+                            <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="8" HeightRequest="150" Margin="0,8,0,0">
+                                <!-- Monday -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
+                                    <Label Text="98.0%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="98" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="Mon" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+
+                                <!-- Tuesday -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
+                                    <Label Text="96.5%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="96" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="Tue" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+
+                                <!-- Wednesday (Peak) -->
+                                <VerticalStackLayout Grid.Column="2" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource SuccessLight}" Padding="4,1">
+                                        <Label Text="100%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                                    </Border>
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SuccessLight}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Success}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="Wed" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+
+                                <!-- Thursday -->
+                                <VerticalStackLayout Grid.Column="3" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
+                                    <Label Text="97.5%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="97" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="Thu" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+
+                                <!-- Friday -->
+                                <VerticalStackLayout Grid.Column="4" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
+                                    <Label Text="99.0%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="99" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="Fri" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Graph 2: Tuition Revenue Progress Bar -->
+                    <Border StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="18,16">
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Tuition Realization Progress"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Collected vs Outstanding Ratio"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        Stroke="{StaticResource PrimaryBorder}"
+                                        Padding="8,4">
+                                    <Label Text="{Binding FeeCollectionPercentage, StringFormat='{0:F1}% Realized'}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" />
+                                </Border>
+                            </Grid>
+
+                            <!-- Segmented Progress Bar -->
+                            <Border StrokeShape="RoundRectangle 8"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    HeightRequest="14"
+                                    StrokeThickness="0"
+                                    Padding="0">
+                                <Grid ColumnDefinitions="88*,12*">
+                                    <!-- Collected Segment -->
+                                    <BoxView Grid.Column="0" Color="{StaticResource Success}" HorizontalOptions="Fill" />
+                                    <!-- Remaining Segment -->
+                                    <BoxView Grid.Column="1" Color="{StaticResource Warning}" HorizontalOptions="Fill" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Breakdown Legends -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <Border Grid.Column="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource SuccessLight}"
+                                        Stroke="{StaticResource SuccessBorder}"
+                                        Padding="10,8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="{StaticResource Success}" VerticalOptions="Center" />
+                                            <Label Text="Collected" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Stats.TotalFeesCollected, StringFormat='${0:N2}'}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource WarningLight}"
+                                        Stroke="{StaticResource WarningBorder}"
+                                        Padding="10,8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="{StaticResource Warning}" VerticalOptions="Center" />
+                                            <Label Text="Outstanding" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource WarningText}" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Stats.TotalFeesOutstanding, StringFormat='${0:N2}'}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource WarningText}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Graph 3: Academic Grade Spread Distribution -->
+                    <Border StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="18,16">
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Academic Performance Distribution"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="School-wide Grade 10 Exam Outcomes"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1" Text="Semester 1" FontSize="11" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
+                            </Grid>
+
+                            <!-- 4-tier Grade Distribution Bar -->
+                            <Border StrokeShape="RoundRectangle 8"
+                                    HeightRequest="12"
+                                    StrokeThickness="0"
+                                    Padding="0">
+                                <Grid ColumnDefinitions="48*,34*,14*,4*">
+                                    <BoxView Grid.Column="0" Color="#15803D" HorizontalOptions="Fill" />
+                                    <BoxView Grid.Column="1" Color="#2563EB" HorizontalOptions="Fill" />
+                                    <BoxView Grid.Column="2" Color="#D97706" HorizontalOptions="Fill" />
+                                    <BoxView Grid.Column="3" Color="#DC2626" HorizontalOptions="Fill" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Grade Legend Pills -->
+                            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="Grade A (48%)" FontSize="10" FontAttributes="Bold" TextColor="#15803D" HorizontalOptions="Center" />
+                                    <Label Text="Distinction" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="Grade B (34%)" FontSize="10" FontAttributes="Bold" TextColor="#2563EB" HorizontalOptions="Center" />
+                                    <Label Text="Merit" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="Grade C (14%)" FontSize="10" FontAttributes="Bold" TextColor="#D97706" HorizontalOptions="Center" />
+                                    <Label Text="Passing" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="Grade D/F (4%)" FontSize="10" FontAttributes="Bold" TextColor="#DC2626" HorizontalOptions="Center" />
+                                    <Label Text="Review" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- 5. Campus Announcements -->
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="Campus Announcements"

@@ -25,6 +25,15 @@ public record CreateAnnouncementRequest(
     AnnouncementPriority Priority
 );
 
+public record UpdateAnnouncementRequest(
+    string Title,
+    string Content,
+    AnnouncementTarget TargetRole,
+    Guid? TargetClassSectionId,
+    AnnouncementPriority Priority,
+    bool IsArchived = false
+);
+
 public record NotificationDto(
     Guid Id,
     Guid UserId,

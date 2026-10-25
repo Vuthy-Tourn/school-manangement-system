@@ -8,89 +8,278 @@
              Title="Campus Announcements"
              BackgroundColor="{StaticResource SurfaceLight}">
 
-    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAnnouncementsCommand}">
-        <CollectionView ItemsSource="{Binding Announcements}" Margin="20,16,20,24">
-            <CollectionView.EmptyView>
-                <Border StrokeShape="RoundRectangle 12"
-                        BackgroundColor="{StaticResource SurfaceCard}"
-                        Stroke="{StaticResource SurfaceBorder}"
-                        Padding="32"
-                        Margin="0,20"
-                        HorizontalOptions="Center">
-                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                        <Image Source="icon_announcements.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
-                        <Label Text="No Active Announcements"
-                               FontSize="15"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}"
-                               HorizontalOptions="Center" />
-                        <Label Text="All campus bulletins and official school notices will appear here."
-                               FontSize="12"
-                               TextColor="{StaticResource TextSecondary}"
-                               HorizontalTextAlignment="Center" />
-                    </VerticalStackLayout>
-                </Border>
-            </CollectionView.EmptyView>
+    <Grid>
+        <!-- Main Content -->
+        <Grid RowDefinitions="Auto,*">
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="dto:AnnouncementDto">
-                    <Border StrokeShape="RoundRectangle 12"
-                            BackgroundColor="{StaticResource SurfaceCard}"
-                            Stroke="{StaticResource SurfaceBorder}"
-                            StrokeThickness="1"
-                            Padding="18,16"
-                            Margin="0,0,0,12">
-                        <VerticalStackLayout Spacing="10">
-                            <!-- Header Row: Title & Priority Pill -->
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                <Label Text="{Binding Title}"
+            <!-- Top Action Header -->
+            <Border Grid.Row="0"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,14">
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Campus Bulletins"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Official Notices &amp; Administrative Updates"
+                               FontSize="11"
+                               TextColor="{StaticResource TextMuted}" />
+                    </VerticalStackLayout>
+
+                    <!-- Add Announcement Button (Admins & Teachers) -->
+                    <Button Grid.Column="1"
+                            Text="+ Post Notice"
+                            Command="{Binding OpenCreateDialogCommand}"
+                            IsVisible="{Binding CanManage}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
+                            FontAttributes="Bold"
+                            FontSize="12"
+                            CornerRadius="8"
+                            HeightRequest="36"
+                            Padding="14,0"
+                            VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Announcements List -->
+            <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAnnouncementsCommand}">
+                <CollectionView ItemsSource="{Binding Announcements}" Margin="20,16,20,24">
+                    <CollectionView.EmptyView>
+                        <Border StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                Padding="32"
+                                Margin="0,20"
+                                HorizontalOptions="Center">
+                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image Source="icon_announcements.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
+                                <Label Text="No Active Announcements"
                                        FontSize="15"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}" />
+                                       TextColor="{StaticResource TextPrimary}"
+                                       HorizontalOptions="Center" />
+                                <Label Text="All campus bulletins and official school notices will appear here."
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </CollectionView.EmptyView>
 
-                                <Border Grid.Column="1"
-                                        StrokeShape="RoundRectangle 12"
-                                        BackgroundColor="{StaticResource WarningLight}"
-                                        Stroke="{StaticResource WarningBorder}"
-                                        StrokeThickness="1"
-                                        Padding="10,2"
-                                        VerticalOptions="Start">
-                                    <Label Text="{Binding Priority}"
-                                           FontSize="10"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource WarningText}" />
-                                </Border>
-                            </Grid>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dto:AnnouncementDto">
+                            <Border StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{StaticResource SurfaceCard}"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    Padding="18,16"
+                                    Margin="0,0,0,12">
+                                <VerticalStackLayout Spacing="10">
+                                    <!-- Header Row: Title & Priority Pill -->
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <Label Text="{Binding Title}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}" />
 
-                            <!-- Announcement Body -->
-                            <Label Text="{Binding Content}"
+                                        <Border Grid.Column="1"
+                                                StrokeShape="RoundRectangle 12"
+                                                BackgroundColor="{StaticResource WarningLight}"
+                                                Stroke="{StaticResource WarningBorder}"
+                                                StrokeThickness="1"
+                                                Padding="10,2"
+                                                VerticalOptions="Start">
+                                            <Label Text="{Binding Priority}"
+                                                   FontSize="10"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource WarningText}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Announcement Body -->
+                                    <Label Text="{Binding Content}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="WordWrap"
+                                           LineHeight="1.2" />
+
+                                    <!-- Metadata Row: Target, Author & Date -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,4,0,0" VerticalOptions="Center">
+                                        <!-- Target Audience Badge -->
+                                        <Border Grid.Column="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{StaticResource PrimaryLight}"
+                                                Stroke="{StaticResource PrimaryBorder}"
+                                                Padding="6,2"
+                                                VerticalOptions="Center">
+                                            <Label Text="{Binding TargetRole, StringFormat='Audience: {0}'}"
+                                                   FontSize="10"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Primary}" />
+                                        </Border>
+
+                                        <!-- Author Info -->
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <Label Text="✍️" FontSize="11" VerticalOptions="Center" />
+                                            <Label Text="{Binding PublishedByName, StringFormat='By {0}'}"
+                                                   FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextMuted}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+
+                                        <!-- Date -->
+                                        <Label Grid.Column="2"
+                                               Text="{Binding PublishedAtUtc, StringFormat='{0:MMM dd, yyyy}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextMuted}"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+
+                                    <!-- Action Buttons (Admins & Teachers) -->
+                                    <HorizontalStackLayout Spacing="8"
+                                                           Margin="0,4,0,0"
+                                                           HorizontalOptions="End"
+                                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=CanManage}">
+                                        <!-- Edit Button -->
+                                        <Button Text="Edit"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=OpenEditDialogCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource SecondaryDark}"
+                                                FontSize="11"
+                                                FontAttributes="Bold"
+                                                HeightRequest="30"
+                                                Padding="12,0"
+                                                CornerRadius="6" />
+
+                                        <!-- Delete Button -->
+                                        <Button Text="Delete"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=DeleteAnnouncementCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#FEE2E2"
+                                                TextColor="#DC2626"
+                                                FontSize="11"
+                                                FontAttributes="Bold"
+                                                HeightRequest="30"
+                                                Padding="12,0"
+                                                CornerRadius="6" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+
+        <!-- Create / Edit Modal Popup Overlay -->
+        <Grid BackgroundColor="#80000000"
+              IsVisible="{Binding IsFormVisible}"
+              Padding="20"
+              ZIndex="100">
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    MaximumWidthRequest="460"
+                    VerticalOptions="Center"
+                    HorizontalOptions="Center"
+                    Padding="22">
+                <VerticalStackLayout Spacing="14">
+                    <!-- Modal Header -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="{Binding FormDialogTitle}"
+                               FontSize="17"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Button Grid.Column="1"
+                                Text="✕"
+                                Command="{Binding CloseDialogCommand}"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource TextMuted}"
+                                FontSize="14"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                Padding="0" />
+                    </Grid>
+
+                    <!-- Title Field -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Title *" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="10,0">
+                            <Entry Text="{Binding TitleInput}"
+                                   Placeholder="Announcement subject / headline..."
                                    FontSize="13"
-                                   TextColor="{StaticResource TextSecondary}"
-                                   LineBreakMode="WordWrap"
-                                   LineHeight="1.2" />
+                                   TextColor="{StaticResource TextPrimary}" />
+                        </Border>
+                    </VerticalStackLayout>
 
-                            <!-- Footer Row: Author & Date -->
-                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0" VerticalOptions="Center">
-                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                    <Label Text="✍️" FontSize="12" VerticalOptions="Center" />
-                                    <Label Text="{Binding PublishedByName, StringFormat='Published by {0}'}"
-                                           FontSize="11"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource TextMuted}"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
-
-                                <Label Grid.Column="1"
-                                       Text="{Binding PublishedAtUtc, StringFormat='{0:MMM dd, yyyy}'}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource TextMuted}"
-                                       VerticalOptions="Center" />
-                            </Grid>
+                    <!-- Priority & Target Role Row -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Target Audience" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                            <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="6,0">
+                                <Picker ItemsSource="{Binding TargetRoleOptions}"
+                                        SelectedItem="{Binding SelectedTargetRole}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource TextPrimary}" />
+                            </Border>
                         </VerticalStackLayout>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </RefreshView>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Priority" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                            <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="6,0">
+                                <Picker ItemsSource="{Binding PriorityOptions}"
+                                        SelectedItem="{Binding SelectedPriority}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource TextPrimary}" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Content Field -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Message Content *" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="10,8">
+                            <Editor Text="{Binding ContentInput}"
+                                    Placeholder="Detailed description of the announcement..."
+                                    FontSize="13"
+                                    HeightRequest="110"
+                                    TextColor="{StaticResource TextPrimary}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Action Buttons -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,6,0,0">
+                        <Button Grid.Column="0"
+                                Text="Cancel"
+                                Command="{Binding CloseDialogCommand}"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                TextColor="{StaticResource TextSecondary}"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                CornerRadius="8"
+                                HeightRequest="40" />
+
+                        <Button Grid.Column="1"
+                                Text="Save Notice"
+                                Command="{Binding SaveAnnouncementCommand}"
+                                BackgroundColor="{StaticResource Primary}"
+                                TextColor="{StaticResource White}"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                CornerRadius="8"
+                                HeightRequest="40" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
 
 </ContentPage>
