@@ -28,6 +28,9 @@
     <!-- Neutral Backgrounds & Cards -->
     <Color x:Key="White">#FFFFFF</Color>
     <Color x:Key="Black">#000000</Color>
+    <Color x:Key="MidnightBlue">#0F172A</Color>
+    <Color x:Key="OffBlack">#1E293B</Color>
+    <Color x:Key="Magenta">#D946EF</Color>
     <Color x:Key="SurfaceLight">#F8FAFC</Color>
     <Color x:Key="SurfaceCard">#FFFFFF</Color>
     <Color x:Key="SurfaceBorder">#E2E8F0</Color>

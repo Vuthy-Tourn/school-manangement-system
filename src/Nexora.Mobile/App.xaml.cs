@@ -18,7 +18,6 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        // If already authenticated, show AppShell; otherwise show LoginPage
         Page initialPage = _apiService.IsAuthenticated
             ? new AppShell(_apiService)
             : new NavigationPage(new LoginPage(_loginViewModel));

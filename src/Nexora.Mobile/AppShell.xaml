@@ -8,28 +8,28 @@
     FlyoutBehavior="Disabled">
 
     <TabBar>
-        <Tab Title="Dashboard" Icon="appicon.svg">
+        <Tab Title="Dashboard">
             <ShellContent ContentTemplate="{DataTemplate views:AdminDashboardPage}" Route="dashboard" />
         </Tab>
-        <Tab Title="Students" Icon="appicon.svg">
+        <Tab Title="Students">
             <ShellContent ContentTemplate="{DataTemplate views:StudentsPage}" Route="students" />
         </Tab>
-        <Tab Title="Attendance" Icon="appicon.svg">
+        <Tab Title="Attendance">
             <ShellContent ContentTemplate="{DataTemplate views:AttendancePage}" Route="attendance" />
         </Tab>
-        <Tab Title="Grades" Icon="appicon.svg">
+        <Tab Title="Grades">
             <ShellContent ContentTemplate="{DataTemplate views:GradesPage}" Route="grades" />
         </Tab>
-        <Tab Title="Fees" Icon="appicon.svg">
+        <Tab Title="Fees">
             <ShellContent ContentTemplate="{DataTemplate views:FeesPage}" Route="fees" />
         </Tab>
-        <Tab Title="Timetable" Icon="appicon.svg">
+        <Tab Title="Timetable">
             <ShellContent ContentTemplate="{DataTemplate views:TimetablesPage}" Route="timetables" />
         </Tab>
-        <Tab Title="Updates" Icon="appicon.svg">
+        <Tab Title="Updates">
             <ShellContent ContentTemplate="{DataTemplate views:AnnouncementsPage}" Route="announcements" />
         </Tab>
-        <Tab Title="Profile" Icon="appicon.svg">
+        <Tab Title="Profile">
             <ShellContent ContentTemplate="{DataTemplate views:ProfilePage}" Route="profile" />
         </Tab>
     </TabBar>
