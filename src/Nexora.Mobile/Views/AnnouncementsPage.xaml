@@ -5,34 +5,86 @@
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.AnnouncementsPage"
              x:DataType="vm:AnnouncementsViewModel"
-             Title="Announcements"
+             Title="Campus Announcements"
              BackgroundColor="{StaticResource SurfaceLight}">
 
     <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAnnouncementsCommand}">
-        <CollectionView ItemsSource="{Binding Announcements}" Margin="16">
+        <CollectionView ItemsSource="{Binding Announcements}" Margin="20,16,20,24">
             <CollectionView.EmptyView>
-                <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center" Padding="40">
-                    <Label Text="📢" FontSize="40" HorizontalOptions="Center" />
-                    <Label Text="No Active Announcements" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                </VerticalStackLayout>
+                <Border StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="32"
+                        Margin="0,20"
+                        HorizontalOptions="Center">
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="📢" FontSize="36" HorizontalOptions="Center" />
+                        <Label Text="No Active Announcements"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalOptions="Center" />
+                        <Label Text="All campus bulletins and official school notices will appear here."
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
             </CollectionView.EmptyView>
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="dto:AnnouncementDto">
-                    <Border StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16" Margin="0,0,0,12">
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="{Binding Title}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
-                                <Border Grid.Column="1" StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource WarningLight}" Padding="6,2" StrokeThickness="0">
-                                    <Label Text="{Binding Priority}" FontSize="10" TextColor="{StaticResource Warning}" FontAttributes="Bold" />
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            StrokeThickness="1"
+                            Padding="18,16"
+                            Margin="0,0,0,12">
+                        <VerticalStackLayout Spacing="10">
+                            <!-- Header Row: Title & Priority Pill -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding Title}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 12"
+                                        BackgroundColor="{StaticResource WarningLight}"
+                                        Stroke="{StaticResource WarningBorder}"
+                                        StrokeThickness="1"
+                                        Padding="10,2"
+                                        VerticalOptions="Start">
+                                    <Label Text="{Binding Priority}"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource WarningText}" />
                                 </Border>
                             </Grid>
 
-                            <Label Text="{Binding Content}" FontSize="13" TextColor="{StaticResource TextSecondary}" LineBreakMode="WordWrap" />
+                            <!-- Announcement Body -->
+                            <Label Text="{Binding Content}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   LineBreakMode="WordWrap"
+                                   LineHeight="1.2" />
 
-                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                                <Label Text="{Binding PublishedByName, StringFormat='By {0}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
-                                <Label Grid.Column="1" Text="{Binding PublishedAtUtc, StringFormat='{0:MMM dd, yyyy}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                            <!-- Footer Row: Author & Date -->
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0" VerticalOptions="Center">
+                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="✍️" FontSize="12" VerticalOptions="Center" />
+                                    <Label Text="{Binding PublishedByName, StringFormat='Published by {0}'}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextMuted}"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+
+                                <Label Grid.Column="1"
+                                       Text="{Binding PublishedAtUtc, StringFormat='{0:MMM dd, yyyy}'}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextMuted}"
+                                       VerticalOptions="Center" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>

@@ -5,82 +5,161 @@
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.StudentsPage"
              x:DataType="vm:StudentsViewModel"
-             Title="Students"
+             Title="Student Directory"
              BackgroundColor="{StaticResource SurfaceLight}">
 
-    <Grid RowDefinitions="Auto,*" Padding="16,16,16,20">
+    <Grid RowDefinitions="Auto,*" Padding="20,16,20,20">
 
-        <!-- Search Bar and Add Button Header -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,14">
-            <Border Grid.Column="0"
-                    StrokeShape="RoundRectangle 10"
-                    Stroke="{StaticResource SurfaceBorder}"
-                    BackgroundColor="{StaticResource SurfaceCard}"
-                    Padding="12,0">
-                <SearchBar Text="{Binding SearchTerm}"
-                           Placeholder="Search by name, ID, or email..."
-                           SearchCommand="{Binding LoadStudentsCommand}"
-                           BackgroundColor="Transparent"
-                           FontSize="13" />
-            </Border>
+        <!-- Search Bar and Action Bar -->
+        <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <!-- Search Box -->
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 8"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        StrokeThickness="1"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Padding="12,0"
+                        HeightRequest="44">
+                    <SearchBar Text="{Binding SearchTerm}"
+                               Placeholder="Search by student name or admission number..."
+                               PlaceholderColor="{StaticResource TextSubtle}"
+                               TextColor="{StaticResource TextPrimary}"
+                               SearchCommand="{Binding LoadStudentsCommand}"
+                               BackgroundColor="Transparent"
+                               FontSize="13"
+                               VerticalOptions="Center" />
+                </Border>
 
-            <Button Grid.Column="1"
-                    Text="+ Add"
-                    Clicked="OnAddStudentClicked"
-                    BackgroundColor="{StaticResource Primary}"
-                    TextColor="White"
-                    FontAttributes="Bold"
-                    CornerRadius="10"
-                    HeightRequest="44" Padding="14,0" />
-        </Grid>
+                <!-- Add Student Button -->
+                <Button Grid.Column="1"
+                        Text="+ Register Student"
+                        Clicked="OnAddStudentClicked"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        FontAttributes="Bold"
+                        FontSize="13"
+                        CornerRadius="8"
+                        HeightRequest="44"
+                        Padding="16,0" />
+            </Grid>
+        </VerticalStackLayout>
 
-        <!-- Student Cards List -->
+        <!-- Students Collection View -->
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadStudentsCommand}">
             <CollectionView ItemsSource="{Binding Students}">
                 <CollectionView.EmptyView>
-                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center" Padding="40">
-                        <Label Text="🔍" FontSize="40" HorizontalOptions="Center" />
-                        <Label Text="No Students Found" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                        <Label Text="Tap '+ Add' to register a new student or adjust your search filter." FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
-                    </VerticalStackLayout>
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="32"
+                            Margin="0,20"
+                            HorizontalOptions="Center">
+                        <VerticalStackLayout Spacing="10" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="👥" FontSize="36" HorizontalOptions="Center" />
+                            <Label Text="No Students Found"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalOptions="Center" />
+                            <Label Text="No student records match your query. Click '+ Register Student' to enroll a new student."
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center"
+                                   MaximumWidthRequest="320" />
+                        </VerticalStackLayout>
+                    </Border>
                 </CollectionView.EmptyView>
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="dto:StudentDto">
-                        <Border StrokeShape="RoundRectangle 14"
+                        <Border StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="16" Margin="0,0,0,12">
+                                StrokeThickness="1"
+                                Padding="16,14"
+                                Margin="0,0,0,10">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" VerticalOptions="Center">
-                                
-                                <!-- Student Avatar Badge -->
+
+                                <!-- Initials Avatar -->
                                 <Border Grid.Column="0"
                                         StrokeShape="RoundRectangle 22"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        BackgroundColor="{StaticResource SecondaryLight}"
+                                        Stroke="{StaticResource SecondaryBorder}"
+                                        StrokeThickness="1"
                                         HeightRequest="44" WidthRequest="44"
-                                        StrokeThickness="0">
-                                    <Label Text="🎓" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                                        VerticalOptions="Center">
+                                    <Label Text="🎓"
+                                           FontSize="18"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
                                 </Border>
 
-                                <!-- Student Details -->
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="{Binding FullName}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
-                                    <Label Text="{Binding AdmissionNumber, StringFormat='ID: {0}'}" FontSize="12" TextColor="{StaticResource Primary}" FontAttributes="Bold" />
-                                    <Label Text="{Binding CurrentClassName, StringFormat='Class: {0}'}" FontSize="12" TextColor="{StaticResource TextSecondary}" />
-                                    <Label Text="{Binding EmergencyContactPhone, StringFormat='Emergency: {0}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                                <!-- Student Information -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding FullName}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}" />
+
+                                        <!-- Class Badge -->
+                                        <Border StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{StaticResource PrimaryLight}"
+                                                Stroke="{StaticResource PrimaryBorder}"
+                                                StrokeThickness="1"
+                                                Padding="6,1"
+                                                VerticalOptions="Center">
+                                            <Label Text="{Binding CurrentClassName, StringFormat='Class {0}'}"
+                                                   FontSize="10"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Primary}" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+
+                                    <!-- Identification and Contact -->
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{Binding AdmissionNumber}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource SecondaryDark}" />
+                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
+                                        <Label Text="{Binding Gender}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextSecondary}" />
+                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
+                                        <Label Text="{Binding EmergencyContactPhone, StringFormat='Emergency: {0}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextMuted}" />
+                                    </HorizontalStackLayout>
                                 </VerticalStackLayout>
 
-                                <!-- Actions -->
-                                <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
-                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource SuccessLight}" Padding="6,2" StrokeThickness="0">
-                                        <Label Text="{Binding Status}" FontSize="10" TextColor="{StaticResource Success}" FontAttributes="Bold" />
+                                <!-- Status Badge and Actions -->
+                                <VerticalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Center">
+                                    <Border StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{StaticResource SuccessLight}"
+                                            Stroke="{StaticResource SuccessBorder}"
+                                            StrokeThickness="1"
+                                            Padding="10,3"
+                                            HorizontalOptions="End">
+                                        <Label Text="{Binding Status}"
+                                               FontSize="10"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource SuccessText}" />
                                     </Border>
+
                                     <Button Text="Deactivate"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:StudentsViewModel}}, Path=DeactivateStudentCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource DangerLight}"
-                                            TextColor="{StaticResource Danger}"
-                                            FontSize="10" HeightRequest="28" Padding="6,0" />
+                                            TextColor="{StaticResource DangerText}"
+                                            BorderColor="{StaticResource DangerBorder}"
+                                            BorderWidth="1"
+                                            CornerRadius="6"
+                                            FontSize="10"
+                                            FontAttributes="Bold"
+                                            HeightRequest="28"
+                                            Padding="8,0" />
                                 </VerticalStackLayout>
 
                             </Grid>

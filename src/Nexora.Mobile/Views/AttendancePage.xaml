@@ -7,96 +7,202 @@
              Title="Daily Attendance"
              BackgroundColor="{StaticResource SurfaceLight}">
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="16,16,16,16">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20,16,20,20">
 
-        <!-- Controls & Filter Bar -->
-        <Border Grid.Row="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="14" Margin="0,0,0,12">
-            <VerticalStackLayout Spacing="10">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <VerticalStackLayout Grid.Column="0" Spacing="4">
-                        <Label Text="Select Class" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,0">
+        <!-- Header Filter & Metrics Card -->
+        <Border Grid.Row="0"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="{StaticResource SurfaceCard}"
+                Stroke="{StaticResource SurfaceBorder}"
+                StrokeThickness="1"
+                Padding="18,16"
+                Margin="0,0,0,14">
+            <VerticalStackLayout Spacing="14">
+
+                <!-- Filter Controls Row -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <!-- Class Selector -->
+                    <VerticalStackLayout Grid.Column="0" Spacing="6">
+                        <Label Text="Academic Class"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
                             <Picker ItemsSource="{Binding Classes}"
                                     ItemDisplayBinding="{Binding Name}"
                                     SelectedItem="{Binding SelectedClass}"
                                     SelectedIndexChanged="OnClassSelectionChanged"
-                                    FontSize="13" />
+                                    TextColor="{StaticResource TextPrimary}"
+                                    FontSize="13"
+                                    VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Grid.Column="1" Spacing="4">
-                        <Label Text="Attendance Date" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,4">
-                            <DatePicker Date="{Binding SelectedDate}" DateSelected="OnDateSelected" Format="yyyy-MM-dd" FontSize="13" />
+                    <!-- Date Picker -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Label Text="Attendance Date"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
+                            <DatePicker Date="{Binding SelectedDate}"
+                                        DateSelected="OnDateSelected"
+                                        Format="yyyy-MM-dd"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="13"
+                                        VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <Label Text="Present Rate:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Label Text="{Binding Summary.AttendancePercentage, StringFormat='{0:F1}%'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                <!-- Attendance Rate & Quick Action Bar -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Border StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SuccessLight}"
+                                Stroke="{StaticResource SuccessBorder}"
+                                StrokeThickness="1"
+                                Padding="8,3">
+                            <HorizontalStackLayout Spacing="4">
+                                <Label Text="Present Rate:" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
+                                <Label Text="{Binding Summary.AttendancePercentage, StringFormat='{0:F1}%'}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Success}" />
+                            </HorizontalStackLayout>
+                        </Border>
                     </HorizontalStackLayout>
 
                     <Button Grid.Column="1"
-                            Text="Mark All Present"
+                            Text="✓ Mark All Present"
                             Command="{Binding MarkAllPresentCommand}"
-                            BackgroundColor="{StaticResource SuccessLight}"
-                            TextColor="{StaticResource Success}"
-                            FontSize="11" FontAttributes="Bold"
-                            HeightRequest="34" Padding="10,0" CornerRadius="8" />
+                            BackgroundColor="{StaticResource SecondaryLight}"
+                            TextColor="{StaticResource Secondary}"
+                            BorderColor="{StaticResource SecondaryBorder}"
+                            BorderWidth="1"
+                            FontSize="11"
+                            FontAttributes="Bold"
+                            HeightRequest="34"
+                            Padding="12,0"
+                            CornerRadius="6" />
                 </Grid>
+
             </VerticalStackLayout>
         </Border>
 
-        <!-- Students Attendance List -->
+        <!-- Student Attendance Roster -->
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAttendanceCommand}">
             <CollectionView ItemsSource="{Binding StudentItems}">
                 <CollectionView.EmptyView>
-                    <Label Text="No students in this class section." FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" TextColor="{StaticResource TextSecondary}" />
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="32"
+                            Margin="0,20"
+                            HorizontalOptions="Center">
+                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="📋" FontSize="36" HorizontalOptions="Center" />
+                            <Label Text="No Students Found"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalOptions="Center" />
+                            <Label Text="No enrolled students found for the selected academic class."
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
                 </CollectionView.EmptyView>
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:AttendanceItemViewModel">
-                        <Border StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12" Margin="0,0,0,8">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="{Binding StudentName}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
-                                    <Label Text="{Binding AdmissionNumber}" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-                                    <Label Text="{Binding Status, StringFormat='Status: {0}'}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                        <Border StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="16,12"
+                                Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+
+                                <!-- Student Info -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding StudentName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{Binding AdmissionNumber}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource SecondaryDark}"
+                                               FontAttributes="Bold" />
+                                        <Label Text="•" TextColor="{StaticResource TextSubtle}" FontSize="11" />
+                                        <Label Text="{Binding Status, StringFormat='State: {0}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextSecondary}" />
+                                    </HorizontalStackLayout>
                                 </VerticalStackLayout>
 
-                                <!-- Status Picker Chips -->
-                                <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                <!-- Status Selection Chips -->
+                                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                    <!-- Present -->
                                     <Button Text="P"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Present"
-                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            WidthRequest="36" HeightRequest="36"
+                                            CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource SuccessLight}"
-                                            TextColor="{StaticResource Success}" />
+                                            TextColor="{StaticResource SuccessText}"
+                                            BorderColor="{StaticResource SuccessBorder}"
+                                            BorderWidth="1"
+                                            Padding="0" />
+                                    <!-- Late -->
                                     <Button Text="L"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Late"
-                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            WidthRequest="36" HeightRequest="36"
+                                            CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource WarningLight}"
-                                            TextColor="{StaticResource Warning}" />
+                                            TextColor="{StaticResource WarningText}"
+                                            BorderColor="{StaticResource WarningBorder}"
+                                            BorderWidth="1"
+                                            Padding="0" />
+                                    <!-- Absent -->
                                     <Button Text="A"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Absent"
-                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            WidthRequest="36" HeightRequest="36"
+                                            CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource DangerLight}"
-                                            TextColor="{StaticResource Danger}" />
+                                            TextColor="{StaticResource DangerText}"
+                                            BorderColor="{StaticResource DangerBorder}"
+                                            BorderWidth="1"
+                                            Padding="0" />
+                                    <!-- Excused -->
                                     <Button Text="E"
                                             Command="{Binding SetStatusCommand}"
                                             CommandParameter="Excused"
-                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            WidthRequest="36" HeightRequest="36"
+                                            CornerRadius="6"
                                             FontSize="12" FontAttributes="Bold"
                                             BackgroundColor="{StaticResource InfoLight}"
-                                            TextColor="{StaticResource Info}" />
+                                            TextColor="{StaticResource InfoText}"
+                                            BorderColor="{StaticResource InfoBorder}"
+                                            BorderWidth="1"
+                                            Padding="0" />
                                 </HorizontalStackLayout>
 
                             </Grid>
@@ -107,16 +213,16 @@
         </RefreshView>
 
         <!-- Save Button Footer -->
-        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,10,0,0">
+        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0">
             <Button Text="Save Class Attendance"
                     Command="{Binding SaveAttendanceCommand}"
                     IsEnabled="{Binding IsNotBusy}"
                     BackgroundColor="{StaticResource Primary}"
-                    TextColor="White"
+                    TextColor="{StaticResource White}"
                     FontAttributes="Bold"
-                    FontSize="15"
-                    HeightRequest="48"
-                    CornerRadius="10" />
+                    FontSize="14"
+                    HeightRequest="46"
+                    CornerRadius="8" />
         </Border>
 
     </Grid>

@@ -7,79 +7,169 @@
              Title="Exams &amp; Grading"
              BackgroundColor="{StaticResource SurfaceLight}">
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="16,16,16,16">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20,16,20,20">
 
-        <!-- Assessment Selector Header -->
-        <Border Grid.Row="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="14" Margin="0,0,0,12">
-            <VerticalStackLayout Spacing="8">
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <VerticalStackLayout Grid.Column="0" Spacing="4">
-                        <Label Text="Exam" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,0">
+        <!-- Assessment Filter Header Card -->
+        <Border Grid.Row="0"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="{StaticResource SurfaceCard}"
+                Stroke="{StaticResource SurfaceBorder}"
+                StrokeThickness="1"
+                Padding="18,16"
+                Margin="0,0,0,14">
+            <VerticalStackLayout Spacing="12">
+
+                <!-- Row 1: Exam and Class -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <!-- Exam Picker -->
+                    <VerticalStackLayout Grid.Column="0" Spacing="6">
+                        <Label Text="Academic Examination"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
                             <Picker ItemsSource="{Binding Exams}"
                                     ItemDisplayBinding="{Binding Name}"
                                     SelectedItem="{Binding SelectedExam}"
                                     SelectedIndexChanged="OnFilterChanged"
-                                    FontSize="12" />
+                                    TextColor="{StaticResource TextPrimary}"
+                                    FontSize="12"
+                                    VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Grid.Column="1" Spacing="4">
-                        <Label Text="Class" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,0">
+                    <!-- Class Picker -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Label Text="Class Section"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
                             <Picker ItemsSource="{Binding Classes}"
                                     ItemDisplayBinding="{Binding Name}"
                                     SelectedItem="{Binding SelectedClass}"
                                     SelectedIndexChanged="OnFilterChanged"
-                                    FontSize="12" />
+                                    TextColor="{StaticResource TextPrimary}"
+                                    FontSize="12"
+                                    VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
                 </Grid>
 
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Assessment Component" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                    <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,0">
+                <!-- Row 2: Assessment Component -->
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Assessment Component / Subject"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Border StrokeShape="RoundRectangle 8"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource SurfaceLight}"
+                            Padding="10,0"
+                            HeightRequest="42">
                         <Picker ItemsSource="{Binding Components}"
                                 ItemDisplayBinding="{Binding Name}"
                                 SelectedItem="{Binding SelectedComponent}"
                                 SelectedIndexChanged="OnComponentChanged"
-                                FontSize="12" />
+                                TextColor="{StaticResource TextPrimary}"
+                                FontSize="12"
+                                VerticalOptions="Center" />
                     </Border>
                 </VerticalStackLayout>
+
             </VerticalStackLayout>
         </Border>
 
-        <!-- Grades Entry List -->
+        <!-- Student Grading List -->
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadGradesCommand}">
             <CollectionView ItemsSource="{Binding StudentGrades}">
                 <CollectionView.EmptyView>
-                    <Label Text="Select an exam, class, and component to grade." FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="32"
+                            Margin="0,20"
+                            HorizontalOptions="Center">
+                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="📊" FontSize="36" HorizontalOptions="Center" />
+                            <Label Text="No Grading Component Selected"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Select an exam, class, and component from the dropdowns above to enter student marks."
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
                 </CollectionView.EmptyView>
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:GradeEntryItemViewModel">
-                        <Border StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="14" Margin="0,0,0,8">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="{Binding StudentName}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
-                                    <Label Text="{Binding AdmissionNumber}" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="16,12"
+                                Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" VerticalOptions="Center">
+
+                                <!-- Student Details -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding StudentName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="{Binding AdmissionNumber}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource SecondaryDark}"
+                                           FontAttributes="Bold" />
                                 </VerticalStackLayout>
 
-                                <!-- Score Input Box -->
-                                <Border Grid.Column="1" StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" WidthRequest="70" Padding="8,2">
-                                    <Entry Text="{Binding ScoreObtained}" Keyboard="Numeric" HorizontalTextAlignment="Center" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                                <!-- Score Numeric Input -->
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource SurfaceLight}"
+                                        Stroke="{StaticResource SurfaceBorder}"
+                                        StrokeThickness="1"
+                                        WidthRequest="76"
+                                        HeightRequest="38"
+                                        Padding="6,0">
+                                    <Entry Text="{Binding ScoreObtained}"
+                                           Keyboard="Numeric"
+                                           HorizontalTextAlignment="Center"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}"
+                                           VerticalOptions="Center" />
                                 </Border>
 
-                                <!-- Report Card Link -->
+                                <!-- Report Card Link Button -->
                                 <Button Grid.Column="2"
                                         Text="Report Card"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=ViewReportCardCommand}"
                                         CommandParameter="{Binding .}"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                        TextColor="{StaticResource Primary}"
-                                        FontSize="11" FontAttributes="Bold"
-                                        HeightRequest="36" Padding="8,0" CornerRadius="8" />
+                                        BackgroundColor="{StaticResource SecondaryLight}"
+                                        TextColor="{StaticResource Secondary}"
+                                        BorderColor="{StaticResource SecondaryBorder}"
+                                        BorderWidth="1"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        HeightRequest="36"
+                                        Padding="10,0"
+                                        CornerRadius="6" />
 
                             </Grid>
                         </Border>
@@ -89,16 +179,16 @@
         </RefreshView>
 
         <!-- Save Button Footer -->
-        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,10,0,0">
+        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0">
             <Button Text="Save Exam Grades"
                     Command="{Binding SaveGradesCommand}"
                     IsEnabled="{Binding IsNotBusy}"
                     BackgroundColor="{StaticResource Primary}"
-                    TextColor="White"
+                    TextColor="{StaticResource White}"
                     FontAttributes="Bold"
-                    FontSize="15"
-                    HeightRequest="48"
-                    CornerRadius="10" />
+                    FontSize="14"
+                    HeightRequest="46"
+                    CornerRadius="8" />
         </Border>
 
     </Grid>

@@ -3,47 +3,78 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <!-- Primary Brand Palette -->
-    <Color x:Key="Primary">#4F46E5</Color>
-    <Color x:Key="PrimaryDark">#3730A3</Color>
-    <Color x:Key="PrimaryLight">#EEF2FF</Color>
+    <!-- ================================================================= -->
+    <!-- NEXORA BRAND PALETTE: Executive Deep Navy, Modern Blue & Slate   -->
+    <!-- ================================================================= -->
+
+    <!-- Primary Brand: Deep Navy (Intelligent, trustworthy, institutional) -->
+    <Color x:Key="Primary">#0F2042</Color>
+    <Color x:Key="PrimaryDark">#09142A</Color>
+    <Color x:Key="PrimaryHover">#162E5C</Color>
+    <Color x:Key="PrimaryLight">#EEF4FB</Color>
+    <Color x:Key="PrimaryBorder">#D2E3F7</Color>
     <Color x:Key="PrimaryDarkText">#FFFFFF</Color>
 
-    <!-- Secondary / Accent -->
-    <Color x:Key="Secondary">#6366F1</Color>
+    <!-- Secondary Brand: Modern Sapphire Blue (Active, energetic, interactive) -->
+    <Color x:Key="Secondary">#2563EB</Color>
+    <Color x:Key="SecondaryDark">#1D4ED8</Color>
+    <Color x:Key="SecondaryHover">#3B82F6</Color>
+    <Color x:Key="SecondaryLight">#EFF6FF</Color>
+    <Color x:Key="SecondaryBorder">#BFDBFE</Color>
     <Color x:Key="SecondaryDarkText">#FFFFFF</Color>
-    <Color x:Key="Accent">#06B6D4</Color>
-    <Color x:Key="Tertiary">#8B5CF6</Color>
 
-    <!-- Semantic Status Colors -->
-    <Color x:Key="Success">#10B981</Color>
+    <!-- Accent: Crisp Cyan / Teal (Highlights, charts, and metrics) -->
+    <Color x:Key="Accent">#0EA5E9</Color>
+    <Color x:Key="AccentLight">#F0F9FF</Color>
+    <Color x:Key="AccentBorder">#BAE6FD</Color>
+    <Color x:Key="Tertiary">#6366F1</Color>
+
+    <!-- Semantic Status: Success (Emerald) -->
+    <Color x:Key="Success">#059669</Color>
     <Color x:Key="SuccessLight">#ECFDF5</Color>
-    <Color x:Key="Warning">#F59E0B</Color>
-    <Color x:Key="WarningLight">#FFFBEB</Color>
-    <Color x:Key="Danger">#EF4444</Color>
-    <Color x:Key="DangerLight">#FEF2F2</Color>
-    <Color x:Key="Info">#3B82F6</Color>
-    <Color x:Key="InfoLight">#EFF6FF</Color>
+    <Color x:Key="SuccessBorder">#A7F3D0</Color>
+    <Color x:Key="SuccessText">#065F46</Color>
 
-    <!-- Neutral Backgrounds & Cards -->
+    <!-- Semantic Status: Warning (Amber) -->
+    <Color x:Key="Warning">#D97706</Color>
+    <Color x:Key="WarningLight">#FFFBEB</Color>
+    <Color x:Key="WarningBorder">#FDE68A</Color>
+    <Color x:Key="WarningText">#92400E</Color>
+
+    <!-- Semantic Status: Danger (Crimson Red) -->
+    <Color x:Key="Danger">#DC2626</Color>
+    <Color x:Key="DangerLight">#FEF2F2</Color>
+    <Color x:Key="DangerBorder">#FECACA</Color>
+    <Color x:Key="DangerText">#991B1B</Color>
+
+    <!-- Semantic Status: Info (Cobalt Blue) -->
+    <Color x:Key="Info">#2563EB</Color>
+    <Color x:Key="InfoLight">#EFF6FF</Color>
+    <Color x:Key="InfoBorder">#BFDBFE</Color>
+    <Color x:Key="InfoText">#1E40AF</Color>
+
+    <!-- Surfaces & Neutrals -->
     <Color x:Key="White">#FFFFFF</Color>
-    <Color x:Key="Black">#000000</Color>
-    <Color x:Key="MidnightBlue">#0F172A</Color>
-    <Color x:Key="OffBlack">#1E293B</Color>
-    <Color x:Key="Magenta">#D946EF</Color>
+    <Color x:Key="Black">#0F172A</Color>
     <Color x:Key="SurfaceLight">#F8FAFC</Color>
     <Color x:Key="SurfaceCard">#FFFFFF</Color>
     <Color x:Key="SurfaceBorder">#E2E8F0</Color>
-    <Color x:Key="SurfaceCardDark">#1E293B</Color>
-    <Color x:Key="SurfaceDark">#0F172A</Color>
+    <Color x:Key="SurfaceBorderSubtle">#F1F5F9</Color>
+    <Color x:Key="SurfaceHover">#F8FAFC</Color>
 
-    <!-- Text Colors -->
+    <!-- High-Level Background Compatibility -->
+    <Color x:Key="MidnightBlue">#0F2042</Color>
+    <Color x:Key="OffBlack">#0F172A</Color>
+    <Color x:Key="Magenta">#2563EB</Color>
+
+    <!-- Text Hierarchy -->
     <Color x:Key="TextPrimary">#0F172A</Color>
-    <Color x:Key="TextSecondary">#64748B</Color>
-    <Color x:Key="TextMuted">#94A3B8</Color>
+    <Color x:Key="TextSecondary">#475569</Color>
+    <Color x:Key="TextMuted">#64748B</Color>
+    <Color x:Key="TextSubtle">#94A3B8</Color>
     <Color x:Key="TextWhite">#FFFFFF</Color>
 
-    <!-- Grayscale -->
+    <!-- Slate Grayscale Scale -->
     <Color x:Key="Gray100">#F1F5F9</Color>
     <Color x:Key="Gray200">#E2E8F0</Color>
     <Color x:Key="Gray300">#CBD5E1</Color>
@@ -59,6 +90,7 @@
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="PrimaryLightBrush" Color="{StaticResource PrimaryLight}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
+    <SolidColorBrush x:Key="SecondaryLightBrush" Color="{StaticResource SecondaryLight}"/>
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource Success}"/>
     <SolidColorBrush x:Key="SuccessLightBrush" Color="{StaticResource SuccessLight}"/>
@@ -66,6 +98,8 @@
     <SolidColorBrush x:Key="WarningLightBrush" Color="{StaticResource WarningLight}"/>
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource Danger}"/>
     <SolidColorBrush x:Key="DangerLightBrush" Color="{StaticResource DangerLight}"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource Info}"/>
+    <SolidColorBrush x:Key="InfoLightBrush" Color="{StaticResource InfoLight}"/>
     <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
     <SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCard}"/>
     <SolidColorBrush x:Key="SurfaceLightBrush" Color="{StaticResource SurfaceLight}"/>
