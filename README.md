@@ -31,14 +31,14 @@ Nexora follows **Clean Architecture** and **Domain-Driven Design (DDD)** princip
 ```text
 assignment-student-management/
 ├── src/
-│   ├── EduManage.Domain/          # Enterprise entities, enums, and business rules
-│   ├── EduManage.Application/     # Use cases, DTOs, interfaces, and FluentValidation
-│   ├── EduManage.Infrastructure/  # EF Core 10, PostgreSQL, JWT auth, and Seeder
-│   ├── EduManage.Api/             # ASP.NET Core 10 REST API and Swagger
-│   └── EduManage.Mobile/          # .NET MAUI cross-platform application (MVVM)
+│   ├── Nexora.Domain/          # Enterprise entities, enums, and business rules
+│   ├── Nexora.Application/     # Use cases, DTOs, interfaces, and FluentValidation
+│   ├── Nexora.Infrastructure/  # EF Core 10, PostgreSQL, JWT auth, and Seeder
+│   ├── Nexora.Api/             # ASP.NET Core 10 REST API and Swagger
+│   └── Nexora.Mobile/          # .NET MAUI cross-platform application (MVVM)
 ├── tests/
-│   ├── EduManage.Tests.Unit/        # 14 Unit tests (GPA, collision, billing, security)
-│   └── EduManage.Tests.Integration/ # 7 API & DB integration tests (WebApplicationFactory)
+│   ├── Nexora.Tests.Unit/        # 14 Unit tests (GPA, collision, billing, security)
+│   └── Nexora.Tests.Integration/ # 7 API & DB integration tests (WebApplicationFactory)
 ├── docs/                          # Detailed architecture, database, API, and security docs
 ├── docker-compose.yml             # PostgreSQL 16 & API container definitions
 └── .env.example                   # Environment configuration template
@@ -79,17 +79,17 @@ The API automatically applies database migrations and seeds initial test data up
 If running against a standalone PostgreSQL instance:
 ```bash
 dotnet ef database update \
-  --project src/EduManage.Infrastructure \
-  --startup-project src/EduManage.Api
+  --project src/Nexora.Infrastructure \
+  --startup-project src/Nexora.Api
 ```
 
 ### 3. Launch the .NET MAUI Mobile App
 ```bash
 # Run on macOS (MacCatalyst)
-dotnet run --project src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-maccatalyst
+dotnet run --project src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-maccatalyst
 
 # Run on Android Emulator
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-android
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-android
 ```
 
 ---
@@ -117,10 +117,10 @@ All business rules, GPA calculations, collision detectors, and API security boun
 dotnet test Nexora.sln
 
 # Run unit tests only
-dotnet test tests/EduManage.Tests.Unit/EduManage.Tests.Unit.csproj
+dotnet test tests/Nexora.Tests.Unit/Nexora.Tests.Unit.csproj
 
 # Run API integration tests only
-dotnet test tests/EduManage.Tests.Integration/EduManage.Tests.Integration.csproj
+dotnet test tests/Nexora.Tests.Integration/Nexora.Tests.Integration.csproj
 ```
 
 **Test Status:** 21 / 21 Tests Passed (100% Success Rate).

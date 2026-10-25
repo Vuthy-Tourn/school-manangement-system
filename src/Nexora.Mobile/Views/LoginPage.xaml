@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             x:Class="Nexora.Mobile.Views.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             BackgroundColor="{StaticResource SurfaceLight}"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="24" Padding="24,40,24,32" VerticalOptions="Center">
+
+            <!-- App Branding Header -->
+            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Border StrokeShape="RoundRectangle 24"
+                        BackgroundColor="{StaticResource Primary}"
+                        HeightRequest="80" WidthRequest="80"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center">
+                    <Label Text="NX"
+                           TextColor="White"
+                           FontSize="32"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <Label Text="Nexora"
+                       FontSize="30"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="School Management System"
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="Angkor International Academy"
+                       FontSize="13"
+                       FontAttributes="Italic"
+                       TextColor="{StaticResource Primary}"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+
+            <!-- Login Card -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="24">
+                <VerticalStackLayout Spacing="18">
+
+                    <Label Text="Sign In"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+
+                    <!-- Quick Role Demo Selector Chips -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Quick Role Demo Switcher:"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        
+                        <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween" AlignItems="Center">
+                            <Button Text="Admin"
+                                    Command="{Binding QuickSelectRoleCommand}"
+                                    CommandParameter="admin"
+                                    HeightRequest="36" Padding="8,0" Margin="2"
+                                    FontSize="11" BackgroundColor="{StaticResource PrimaryLight}"
+                                    TextColor="{StaticResource Primary}" />
+                            <Button Text="Teacher"
+                                    Command="{Binding QuickSelectRoleCommand}"
+                                    CommandParameter="teacher"
+                                    HeightRequest="36" Padding="8,0" Margin="2"
+                                    FontSize="11" BackgroundColor="{StaticResource PrimaryLight}"
+                                    TextColor="{StaticResource Primary}" />
+                            <Button Text="Student"
+                                    Command="{Binding QuickSelectRoleCommand}"
+                                    CommandParameter="student"
+                                    HeightRequest="36" Padding="8,0" Margin="2"
+                                    FontSize="11" BackgroundColor="{StaticResource PrimaryLight}"
+                                    TextColor="{StaticResource Primary}" />
+                            <Button Text="Parent"
+                                    Command="{Binding QuickSelectRoleCommand}"
+                                    CommandParameter="parent"
+                                    HeightRequest="36" Padding="8,0" Margin="2"
+                                    FontSize="11" BackgroundColor="{StaticResource PrimaryLight}"
+                                    TextColor="{StaticResource Primary}" />
+                        </FlexLayout>
+
+                        <Label Text="{Binding SelectedRoleLabel, StringFormat='Active Role: {0}'}"
+                               FontSize="11" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+
+                    <!-- Username Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Username or Email"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Border StrokeShape="RoundRectangle 10"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,4">
+                            <Entry Text="{Binding Username}"
+                                   Placeholder="e.g. admin or teacher.dara"
+                                   PlaceholderColor="{StaticResource TextMuted}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="14" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Password Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Password"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Border StrokeShape="RoundRectangle 10"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,4">
+                            <Entry Text="{Binding Password}"
+                                   IsPassword="True"
+                                   Placeholder="Enter your password"
+                                   PlaceholderColor="{StaticResource TextMuted}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="14" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Error Alert -->
+                    <Border IsVisible="{Binding HasError}"
+                            StrokeShape="RoundRectangle 8"
+                            BackgroundColor="{StaticResource DangerLight}"
+                            Stroke="{StaticResource Danger}"
+                            StrokeThickness="1"
+                            Padding="12,8">
+                        <Label Text="{Binding ErrorMessage}"
+                               TextColor="{StaticResource Danger}"
+                               FontSize="12" />
+                    </Border>
+
+                    <!-- Login Button -->
+                    <Button Text="Sign In to Portal"
+                            Command="{Binding LoginCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            FontSize="15"
+                            CornerRadius="10"
+                            HeightRequest="48" />
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="{StaticResource Primary}"
+                                       HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Footer info -->
+            <Label Text="Nexora Cloud • Enterprise Multi-Tenant Platform"
+                   FontSize="12"
+                   TextColor="{StaticResource TextMuted}"
+                   HorizontalTextAlignment="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

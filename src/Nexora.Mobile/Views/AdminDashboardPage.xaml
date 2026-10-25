@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
+             x:Class="Nexora.Mobile.Views.AdminDashboardPage"
+             x:DataType="vm:AdminDashboardViewModel"
+             Title="Dashboard"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadDashboardCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="20" Padding="16,20,16,32">
+
+                <!-- Welcome Header -->
+                <Border StrokeShape="RoundRectangle 16"
+                        BackgroundColor="{StaticResource Primary}"
+                        StrokeThickness="0"
+                        Padding="20">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Angkor International Academy"
+                                   TextColor="#CBD5E1"
+                                   FontSize="12"
+                                   FontAttributes="Bold" />
+                            <Label Text="School Administrator"
+                                   TextColor="White"
+                                   FontSize="22"
+                                   FontAttributes="Bold" />
+                            <Label Text="Overview &amp; Real-time Operations"
+                                   TextColor="#E2E8F0"
+                                   FontSize="13" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="#6366F1"
+                                HeightRequest="48" WidthRequest="48"
+                                StrokeThickness="0"
+                                VerticalOptions="Center">
+                            <Label Text="🏫" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Key Metrics Grid -->
+                <Label Text="Executive Summary" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <!-- Students Card -->
+                    <Border Grid.Row="0" Grid.Column="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="STUDENTS" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TotalStudents}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                            <Label Text="Active Enrollments" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Teachers Card -->
+                    <Border Grid.Row="0" Grid.Column="1" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="FACULTY" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TotalTeachers}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource Secondary}" />
+                            <Label Text="Teaching Staff" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Classes Card -->
+                    <Border Grid.Row="1" Grid.Column="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="CLASSES" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TotalClasses}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource Accent}" />
+                            <Label Text="Academic Sections" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Attendance Rate Card -->
+                    <Border Grid.Row="1" Grid.Column="1" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="ATTENDANCE" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TodayAttendancePercentage, StringFormat='{0:F1}%'}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                            <Label Text="Recorded Today" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Fees Collected Card -->
+                    <Border Grid.Row="2" Grid.Column="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="FEES COLLECTED" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TotalFeesCollected, StringFormat='${0:N0}'}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                            <Label Text="Current Semester" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Fees Pending Card -->
+                    <Border Grid.Row="2" Grid.Column="1" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="OUTSTANDING" FontSize="11" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" />
+                            <Label Text="{Binding Stats.TotalFeesOutstanding, StringFormat='${0:N0}'}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource Warning}" />
+                            <Label Text="Unpaid Balances" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- Quick Action Hub -->
+                <Label Text="Operations Quick Launch" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" Margin="0,10,0,0" />
+
+                <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween">
+                    <Button Text="👨‍🎓 Students"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="students"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                    <Button Text="📋 Attendance"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="attendance"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                    <Button Text="📊 Grades"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="grades"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                    <Button Text="💳 Fees"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="fees"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                    <Button Text="🗓 Timetable"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="timetables"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                    <Button Text="📢 Updates"
+                            Command="{Binding NavigateToCommand}"
+                            CommandParameter="announcements"
+                            WidthRequest="105" HeightRequest="44" Margin="0,4"
+                            FontSize="12" BackgroundColor="{StaticResource SurfaceCard}"
+                            TextColor="{StaticResource TextPrimary}" BorderWidth="1" BorderColor="{StaticResource SurfaceBorder}" />
+                </FlexLayout>
+
+                <!-- Recent Announcements -->
+                <Label Text="Campus Announcements" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" Margin="0,10,0,0" />
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentAnnouncements}" Spacing="10">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="dto:AnnouncementDto">
+                            <Border StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="14">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding Title}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                        <Border Grid.Column="1" StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource WarningLight}" Padding="6,2" StrokeThickness="0">
+                                            <Label Text="{Binding Priority}" FontSize="10" TextColor="{StaticResource Warning}" FontAttributes="Bold" />
+                                        </Border>
+                                    </Grid>
+                                    <Label Text="{Binding Content}" FontSize="13" TextColor="{StaticResource TextSecondary}" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding PublishedAtUtc, StringFormat='Published {0:MMM dd, yyyy}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- Live Audit Logs -->
+                <Label Text="Live Audit Records" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" Margin="0,10,0,0" />
+
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentAudits}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="dto:AuditLogDto">
+                            <Border StrokeShape="RoundRectangle 10" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource PrimaryLight}" Padding="8,4" StrokeThickness="0">
+                                        <Label Text="{Binding Action}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="{Binding Details}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding TimestampUtc, StringFormat='By {0} at {1:HH:mm:ss UTC}'}" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

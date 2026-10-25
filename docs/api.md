@@ -1,7 +1,7 @@
 # Nexora — REST API Specification & Endpoint Catalog
 
 ## 1. Overview
-The **EduManage.Api** service exposes a secure, high-performance RESTful Web API built on ASP.NET Core 10. All payloads and responses are formatted in UTF-8 JSON.
+The **Nexora.Api** service exposes a secure, high-performance RESTful Web API built on ASP.NET Core 10. All payloads and responses are formatted in UTF-8 JSON.
 
 - **Base URL:** `https://api.nexora.edu.kh` (Production) / `http://localhost:5180` (Development)
 - **API Versioning:** `/api/v1/` prefix for all operational routes.

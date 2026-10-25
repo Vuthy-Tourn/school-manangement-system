@@ -1,24 +1,23 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "assignment-student-management", "assignment-student-management\assignment-student-management.csproj", "{653A4119-F876-4521-ADD6-A55BD0EE472D}"
-EndProject
+
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Domain", "src\EduManage.Domain\EduManage.Domain.csproj", "{242DCF27-FA53-4BF0-BD9C-F6F924BD52D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Domain", "src\Nexora.Domain\Nexora.Domain.csproj", "{242DCF27-FA53-4BF0-BD9C-F6F924BD52D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Application", "src\EduManage.Application\EduManage.Application.csproj", "{0D955D9E-DE2F-47F8-A916-2D4D90577201}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Application", "src\Nexora.Application\Nexora.Application.csproj", "{0D955D9E-DE2F-47F8-A916-2D4D90577201}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Infrastructure", "src\EduManage.Infrastructure\EduManage.Infrastructure.csproj", "{C0BDB8DA-B369-4F02-8078-776FC26028B9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Infrastructure", "src\Nexora.Infrastructure\Nexora.Infrastructure.csproj", "{C0BDB8DA-B369-4F02-8078-776FC26028B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Api", "src\EduManage.Api\EduManage.Api.csproj", "{5D766B63-AF32-49F9-87B3-946077F77F6C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Api", "src\Nexora.Api\Nexora.Api.csproj", "{5D766B63-AF32-49F9-87B3-946077F77F6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Mobile", "src\EduManage.Mobile\EduManage.Mobile.csproj", "{C04DCF13-11FA-4B33-97F8-C66273988FA2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Mobile", "src\Nexora.Mobile\Nexora.Mobile.csproj", "{C04DCF13-11FA-4B33-97F8-C66273988FA2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Tests.Unit", "tests\EduManage.Tests.Unit\EduManage.Tests.Unit.csproj", "{C583FA6A-414C-4335-972E-BDA7C5583F90}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Tests.Unit", "tests\Nexora.Tests.Unit\Nexora.Tests.Unit.csproj", "{C583FA6A-414C-4335-972E-BDA7C5583F90}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduManage.Tests.Integration", "tests\EduManage.Tests.Integration\EduManage.Tests.Integration.csproj", "{BDA5F76C-C456-431E-A46C-F49EA5613CF1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexora.Tests.Integration", "tests\Nexora.Tests.Integration\Nexora.Tests.Integration.csproj", "{BDA5F76C-C456-431E-A46C-F49EA5613CF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,18 +29,7 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|x64.Build.0 = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Debug|x86.Build.0 = Debug|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|x64.ActiveCfg = Release|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|x64.Build.0 = Release|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|x86.ActiveCfg = Release|Any CPU
-		{653A4119-F876-4521-ADD6-A55BD0EE472D}.Release|x86.Build.0 = Release|Any CPU
+
 		{242DCF27-FA53-4BF0-BD9C-F6F924BD52D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{242DCF27-FA53-4BF0-BD9C-F6F924BD52D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{242DCF27-FA53-4BF0-BD9C-F6F924BD52D8}.Debug|x64.ActiveCfg = Debug|Any CPU

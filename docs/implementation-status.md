@@ -10,13 +10,13 @@
 
 | Module / Layer | Component Name | Status | Build / Test Outcome |
 | :--- | :--- | :---: | :--- |
-| **Domain** | `EduManage.Domain` | Complete | Succeeded (0 warnings, 0 errors) |
-| **Application** | `EduManage.Application` | Complete | Succeeded (0 warnings, 0 errors) |
-| **Infrastructure** | `EduManage.Infrastructure` | Complete | Succeeded (0 warnings, 0 errors) |
-| **API** | `EduManage.Api` | Complete | Succeeded (0 warnings, 0 errors) |
-| **Mobile App** | `EduManage.Mobile` | Complete | MacCatalyst, Android, iOS builds succeeded (0 errors) |
-| **Unit Tests** | `EduManage.Tests.Unit` | Complete | **14 / 14 Passed (100%)** |
-| **Integration Tests** | `EduManage.Tests.Integration` | Complete | **7 / 7 Passed (100%)** |
+| **Domain** | `Nexora.Domain` | Complete | Succeeded (0 warnings, 0 errors) |
+| **Application** | `Nexora.Application` | Complete | Succeeded (0 warnings, 0 errors) |
+| **Infrastructure** | `Nexora.Infrastructure` | Complete | Succeeded (0 warnings, 0 errors) |
+| **API** | `Nexora.Api` | Complete | Succeeded (0 warnings, 0 errors) |
+| **Mobile App** | `Nexora.Mobile` | Complete | MacCatalyst, Android, iOS builds succeeded (0 errors) |
+| **Unit Tests** | `Nexora.Tests.Unit` | Complete | **14 / 14 Passed (100%)** |
+| **Integration Tests** | `Nexora.Tests.Integration` | Complete | **7 / 7 Passed (100%)** |
 | **DevOps & Containers** | Docker & Compose | Complete | `Dockerfile`, `docker-compose.yml`, `.env.example` verified |
 | **Documentation** | `docs/` & `README.md` | Complete | Architecture, Database, API, Security, Deployment guides |
 
@@ -73,11 +73,11 @@
 ## 3. Test Execution Results
 
 ```text
-=== UNIT TESTS (EduManage.Tests.Unit) ===
+=== UNIT TESTS (Nexora.Tests.Unit) ===
 A total of 1 test files matched the specified pattern.
 Passed!  - Failed: 0, Passed: 14, Skipped: 0, Total: 14, Duration: 426 ms
 
-=== INTEGRATION TESTS (EduManage.Tests.Integration) ===
+=== INTEGRATION TESTS (Nexora.Tests.Integration) ===
 A total of 1 test files matched the specified pattern.
 Passed!  - Failed: 0, Passed:  7, Skipped: 0, Total:  7, Duration: 2.1 s
 
@@ -96,9 +96,9 @@ dotnet build Nexora.sln
 dotnet test Nexora.sln
 
 # Build Mobile Targets
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-maccatalyst
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-android
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-ios
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-maccatalyst
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-android
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-ios
 ```
 
 ---

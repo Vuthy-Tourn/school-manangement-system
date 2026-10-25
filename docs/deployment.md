@@ -36,18 +36,18 @@ The database container automatically performs a health check using `pg_isready`.
 
 ## 3. Database Migration Management
 
-Entity Framework Core migrations are located in `src/EduManage.Infrastructure/Data/Migrations`.
+Entity Framework Core migrations are located in `src/Nexora.Infrastructure/Data/Migrations`.
 
 ```bash
 # Apply migrations to configured database
 dotnet ef database update \
-  --project src/EduManage.Infrastructure \
-  --startup-project src/EduManage.Api
+  --project src/Nexora.Infrastructure \
+  --startup-project src/Nexora.Api
 
 # Add a new migration (after modifying domain entities)
 dotnet ef migrations add <MigrationName> \
-  --project src/EduManage.Infrastructure \
-  --startup-project src/EduManage.Api
+  --project src/Nexora.Infrastructure \
+  --startup-project src/Nexora.Api
 ```
 
 ---
@@ -56,18 +56,18 @@ dotnet ef migrations add <MigrationName> \
 
 ### 4.1. Run on macOS (MacCatalyst)
 ```bash
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-maccatalyst
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-maccatalyst
 # Run app
-dotnet run --project src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-maccatalyst
+dotnet run --project src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-maccatalyst
 ```
 
 ### 4.2. Build for Android
 ```bash
 # Debug APK
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-android
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-android
 
 # Production Release Android App Bundle (.aab)
-dotnet publish src/EduManage.Mobile/EduManage.Mobile.csproj \
+dotnet publish src/Nexora.Mobile/Nexora.Mobile.csproj \
   -f net10.0-android \
   -c Release \
   /p:AndroidPackageFormat=aab \
@@ -81,10 +81,10 @@ dotnet publish src/EduManage.Mobile/EduManage.Mobile.csproj \
 ### 4.3. Build for iOS (on macOS with Xcode)
 ```bash
 # Simulator build
-dotnet build src/EduManage.Mobile/EduManage.Mobile.csproj -f net10.0-ios
+dotnet build src/Nexora.Mobile/Nexora.Mobile.csproj -f net10.0-ios
 
 # Production IPA package
-dotnet publish src/EduManage.Mobile/EduManage.Mobile.csproj \
+dotnet publish src/Nexora.Mobile/Nexora.Mobile.csproj \
   -f net10.0-ios \
   -c Release \
   /p:ArchiveOnBuild=true \

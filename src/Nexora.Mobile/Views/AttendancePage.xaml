@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             x:Class="Nexora.Mobile.Views.AttendancePage"
+             x:DataType="vm:AttendanceViewModel"
+             Title="Daily Attendance"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="16,16,16,16">
+
+        <!-- Controls & Filter Bar -->
+        <Border Grid.Row="0" StrokeShape="RoundRectangle 14" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="14" Margin="0,0,0,12">
+            <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                        <Label Text="Select Class" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,0">
+                            <Picker ItemsSource="{Binding Classes}"
+                                    ItemDisplayBinding="{Binding Name}"
+                                    SelectedItem="{Binding SelectedClass}"
+                                    SelectedIndexChanged="OnClassSelectionChanged"
+                                    FontSize="13" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                        <Label Text="Attendance Date" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{StaticResource SurfaceLight}" Stroke="{StaticResource SurfaceBorder}" Padding="8,4">
+                            <DatePicker Date="{Binding SelectedDate}" DateSelected="OnDateSelected" Format="yyyy-MM-dd" FontSize="13" />
+                        </Border>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <Label Text="Present Rate:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Label Text="{Binding Summary.AttendancePercentage, StringFormat='{0:F1}%'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Success}" />
+                    </HorizontalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="Mark All Present"
+                            Command="{Binding MarkAllPresentCommand}"
+                            BackgroundColor="{StaticResource SuccessLight}"
+                            TextColor="{StaticResource Success}"
+                            FontSize="11" FontAttributes="Bold"
+                            HeightRequest="34" Padding="10,0" CornerRadius="8" />
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Students Attendance List -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAttendanceCommand}">
+            <CollectionView ItemsSource="{Binding StudentItems}">
+                <CollectionView.EmptyView>
+                    <Label Text="No students in this class section." FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" TextColor="{StaticResource TextSecondary}" />
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AttendanceItemViewModel">
+                        <Border StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SurfaceCard}" Stroke="{StaticResource SurfaceBorder}" Padding="12" Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding StudentName}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="{Binding AdmissionNumber}" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                    <Label Text="{Binding Status, StringFormat='Status: {0}'}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                                </VerticalStackLayout>
+
+                                <!-- Status Picker Chips -->
+                                <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <Button Text="P"
+                                            Command="{Binding SetStatusCommand}"
+                                            CommandParameter="Present"
+                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            FontSize="12" FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource SuccessLight}"
+                                            TextColor="{StaticResource Success}" />
+                                    <Button Text="L"
+                                            Command="{Binding SetStatusCommand}"
+                                            CommandParameter="Late"
+                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            FontSize="12" FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource WarningLight}"
+                                            TextColor="{StaticResource Warning}" />
+                                    <Button Text="A"
+                                            Command="{Binding SetStatusCommand}"
+                                            CommandParameter="Absent"
+                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            FontSize="12" FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource DangerLight}"
+                                            TextColor="{StaticResource Danger}" />
+                                    <Button Text="E"
+                                            Command="{Binding SetStatusCommand}"
+                                            CommandParameter="Excused"
+                                            WidthRequest="34" HeightRequest="34" CornerRadius="6"
+                                            FontSize="12" FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource InfoLight}"
+                                            TextColor="{StaticResource Info}" />
+                                </HorizontalStackLayout>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Save Button Footer -->
+        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,10,0,0">
+            <Button Text="Save Class Attendance"
+                    Command="{Binding SaveAttendanceCommand}"
+                    IsEnabled="{Binding IsNotBusy}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    FontSize="15"
+                    HeightRequest="48"
+                    CornerRadius="10" />
+        </Border>
+
+    </Grid>
+
+</ContentPage>
