@@ -29,6 +29,9 @@
                         Stroke="{StaticResource SurfaceBorder}"
                         Padding="12,0"
                         HeightRequest="36"
+                        WidthRequest="140"
+                        MinimumWidthRequest="130"
+                        HorizontalOptions="End"
                         VerticalOptions="Center">
                     <Picker ItemsSource="{Binding Classes}"
                             ItemDisplayBinding="{Binding Name, StringFormat='Class {0}'}"
@@ -45,29 +48,39 @@
                 <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Days}" Spacing="8">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:DayChipViewModel">
-                            <Button Text="{Binding Name}"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TimetablesViewModel}}, Path=SelectDayCommand}"
-                                    CommandParameter="{Binding .}"
-                                    CornerRadius="8"
+                            <Border StrokeShape="RoundRectangle 8"
                                     HeightRequest="36"
-                                    Padding="14,0"
-                                    FontSize="12"
-                                    FontAttributes="Bold">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                    Padding="16,0"
+                                    StrokeThickness="1">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TimetablesViewModel}}, Path=SelectDayCommand}"
+                                                          CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding Name}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource White}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="TextColor" Value="{StaticResource SecondaryDark}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                         <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
-                                        <Setter Property="TextColor" Value="{StaticResource White}" />
-                                        <Setter Property="BorderColor" Value="{StaticResource Primary}" />
-                                        <Setter Property="BorderWidth" Value="1" />
+                                        <Setter Property="Stroke" Value="{StaticResource Primary}" />
                                     </DataTrigger>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="False">
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
                                         <Setter Property="BackgroundColor" Value="{StaticResource SecondaryLight}" />
-                                        <Setter Property="TextColor" Value="{StaticResource SecondaryDark}" />
-                                        <Setter Property="BorderColor" Value="{StaticResource SecondaryBorder}" />
-                                        <Setter Property="BorderWidth" Value="1" />
+                                        <Setter Property="Stroke" Value="{StaticResource SecondaryBorder}" />
                                     </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
+                                </Border.Triggers>
+                            </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </HorizontalStackLayout>

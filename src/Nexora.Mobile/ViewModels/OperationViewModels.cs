@@ -574,6 +574,8 @@ public partial class SubjectChipViewModel : ObservableObject
     }
 }
 
+public record StudentFilterOption(Guid StudentId, string StudentName, string DisplayName);
+
 public partial class GradesViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
@@ -587,6 +589,8 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<SubjectChipViewModel> _subjectChips = new();
     [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _studentGrades = new();
     [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _filteredGrades = new();
+    [ObservableProperty] private ObservableCollection<StudentFilterOption> _studentOptions = new();
+    [ObservableProperty] private StudentFilterOption? _selectedStudentFilter;
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private string _activeSubjectHeader = "Khmer Literature";
     [ObservableProperty] private string _classSummary = "4 Students Enrolled";
@@ -666,7 +670,35 @@ public partial class GradesViewModel : BaseViewModel
             var res = await _apiService.GetAssessmentComponentsAsync(SelectedExam.Id, SelectedClass.Id);
             if (res.Success && res.Data != null)
             {
-                Components = new ObservableCollection<AssessmentComponentDto>(res.Data);
+                var allComponents = res.Data;
+                var role = _apiService.CurrentUser?.Role;
+
+                // Teacher Subject Scoping: Teachers only manage grades based on their assigned teaching subjects
+                if (role == UserRole.Teacher)
+                {
+                    var teachersRes = await _apiService.GetTeachersAsync();
+                    var currentTeacher = teachersRes.Data?.FirstOrDefault(t =>
+                        (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && t.Id == _apiService.CurrentUser.LinkedProfileId.Value) ||
+                        (!string.IsNullOrEmpty(_apiService.CurrentUser?.Email) && t.Email.Equals(_apiService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(_apiService.CurrentUser?.FullName) && t.FullName.Equals(_apiService.CurrentUser.FullName, StringComparison.OrdinalIgnoreCase)));
+
+                    if (currentTeacher != null && currentTeacher.Assignments != null && currentTeacher.Assignments.Count > 0)
+                    {
+                        var taughtSubjectIds = currentTeacher.Assignments.Select(a => a.SubjectId).ToHashSet();
+                        var taughtSubjectNames = currentTeacher.Assignments.Select(a => a.SubjectName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                        var teacherComps = allComponents.Where(c =>
+                            taughtSubjectIds.Contains(c.SubjectId) ||
+                            taughtSubjectNames.Contains(c.SubjectName)).ToList();
+
+                        if (teacherComps.Count > 0)
+                        {
+                            allComponents = teacherComps;
+                        }
+                    }
+                }
+
+                Components = new ObservableCollection<AssessmentComponentDto>(allComponents);
 
                 var chips = new List<SubjectChipViewModel>();
                 if (IsStudentView)
@@ -691,6 +723,14 @@ public partial class GradesViewModel : BaseViewModel
                     ActiveSubjectHeader = string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName;
                     await LoadGradesAsync();
                 }
+                else
+                {
+                    StudentGrades.Clear();
+                    FilteredGrades.Clear();
+                    StudentOptions.Clear();
+                    ActiveSubjectHeader = "No Assigned Subject";
+                    ClassSummary = "No subjects assigned to this teacher";
+                }
             }
         }
         finally
@@ -704,7 +744,7 @@ public partial class GradesViewModel : BaseViewModel
     {
         if (chip == null) return;
         foreach (var c in SubjectChips)
-            c.IsSelected = c.Component.Id == chip.Component.Id;
+            c.IsSelected = (c.Component.Id == chip.Component.Id);
 
         SelectedComponent = chip.Component;
         ActiveSubjectHeader = chip.DisplayTitle;
@@ -799,7 +839,8 @@ public partial class GradesViewModel : BaseViewModel
             }
 
             StudentGrades = new ObservableCollection<GradeEntryItemViewModel>(items);
-            ApplySearchFilter();
+            PopulateStudentOptions();
+            ApplyCombinedFilter();
             UpdateSummary();
         }
         finally
@@ -808,25 +849,57 @@ public partial class GradesViewModel : BaseViewModel
         }
     }
 
-    private void ApplySearchFilter()
+    private void PopulateStudentOptions()
     {
-        if (string.IsNullOrWhiteSpace(SearchText))
+        var currentSelectedId = SelectedStudentFilter?.StudentId ?? Guid.Empty;
+        var options = new List<StudentFilterOption>
         {
-            FilteredGrades = new ObservableCollection<GradeEntryItemViewModel>(StudentGrades);
-        }
-        else
+            new(Guid.Empty, "All Students", "All Students")
+        };
+
+        var unique = StudentGrades
+            .GroupBy(g => g.StudentId)
+            .Select(g => g.First())
+            .OrderBy(g => g.StudentName)
+            .ToList();
+
+        foreach (var s in unique)
         {
-            var term = SearchText.Trim();
-            var matches = StudentGrades.Where(s =>
-                s.StudentName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                s.AdmissionNumber.Contains(term, StringComparison.OrdinalIgnoreCase)).ToList();
-            FilteredGrades = new ObservableCollection<GradeEntryItemViewModel>(matches);
+            options.Add(new(s.StudentId, s.StudentName, $"{s.StudentName} ({s.AdmissionNumber})"));
         }
+
+        StudentOptions = new ObservableCollection<StudentFilterOption>(options);
+        SelectedStudentFilter = StudentOptions.FirstOrDefault(o => o.StudentId == currentSelectedId) ?? StudentOptions.First();
+    }
+
+    partial void OnSelectedStudentFilterChanged(StudentFilterOption? value)
+    {
+        ApplyCombinedFilter();
     }
 
     partial void OnSearchTextChanged(string value)
     {
-        ApplySearchFilter();
+        ApplyCombinedFilter();
+    }
+
+    private void ApplyCombinedFilter()
+    {
+        IEnumerable<GradeEntryItemViewModel> list = StudentGrades;
+
+        if (SelectedStudentFilter != null && SelectedStudentFilter.StudentId != Guid.Empty)
+        {
+            list = list.Where(s => s.StudentId == SelectedStudentFilter.StudentId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var term = SearchText.Trim();
+            list = list.Where(s =>
+                s.StudentName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.AdmissionNumber.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        FilteredGrades = new ObservableCollection<GradeEntryItemViewModel>(list.ToList());
     }
 
     private void UpdateSummary()
@@ -1139,7 +1212,7 @@ public partial class TimetablesViewModel : BaseViewModel
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
-        if (value != null && !IsBusy)
+        if (value != null)
         {
             _ = Task.Run(async () =>
             {
@@ -1175,15 +1248,15 @@ public partial class TimetablesViewModel : BaseViewModel
                         new(Guid.Parse("a0000000-0000-0000-0000-000000000002"), Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-B", "Room 202", 35, Guid.NewGuid(), "Chenda Chan", 32)
                     };
                 }
+            }
 
-                // Default to Class 10-A
+            if (SelectedClass == null && Classes.Count > 0)
+            {
                 SelectedClass = Classes.FirstOrDefault(c => c.Name.Equals("10-A", StringComparison.OrdinalIgnoreCase)) ?? Classes.FirstOrDefault();
             }
 
-            if (SelectedClass != null)
-            {
-                await FetchClassTimetableInternalAsync(SelectedClass.Id);
-            }
+            var classId = SelectedClass?.Id ?? Guid.Parse("a0000000-0000-0000-0000-000000000001");
+            await FetchClassTimetableInternalAsync(classId);
         }
         catch (Exception ex)
         {
@@ -1197,21 +1270,37 @@ public partial class TimetablesViewModel : BaseViewModel
 
     private async Task FetchClassTimetableInternalAsync(Guid classId)
     {
-        var res = await _apiService.GetClassTimetableAsync(classId);
-        if (res.Success && res.Data != null && res.Data.Count > 0)
+        List<TimetableEntryDto> entries = new();
+        if (classId != Guid.Empty)
         {
-            _cachedClassEntries = res.Data;
+            var res = await _apiService.GetClassTimetableAsync(classId);
+            if (res.Success && res.Data != null && res.Data.Count > 0)
+            {
+                entries = res.Data;
+            }
         }
-        else
+
+        if (entries.Count == 0)
         {
             var fallback = await _apiService.GetStudentTimetableAsync(Guid.Empty);
-            _cachedClassEntries = fallback.Data ?? new();
+            if (fallback.Success && fallback.Data != null && fallback.Data.Count > 0)
+            {
+                entries = fallback.Data;
+            }
         }
+
+        if (entries.Count == 0)
+        {
+            var fallbackAll = await _apiService.GetClassTimetableAsync(Guid.Parse("a0000000-0000-0000-0000-000000000001"));
+            entries = fallbackAll.Data ?? new();
+        }
+
+        _cachedClassEntries = entries;
         FilterSlotsForDay();
     }
 
     [RelayCommand]
-    public void SelectDay(DayChipViewModel chip)
+    public async Task SelectDayAsync(DayChipViewModel chip)
     {
         if (chip == null) return;
         SelectedDay = chip.Day;
@@ -1220,7 +1309,16 @@ public partial class TimetablesViewModel : BaseViewModel
             d.IsSelected = (d.Day == chip.Day);
         }
         DayHeaderTitle = $"{SelectedDay} Schedule";
-        FilterSlotsForDay();
+
+        if (_cachedClassEntries.Count == 0)
+        {
+            var classId = SelectedClass?.Id ?? Guid.Parse("a0000000-0000-0000-0000-000000000001");
+            await FetchClassTimetableInternalAsync(classId);
+        }
+        else
+        {
+            FilterSlotsForDay();
+        }
     }
 
     private void FilterSlotsForDay()
@@ -1232,6 +1330,7 @@ public partial class TimetablesViewModel : BaseViewModel
 
         if (filtered.Count == 0 && _cachedClassEntries.Count > 0)
         {
+            // If the selected day has no classes in a particular alternate schedule, show Monday classes
             filtered = _cachedClassEntries
                 .Where(s => s.DayOfWeek == DayOfWeek.Monday)
                 .OrderBy(s => s.StartTime)

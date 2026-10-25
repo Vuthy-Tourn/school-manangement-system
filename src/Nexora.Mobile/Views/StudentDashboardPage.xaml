@@ -191,11 +191,12 @@
                 <Border StrokeShape="RoundRectangle 14"
                         BackgroundColor="{StaticResource SurfaceCard}"
                         Stroke="{StaticResource SurfaceBorder}"
-                        Padding="18,16">
+                        Padding="18,16"
+                        VerticalOptions="Start">
                     <VerticalStackLayout Spacing="14">
                         <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
                             <Image Source="icon_timetable.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                            <Label Text="Today's Classes &amp; Schedule"
+                            <Label Text="{Binding ScheduleHeader}"
                                    FontSize="15"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextPrimary}"
@@ -205,7 +206,7 @@
                         <!-- Empty View -->
                         <VerticalStackLayout Spacing="6" Padding="0,20" HorizontalOptions="Center" IsVisible="{Binding HasNoSchedule}">
                             <Image Source="icon_timetable.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" Opacity="0.5" />
-                            <Label Text="No scheduled classes for today."
+                            <Label Text="No scheduled classes for this period."
                                    FontSize="12"
                                    TextColor="{StaticResource TextMuted}"
                                    HorizontalOptions="Center" />
@@ -277,7 +278,8 @@
                 <Border StrokeShape="RoundRectangle 14"
                         BackgroundColor="{StaticResource SurfaceCard}"
                         Stroke="{StaticResource SurfaceBorder}"
-                        Padding="18,16">
+                        Padding="18,16"
+                        VerticalOptions="Start">
                     <VerticalStackLayout Spacing="14">
                         <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
                             <Image Source="icon_announcements.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
@@ -288,15 +290,26 @@
                                    VerticalOptions="Center" />
                         </HorizontalStackLayout>
 
-                        <!-- Announcements Collection -->
-                        <CollectionView ItemsSource="{Binding Announcements}" SelectionMode="None">
-                            <CollectionView.ItemTemplate>
+                        <!-- Announcements Bindable Layout (prevents infinite ScrollView measurement collapse) -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Announcements}" Spacing="8">
+                            <BindableLayout.EmptyView>
+                                <Border StrokeShape="RoundRectangle 10"
+                                        BackgroundColor="{StaticResource SurfaceLight}"
+                                        Stroke="{StaticResource SurfaceBorder}"
+                                        Padding="16"
+                                        HorizontalOptions="Center">
+                                    <Label Text="No announcements posted."
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextMuted}"
+                                           HorizontalOptions="Center" />
+                                </Border>
+                            </BindableLayout.EmptyView>
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="dto:AnnouncementDto">
                                     <Border StrokeShape="RoundRectangle 10"
                                             BackgroundColor="{StaticResource SurfaceLight}"
                                             Stroke="{StaticResource SurfaceBorder}"
-                                            Padding="14,12"
-                                            Margin="0,0,0,8">
+                                            Padding="14,12">
                                         <VerticalStackLayout Spacing="4">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <Label Text="{Binding Title}"
@@ -304,7 +317,7 @@
                                                        FontAttributes="Bold"
                                                        TextColor="{StaticResource TextPrimary}" />
                                                 <Label Grid.Column="1"
-                                                       Text="{Binding PublishDate, StringFormat='{0:MMM dd, yyyy}'}"
+                                                       Text="{Binding PublishedAtUtc, StringFormat='{0:MMM dd, yyyy}'}"
                                                        FontSize="10"
                                                        TextColor="{StaticResource TextMuted}" />
                                             </Grid>
@@ -315,8 +328,8 @@
                                         </VerticalStackLayout>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 

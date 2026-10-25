@@ -318,6 +318,9 @@ public partial class StudentDashboardViewModel : BaseViewModel
     private bool _hasNoSchedule;
 
     [ObservableProperty]
+    private string _scheduleHeader = "Today's Classes & Schedule";
+
+    [ObservableProperty]
     private ObservableCollection<AnnouncementDto> _announcements = new();
 
     public StudentDashboardViewModel(IApiService apiService)
@@ -334,6 +337,10 @@ public partial class StudentDashboardViewModel : BaseViewModel
         {
             IsBusy = true;
             ClearError();
+
+            var today = DateTime.Today.DayOfWeek;
+            bool isWeekend = today is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            ScheduleHeader = isWeekend ? "Upcoming Classes (Monday)" : "Today's Classes & Schedule";
 
             var res = await _apiService.GetStudentDashboardAsync();
             if (res.Success && res.Data != null)

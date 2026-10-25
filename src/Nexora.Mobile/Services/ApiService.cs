@@ -246,6 +246,7 @@ public class ApiService : IApiService
         UserRole role;
         string firstName, lastName, fullName, email, phone;
 
+        Guid? linkedProfileId = null;
         if (uname.Contains("superadmin"))
         {
             role = UserRole.SuperAdmin;
@@ -258,11 +259,13 @@ public class ApiService : IApiService
         else if (uname.Contains("teacher"))
         {
             role = UserRole.Teacher;
-            firstName = "Dara";
-            lastName = "Sok";
-            fullName = "Sok Dara";
-            email = "dara.sok@angkoracademy.edu.kh";
-            phone = "+855 12 345 678";
+            var matchTeacher = _mockTeachers.FirstOrDefault(t => uname.Contains(t.FirstName.ToLower()) || uname.Contains(t.LastName.ToLower())) ?? _mockTeachers.First();
+            firstName = matchTeacher.FirstName;
+            lastName = matchTeacher.LastName;
+            fullName = matchTeacher.FullName;
+            email = matchTeacher.Email;
+            phone = matchTeacher.PhoneNumber ?? "+855 12 345 678";
+            linkedProfileId = matchTeacher.Id;
         }
         else if (uname.Contains("student"))
         {
@@ -272,6 +275,7 @@ public class ApiService : IApiService
             fullName = "Visal Chan";
             email = "visal.chan@angkoracademy.edu.kh";
             phone = "+855 81 234 567";
+            linkedProfileId = StudentVisalId;
         }
         else if (uname.Contains("parent"))
         {
@@ -281,6 +285,7 @@ public class ApiService : IApiService
             fullName = "Keo Bopha";
             email = "bopha.keo@gmail.com";
             phone = "+855 77 987 654";
+            linkedProfileId = StudentBophaId;
         }
         else
         {
@@ -303,7 +308,7 @@ public class ApiService : IApiService
             fullName,
             role,
             phone,
-            null
+            linkedProfileId
         );
 
         CurrentUser = user;
@@ -441,11 +446,26 @@ public class ApiService : IApiService
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<StudentDashboardStatsDto>>("api/dashboards/student", JsonOptions);
             if (res?.Data != null)
             {
-                if (res.Data.Student?.AdmissionNumber == "ADM-2026-0001" || CurrentUser?.Username?.Contains("visal") == true)
+                var data = res.Data;
+                if (data.Student?.AdmissionNumber == "ADM-2026-0001" || CurrentUser?.Username?.Contains("visal") == true)
                 {
-                    return ApiResponse<StudentDashboardStatsDto>.Ok(res.Data with { OverallAttendancePercentage = 100.0m });
+                    data = data with { OverallAttendancePercentage = 100.0m };
                 }
-                return res;
+
+                if (data.TodaySchedule == null || data.TodaySchedule.Count == 0)
+                {
+                    var dow = DateTime.Today.DayOfWeek;
+                    var dowToUse = (dow >= DayOfWeek.Monday && dow <= DayOfWeek.Friday) ? dow : DayOfWeek.Monday;
+                    var fallbackSchedule = _mockSchedule.Where(s => s.DayOfWeek == dowToUse && s.ClassName == "10-A").OrderBy(s => s.StartTime).ToList();
+                    data = data with { TodaySchedule = fallbackSchedule };
+                }
+
+                if (data.Announcements == null || data.Announcements.Count == 0)
+                {
+                    data = data with { Announcements = _mockAnnouncements };
+                }
+
+                return ApiResponse<StudentDashboardStatsDto>.Ok(data);
             }
         }
         catch (Exception ex)

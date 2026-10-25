@@ -20,7 +20,10 @@ public partial class GradesPage : ContentPage
 
     private async void OnFilterChanged(object sender, EventArgs e)
     {
-        await _viewModel.LoadComponentsCommand.ExecuteAsync(null);
+        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null && !_viewModel.IsBusy)
+        {
+            await _viewModel.LoadComponentsCommand.ExecuteAsync(null);
+        }
     }
 
     private async void OnComponentChanged(object sender, EventArgs e)

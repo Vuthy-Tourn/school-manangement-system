@@ -82,25 +82,53 @@
                         </VerticalStackLayout>
                     </Grid>
 
-                    <!-- Student Search Bar -->
-                    <Border StrokeShape="RoundRectangle 8"
-                            BackgroundColor="{StaticResource SurfaceLight}"
-                            Stroke="{StaticResource SurfaceBorder}"
-                            Padding="10,0"
-                            HeightRequest="36"
-                            IsVisible="{Binding CanEditGrades}">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalOptions="Center">
-                            <Image Source="icon_students.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center" Opacity="0.6" />
-                            <Entry Grid.Column="1"
-                                   Placeholder="Filter by student name or admission number..."
-                                   Text="{Binding SearchText}"
-                                   FontSize="12"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   PlaceholderColor="{StaticResource TextMuted}"
-                                   ClearButtonVisibility="WhileEditing"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
+                    <!-- Student Filter Dropdown & Quick Search -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding CanEditGrades}">
+                        <!-- Student Dropdown Picker -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="Student Filter"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="8,0"
+                                    HeightRequest="38">
+                                <Picker ItemsSource="{Binding StudentOptions}"
+                                        ItemDisplayBinding="{Binding DisplayName}"
+                                        SelectedItem="{Binding SelectedStudentFilter}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="11"
+                                        VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Quick Search Text Entry -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                            <Label Text="Quick Search"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="8,0"
+                                    HeightRequest="38">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" VerticalOptions="Center">
+                                    <Image Source="icon_students.png" WidthRequest="14" HeightRequest="14" VerticalOptions="Center" Opacity="0.6" />
+                                    <Entry Grid.Column="1"
+                                           Placeholder="Search name or ID..."
+                                           Text="{Binding SearchText}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           PlaceholderColor="{StaticResource TextMuted}"
+                                           ClearButtonVisibility="WhileEditing"
+                                           VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
 
@@ -109,27 +137,39 @@
                 <HorizontalStackLayout BindableLayout.ItemsSource="{Binding SubjectChips}" Spacing="6" Padding="0,2">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:SubjectChipViewModel">
-                            <Button Text="{Binding DisplayTitle}"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SelectSubjectChipCommand}"
-                                    CommandParameter="{Binding .}"
-                                    CornerRadius="16"
-                                    Padding="14,6"
-                                    FontSize="11"
-                                    FontAttributes="Bold"
-                                    HeightRequest="32">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                            <Border StrokeShape="RoundRectangle 16"
+                                    StrokeThickness="1"
+                                    HeightRequest="34"
+                                    Padding="14,6">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SelectSubjectChipCommand}"
+                                                          CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding DisplayTitle}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource White}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                         <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
-                                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                                        <Setter Property="Stroke" Value="{StaticResource Primary}" />
                                     </DataTrigger>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="False">
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
                                         <Setter Property="BackgroundColor" Value="{StaticResource SurfaceCard}" />
-                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
-                                        <Setter Property="BorderColor" Value="{StaticResource SurfaceBorder}" />
-                                        <Setter Property="BorderWidth" Value="1" />
+                                        <Setter Property="Stroke" Value="{StaticResource SurfaceBorder}" />
                                     </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
+                                </Border.Triggers>
+                            </Border>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
                 </HorizontalStackLayout>
