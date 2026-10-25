@@ -220,6 +220,9 @@ public partial class StudentDashboardViewModel : BaseViewModel
     private ObservableCollection<TimetableEntryDto> _todaySchedule = new();
 
     [ObservableProperty]
+    private bool _hasNoSchedule;
+
+    [ObservableProperty]
     private ObservableCollection<AnnouncementDto> _announcements = new();
 
     public StudentDashboardViewModel(IApiService apiService)
@@ -241,8 +244,9 @@ public partial class StudentDashboardViewModel : BaseViewModel
             if (res.Success && res.Data != null)
             {
                 Stats = res.Data;
-                TodaySchedule = new ObservableCollection<TimetableEntryDto>(res.Data.TodaySchedule);
-                Announcements = new ObservableCollection<AnnouncementDto>(res.Data.Announcements);
+                TodaySchedule = new ObservableCollection<TimetableEntryDto>(res.Data.TodaySchedule ?? new());
+                HasNoSchedule = TodaySchedule.Count == 0;
+                Announcements = new ObservableCollection<AnnouncementDto>(res.Data.Announcements ?? new());
             }
         }
         catch (Exception ex)

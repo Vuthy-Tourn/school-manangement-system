@@ -202,24 +202,23 @@
                                    VerticalOptions="Center" />
                         </HorizontalStackLayout>
 
+                        <!-- Empty View -->
+                        <VerticalStackLayout Spacing="6" Padding="0,20" HorizontalOptions="Center" IsVisible="{Binding HasNoSchedule}">
+                            <Image Source="icon_timetable.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" Opacity="0.5" />
+                            <Label Text="No scheduled classes for today."
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
                         <!-- Schedule Items -->
-                        <CollectionView ItemsSource="{Binding TodaySchedule}" SelectionMode="None">
-                            <CollectionView.EmptyView>
-                                <VerticalStackLayout Spacing="6" Padding="0,20" HorizontalOptions="Center">
-                                    <Image Source="icon_timetable.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" Opacity="0.5" />
-                                    <Label Text="No scheduled classes for today."
-                                           FontSize="12"
-                                           TextColor="{StaticResource TextMuted}"
-                                           HorizontalOptions="Center" />
-                                </VerticalStackLayout>
-                            </CollectionView.EmptyView>
-                            <CollectionView.ItemTemplate>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding TodaySchedule}" Spacing="8">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="dto:TimetableEntryDto">
                                     <Border StrokeShape="RoundRectangle 10"
                                             BackgroundColor="{StaticResource SurfaceLight}"
                                             Stroke="{StaticResource SurfaceBorder}"
-                                            Padding="14,12"
-                                            Margin="0,0,0,8">
+                                            Padding="14,12">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
                                             <!-- Time Badge -->
                                             <Border Grid.Column="0"
@@ -269,8 +268,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
