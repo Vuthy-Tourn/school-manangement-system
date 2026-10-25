@@ -480,6 +480,10 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private AssessmentComponentDto? _selectedComponent;
     [ObservableProperty] private ObservableCollection<GradeEntryItemViewModel> _studentGrades = new();
     [ObservableProperty] private ReportCardDto? _currentReportCard;
+    [ObservableProperty] private bool _canEditGrades = true;
+    [ObservableProperty] private bool _isReadOnlyGrades = false;
+    [ObservableProperty] private bool _isStudentView = false;
+    [ObservableProperty] private string _portalTitle = "Exams & Grading";
 
     public GradesViewModel(IApiService apiService)
     {
@@ -493,6 +497,18 @@ public partial class GradesViewModel : BaseViewModel
         try
         {
             IsBusy = true;
+            var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
+            CanEditGrades = role is UserRole.SuperAdmin or UserRole.SchoolAdmin or UserRole.Teacher;
+            IsReadOnlyGrades = !CanEditGrades;
+            IsStudentView = role is UserRole.Student or UserRole.Parent;
+            PortalTitle = role switch
+            {
+                UserRole.Student => "My Grades & Assessments",
+                UserRole.Parent => "Student Academic Grades",
+                _ => "Exams & Grading"
+            };
+            Title = PortalTitle;
+
             var examsRes = await _apiService.GetExamsAsync();
             if (examsRes.Success && examsRes.Data != null)
             {
@@ -553,7 +569,23 @@ public partial class GradesViewModel : BaseViewModel
             var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
             if (res.Success && res.Data != null)
             {
-                var items = res.Data.Select(g => new GradeEntryItemViewModel
+                var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
+                var data = res.Data;
+
+                if (role == UserRole.Student)
+                {
+                    var studentName = _apiService.CurrentUser?.FullName ?? "Visal Chan";
+                    var match = data.Where(g => g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase)
+                                             || g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    data = match.Count > 0 ? match : data.Take(1).ToList();
+                }
+                else if (role == UserRole.Parent)
+                {
+                    var match = data.Where(g => g.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    data = match.Count > 0 ? match : data.Take(1).ToList();
+                }
+
+                var items = data.Select(g => new GradeEntryItemViewModel
                 {
                     StudentId = g.StudentId,
                     StudentName = g.StudentName,
@@ -573,7 +605,7 @@ public partial class GradesViewModel : BaseViewModel
     [RelayCommand]
     public async Task SaveGradesAsync()
     {
-        if (SelectedComponent == null || StudentGrades.Count == 0) return;
+        if (!CanEditGrades || SelectedComponent == null || StudentGrades.Count == 0) return;
         try
         {
             IsBusy = true;
@@ -635,6 +667,10 @@ public partial class FeesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<InvoiceDto> _invoices = new();
     [ObservableProperty] private FinancialSummaryDto? _summary;
     [ObservableProperty] private InvoiceDto? _selectedInvoice;
+    [ObservableProperty] private bool _canRecordPayment = true;
+    [ObservableProperty] private bool _isReadOnlyInvoice = false;
+    [ObservableProperty] private bool _isAdminView = true;
+    [ObservableProperty] private string _pageTitle = "Tuition & Fees";
 
     public FeesViewModel(IApiService apiService)
     {
@@ -651,14 +687,38 @@ public partial class FeesViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
 
+            var role = _apiService.CurrentUser?.Role ?? UserRole.SchoolAdmin;
+            CanRecordPayment = role is UserRole.SuperAdmin or UserRole.SchoolAdmin;
+            IsReadOnlyInvoice = !CanRecordPayment;
+            IsAdminView = CanRecordPayment;
+            PageTitle = role == UserRole.Student ? "My Tuition Invoices" : (role == UserRole.Parent ? "Family Tuition Statements" : "Tuition & Fees");
+            Title = PageTitle;
+
             var res = await _apiService.GetInvoicesAsync();
             if (res.Success && res.Data != null)
             {
-                Invoices = new ObservableCollection<InvoiceDto>(res.Data);
+                var invoices = res.Data;
+                if (role == UserRole.Student)
+                {
+                    var studentName = _apiService.CurrentUser?.FullName ?? "Visal Chan";
+                    var match = invoices.Where(inv => inv.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase)
+                                                   || inv.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    invoices = match.Count > 0 ? match : invoices.Take(1).ToList();
+                }
+                else if (role == UserRole.Parent)
+                {
+                    var match = invoices.Where(inv => inv.StudentName.Contains("Visal", StringComparison.OrdinalIgnoreCase)).ToList();
+                    invoices = match.Count > 0 ? match : invoices.Take(1).ToList();
+                }
+
+                Invoices = new ObservableCollection<InvoiceDto>(invoices);
             }
 
-            var sumRes = await _apiService.GetFinancialSummaryAsync();
-            if (sumRes.Success) Summary = sumRes.Data;
+            if (IsAdminView)
+            {
+                var sumRes = await _apiService.GetFinancialSummaryAsync();
+                if (sumRes.Success) Summary = sumRes.Data;
+            }
         }
         catch (Exception ex)
         {
@@ -671,9 +731,26 @@ public partial class FeesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    public async Task RecordPaymentPromptAsync(InvoiceDto invoice)
+    public async Task ViewInvoiceDetailsAsync(InvoiceDto invoice)
     {
         if (invoice == null) return;
+        string statusText = invoice.RemainingBalance <= 0 ? "PAID IN FULL" : $"OUTSTANDING (${invoice.RemainingBalance:N2})";
+        await Shell.Current.DisplayAlert(
+            "Invoice: " + invoice.InvoiceNumber,
+            $"Student: {invoice.StudentName}\n" +
+            $"Status: {invoice.Status} ({statusText})\n" +
+            $"Total Billed: ${invoice.TotalAmount:N2}\n" +
+            $"Amount Paid: ${invoice.PaidAmount:N2}\n" +
+            $"Balance Due: ${invoice.RemainingBalance:N2}\n" +
+            $"Due Date: {invoice.DueDate:MMM dd, yyyy}\n\n" +
+            "Payment Channel: ABA Bank Pay (Office Counter or Mobile Banking).",
+            "Done");
+    }
+
+    [RelayCommand]
+    public async Task RecordPaymentPromptAsync(InvoiceDto invoice)
+    {
+        if (!CanRecordPayment || invoice == null) return;
         if (invoice.RemainingBalance <= 0)
         {
             await Shell.Current.DisplayAlert("Paid", "This invoice is already fully paid.", "OK");
@@ -855,46 +932,88 @@ public partial class ProfileViewModel : BaseViewModel
     private readonly IApiService _apiService;
 
     [ObservableProperty] private UserProfileDto? _profile;
+    [ObservableProperty] private string _fullName = string.Empty;
+    [ObservableProperty] private string _email = string.Empty;
+    [ObservableProperty] private string _phoneNumber = string.Empty;
+    [ObservableProperty] private string _roleBadge = string.Empty;
+    [ObservableProperty] private string _roleDepartment = string.Empty;
+    [ObservableProperty] private string _schoolName = "Angkor International Academy";
     [ObservableProperty] private string _appVersion = "1.0.0 (Build 2026)";
     [ObservableProperty] private string _selectedLanguage = "English (US)";
-    [ObservableProperty] private string _serverUrl = string.Empty;
-    [ObservableProperty] private string _connectionStatus = "Ready to test";
-    [ObservableProperty] private bool _isConnected;
 
     public ProfileViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Profile & Settings";
+        RefreshProfile();
+    }
+
+    public void RefreshProfile()
+    {
         Profile = _apiService.CurrentUser;
-        ServerUrl = _apiService.BaseUrl;
+        if (Profile != null)
+        {
+            FullName = Profile.FullName;
+            Email = Profile.Email;
+            PhoneNumber = Profile.PhoneNumber ?? string.Empty;
+            SchoolName = !string.IsNullOrWhiteSpace(Profile.SchoolName) ? Profile.SchoolName : "Angkor International Academy";
+            RoleBadge = Profile.Role switch
+            {
+                UserRole.SuperAdmin => "Super Administrator",
+                UserRole.SchoolAdmin => "School Administrator",
+                UserRole.Teacher => "Faculty / Teacher",
+                UserRole.Student => "Enrolled Student",
+                UserRole.Parent => "Parent / Guardian",
+                _ => "User"
+            };
+            RoleDepartment = Profile.Role switch
+            {
+                UserRole.SuperAdmin => "Executive Board & Governance",
+                UserRole.SchoolAdmin => "Academic & Campus Administration",
+                UserRole.Teacher => "Faculty & Instruction Department",
+                UserRole.Student => "Upper Secondary • Grade 10A",
+                UserRole.Parent => "Family & Guardian Association",
+                _ => "Institutional Portal"
+            };
+        }
+        else
+        {
+            FullName = "Administrator";
+            Email = "admin@angkoracademy.edu.kh";
+            PhoneNumber = "+855 23 888 101";
+            RoleBadge = "School Administrator";
+            RoleDepartment = "Academic & Campus Administration";
+        }
     }
 
     [RelayCommand]
-    private async Task TestConnectionAsync()
+    private async Task SaveProfileAsync()
     {
         if (IsBusy) return;
+        if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Email))
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please provide a valid full name and email address.", "OK");
+            return;
+        }
+
         try
         {
             IsBusy = true;
-            _apiService.BaseUrl = ServerUrl;
-            Preferences.Default.Set("api_base_url", ServerUrl);
-
-            var res = await _apiService.CheckConnectionAsync();
-            IsConnected = res.Success;
-            ConnectionStatus = res.Success
-                ? "Live Connected (PostgreSQL Backend)"
-                : "Unreachable (Running in Local Mode)";
-
-            await Shell.Current.DisplayAlert(
-                res.Success ? "Connected" : "Notice",
-                res.Message ?? (res.Success ? "Connected to backend successfully!" : "Could not reach backend."),
-                "OK");
+            var res = await _apiService.UpdateProfileAsync(FullName, Email, PhoneNumber);
+            if (res.Success && res.Data != null)
+            {
+                Profile = res.Data;
+                RefreshProfile();
+                await Shell.Current.DisplayAlert("Profile Updated", "Your profile information has been saved successfully.", "OK");
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert("Update Failed", res.Message ?? "Could not save profile.", "OK");
+            }
         }
         catch (Exception ex)
         {
-            IsConnected = false;
-            ConnectionStatus = $"Error: {ex.Message}";
-            await Shell.Current.DisplayAlert("Connection Error", ex.Message, "OK");
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
         }
         finally
         {

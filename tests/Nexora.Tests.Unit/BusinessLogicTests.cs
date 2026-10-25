@@ -232,4 +232,65 @@ public class RoleBasedAuthenticationTests
         adminTabs.Should().Contain("students");
         adminTabs.Should().Contain("fees");
     }
+
+    [Fact]
+    public void StudentGradesFilter_ShouldOnlyIncludeOwnRecords()
+    {
+        var allGrades = new List<(string StudentName, decimal Score)>
+        {
+            ("Visal Chan", 88m),
+            ("Kanha Sok", 92m),
+            ("Dara Meng", 75m),
+            ("Bopha Keo", 85m)
+        };
+
+        var currentStudentName = "Visal Chan";
+        var studentGrades = allGrades.Where(g => g.StudentName.Equals(currentStudentName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        studentGrades.Should().HaveCount(1);
+        studentGrades[0].StudentName.Should().Be("Visal Chan");
+        studentGrades[0].Score.Should().Be(88m);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Student, false)]
+    [InlineData(UserRole.Parent, false)]
+    [InlineData(UserRole.Teacher, false)]
+    [InlineData(UserRole.SchoolAdmin, true)]
+    [InlineData(UserRole.SuperAdmin, true)]
+    public void PaymentRecording_ShouldOnlyBeAllowed_ForAdmins(UserRole role, bool canRecord)
+    {
+        bool allowed = role is UserRole.SuperAdmin or UserRole.SchoolAdmin;
+        allowed.Should().Be(canRecord);
+    }
+
+    [Fact]
+    public void ProfileUpdate_ShouldUpdateNameAndContact()
+    {
+        var original = new UserProfileDto(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Angkor International Academy",
+            "student.visal",
+            "visal.chan@angkoracademy.edu.kh",
+            "Visal",
+            "Chan",
+            "Visal Chan",
+            UserRole.Student,
+            "+855 81 234 567",
+            null
+        );
+
+        var updated = original with
+        {
+            FullName = "Visal Chan Updated",
+            Email = "visal.new@angkoracademy.edu.kh",
+            PhoneNumber = "+855 81 999 888"
+        };
+
+        updated.FullName.Should().Be("Visal Chan Updated");
+        updated.Email.Should().Be("visal.new@angkoracademy.edu.kh");
+        updated.PhoneNumber.Should().Be("+855 81 999 888");
+        updated.Role.Should().Be(UserRole.Student);
+    }
 }

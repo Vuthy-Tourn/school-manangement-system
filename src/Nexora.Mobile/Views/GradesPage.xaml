@@ -4,7 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              x:Class="Nexora.Mobile.Views.GradesPage"
              x:DataType="vm:GradesViewModel"
-             Title="Exams &amp; Grading"
+             Title="{Binding PortalTitle}"
              BackgroundColor="{StaticResource SurfaceLight}">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="20,16,20,20">
@@ -19,7 +19,7 @@
                 Margin="0,0,0,14">
             <VerticalStackLayout Spacing="12">
 
-                <!-- Row 1: Exam and Class -->
+                <!-- Row 1: Exam and Class (Class picker hidden for students) -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <!-- Exam Picker -->
                     <VerticalStackLayout Grid.Column="0" Spacing="6">
@@ -43,8 +43,8 @@
                         </Border>
                     </VerticalStackLayout>
 
-                    <!-- Class Picker -->
-                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <!-- Class Picker (Visible only for faculty/admin) -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="6" IsVisible="{Binding CanEditGrades}">
                         <Label Text="Class Section"
                                FontSize="11"
                                FontAttributes="Bold"
@@ -62,6 +62,26 @@
                                     TextColor="{StaticResource TextPrimary}"
                                     FontSize="12"
                                     VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Student Info Badge (Shown when Class picker is hidden) -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="6" IsVisible="{Binding IsReadOnlyGrades}">
+                        <Label Text="Student Academic Record"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource PrimaryBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
+                            <Label Text="Enrolled Student"
+                                   TextColor="{StaticResource Primary}"
+                                   FontAttributes="Bold"
+                                   FontSize="12"
+                                   VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
                 </Grid>
@@ -108,7 +128,7 @@
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextPrimary}"
                                    HorizontalOptions="Center" />
-                            <Label Text="Select an exam, class, and component from the dropdowns above to enter student marks."
+                            <Label Text="Select an exam and assessment component from the dropdowns above to view marks."
                                    FontSize="12"
                                    TextColor="{StaticResource TextSecondary}"
                                    HorizontalTextAlignment="Center" />
@@ -138,7 +158,7 @@
                                            FontAttributes="Bold" />
                                 </VerticalStackLayout>
 
-                                <!-- Score Numeric Input -->
+                                <!-- Score Numeric Input (For Teachers/Admins) -->
                                 <Border Grid.Column="1"
                                         StrokeShape="RoundRectangle 8"
                                         BackgroundColor="{StaticResource SurfaceLight}"
@@ -146,7 +166,8 @@
                                         StrokeThickness="1"
                                         WidthRequest="76"
                                         HeightRequest="38"
-                                        Padding="6,0">
+                                        Padding="6,0"
+                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=CanEditGrades}">
                                     <Entry Text="{Binding ScoreObtained}"
                                            Keyboard="Numeric"
                                            HorizontalTextAlignment="Center"
@@ -154,6 +175,23 @@
                                            FontAttributes="Bold"
                                            TextColor="{StaticResource Primary}"
                                            VerticalOptions="Center" />
+                                </Border>
+
+                                <!-- Read-Only Score Badge (For Students/Parents) -->
+                                <Border Grid.Column="1"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        Stroke="{StaticResource PrimaryBorder}"
+                                        StrokeThickness="1"
+                                        Padding="12,6"
+                                        VerticalOptions="Center"
+                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=IsReadOnlyGrades}">
+                                    <Label Text="{Binding ScoreObtained, StringFormat='{0:F0} / 100'}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="Center" />
                                 </Border>
 
                                 <!-- Report Card Link Button -->
@@ -178,8 +216,9 @@
             </CollectionView>
         </RefreshView>
 
-        <!-- Save Button Footer -->
-        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0">
+        <!-- Save Button Footer (Visible ONLY to Teachers and Administrators) -->
+        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0"
+                IsVisible="{Binding CanEditGrades}">
             <Button Text="Save Exam Grades"
                     Command="{Binding SaveGradesCommand}"
                     IsEnabled="{Binding IsNotBusy}"

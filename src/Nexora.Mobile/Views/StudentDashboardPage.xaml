@@ -122,20 +122,22 @@
                 </VerticalStackLayout>
 
                 <!-- 3. Key Academic Metrics Cards -->
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                     <!-- Current GPA -->
                     <Border Grid.Column="0"
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_grades.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Cumulative GPA" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_grades.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Cumulative GPA"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextMuted}"
+                                   LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.CurrentGpa, StringFormat='{0:F2}'}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}" />
                             <Label Text="Scale 4.00" FontSize="10" TextColor="{StaticResource TextMuted}" />
@@ -147,14 +149,16 @@
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_attendance.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Attendance" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_attendance.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Attendance"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextMuted}"
+                                   LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.OverallAttendancePercentage, StringFormat='{0:F1}%'}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource SuccessText}" />
                             <Label Text="Term Present" FontSize="10" TextColor="{StaticResource TextMuted}" />
@@ -166,17 +170,19 @@
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_fees.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Balance" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_fees.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Tuition Due"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextMuted}"
+                                   LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.PendingFees, StringFormat='${0:F0}'}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource WarningText}" />
-                            <Label Text="Pending Tuition" FontSize="10" TextColor="{StaticResource TextMuted}" />
+                            <Label Text="Pending" FontSize="10" TextColor="{StaticResource TextMuted}" />
                         </VerticalStackLayout>
                     </Border>
                 </Grid>

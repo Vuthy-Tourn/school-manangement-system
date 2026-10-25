@@ -10,8 +10,8 @@
     <ScrollView>
         <VerticalStackLayout Spacing="20" Padding="20,20,20,36" MaximumWidthRequest="600">
 
-            <!-- 1. Executive User Profile Card -->
-            <Border StrokeShape="RoundRectangle 14"
+            <!-- 1. Executive User Profile Identity Card -->
+            <Border StrokeShape="RoundRectangle 16"
                     BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
                     StrokeThickness="1"
@@ -34,35 +34,124 @@
 
                     <!-- Identity Details -->
                     <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                        <Label Text="{Binding Profile.FullName}"
-                               FontSize="18"
+                        <Label Text="{Binding FullName}"
+                               FontSize="19"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextPrimary}"
                                HorizontalTextAlignment="Center" />
-                        <Label Text="{Binding Profile.Email}"
+                        <Label Text="{Binding Email}"
                                FontSize="13"
                                TextColor="{StaticResource TextSecondary}"
                                HorizontalTextAlignment="Center" />
 
-                        <!-- Role Pill -->
+                        <!-- Role Pill (Styled with human-readable label, never numeric) -->
                         <Border StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SecondaryLight}"
                                 Stroke="{StaticResource SecondaryBorder}"
                                 StrokeThickness="1"
-                                Padding="12,3"
+                                Padding="14,4"
                                 HorizontalOptions="Center"
                                 Margin="0,6,0,0">
-                            <Label Text="{Binding Profile.Role, StringFormat='Role: {0}'}"
+                            <Label Text="{Binding RoleBadge}"
                                    FontSize="11"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource SecondaryDark}" />
                         </Border>
+
+                        <Label Text="{Binding RoleDepartment}"
+                               FontSize="11"
+                               TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,2,0,0" />
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>
             </Border>
 
-            <!-- 2. Institution Information Card -->
+            <!-- 2. Editable Personal Profile Information -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <VerticalStackLayout Spacing="16">
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Image Source="icon_profile.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                        <Label Text="Edit Personal Profile"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <!-- Full Name Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Full Name" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,0"
+                                HeightRequest="44">
+                            <Entry Text="{Binding FullName}"
+                                   Placeholder="Enter your full name"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Email Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Email Address" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,0"
+                                HeightRequest="44">
+                            <Entry Text="{Binding Email}"
+                                   Keyboard="Email"
+                                   Placeholder="name@angkoracademy.edu.kh"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Phone Number Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Phone Number" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,0"
+                                HeightRequest="44">
+                            <Entry Text="{Binding PhoneNumber}"
+                                   Keyboard="Telephone"
+                                   Placeholder="+855 12 345 678"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Save Profile Changes Button -->
+                    <Button Text="Save Profile Changes"
+                            Command="{Binding SaveProfileCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="{StaticResource White}"
+                            FontAttributes="Bold"
+                            FontSize="13"
+                            HeightRequest="44"
+                            CornerRadius="8"
+                            Margin="0,4,0,0" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 3. Institutional Environment Card -->
             <Border StrokeShape="RoundRectangle 12"
                     BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
@@ -75,81 +164,32 @@
                            TextColor="{StaticResource TextPrimary}" />
 
                     <!-- School Name -->
-                    <Grid ColumnDefinitions="100,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
                         <Label Text="Institution:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
-                        <Label Grid.Column="1" Text="{Binding Profile.SchoolName}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                        <Label Grid.Column="1" Text="{Binding SchoolName}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
                     </Grid>
 
                     <!-- Location -->
-                    <Grid ColumnDefinitions="100,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
                         <Label Text="Location:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
                         <Label Grid.Column="1" Text="Phnom Penh, Kingdom of Cambodia" FontSize="12" TextColor="{StaticResource TextPrimary}" />
                     </Grid>
 
                     <!-- Timezone -->
-                    <Grid ColumnDefinitions="100,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
                         <Label Text="Timezone:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
                         <Label Grid.Column="1" Text="Asia/Phnom_Penh (UTC+07:00)" FontSize="12" TextColor="{StaticResource TextPrimary}" />
                     </Grid>
-                </VerticalStackLayout>
-            </Border>
 
-            <!-- 3. Backend & Database Connectivity -->
-            <Border StrokeShape="RoundRectangle 12"
-                    BackgroundColor="{StaticResource SurfaceCard}"
-                    Stroke="{StaticResource SurfaceBorder}"
-                    StrokeThickness="1"
-                    Padding="20,16">
-                <VerticalStackLayout Spacing="14">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="API Server &amp; Database Connection"
-                               FontSize="14"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}" />
-
-                        <Border Grid.Column="1"
-                                StrokeShape="RoundRectangle 12"
-                                BackgroundColor="{StaticResource SecondaryLight}"
-                                Stroke="{StaticResource SecondaryBorder}"
-                                StrokeThickness="1"
-                                Padding="8,2">
-                            <Label Text="{Binding ConnectionStatus}"
-                                   FontSize="10"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource SecondaryDark}" />
-                        </Border>
+                    <!-- Academic Term -->
+                    <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+                        <Label Text="Academic Term:" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
+                        <Label Grid.Column="1" Text="Semester 1 • Academic Year 2026-2027" FontSize="12" TextColor="{StaticResource TextPrimary}" />
                     </Grid>
-
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Server Endpoint URL" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8"
-                                Stroke="{StaticResource SurfaceBorder}"
-                                StrokeThickness="1"
-                                BackgroundColor="{StaticResource SurfaceLight}"
-                                Padding="12,2"
-                                HeightRequest="44">
-                            <Entry Text="{Binding ServerUrl}"
-                                   Placeholder="http://localhost:5180/"
-                                   PlaceholderColor="{StaticResource TextSubtle}"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   FontSize="13"
-                                   VerticalOptions="Center" />
-                        </Border>
-                    </VerticalStackLayout>
-
-                    <Button Text="Test Backend Connection"
-                            Command="{Binding TestConnectionCommand}"
-                            IsEnabled="{Binding IsNotBusy}"
-                            BackgroundColor="{StaticResource Secondary}"
-                            TextColor="{StaticResource White}"
-                            FontAttributes="Bold"
-                            FontSize="12"
-                            HeightRequest="40"
-                            CornerRadius="8" />
                 </VerticalStackLayout>
             </Border>
 
-            <!-- 3. System Preferences Card -->
+            <!-- 4. System Preferences Card -->
             <Border StrokeShape="RoundRectangle 12"
                     BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
@@ -201,7 +241,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- 4. Sign Out Action -->
+            <!-- 5. Sign Out Action -->
             <Button Text="Sign Out of Nexora"
                     Command="{Binding LogoutCommand}"
                     BackgroundColor="{StaticResource DangerLight}"

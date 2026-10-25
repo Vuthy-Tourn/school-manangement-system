@@ -5,15 +5,15 @@
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.FeesPage"
              x:DataType="vm:FeesViewModel"
-             Title="Tuition &amp; Fees"
+             Title="{Binding PageTitle}"
              BackgroundColor="{StaticResource SurfaceLight}">
 
     <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadInvoicesCommand}">
         <ScrollView>
             <VerticalStackLayout Spacing="20" Padding="20,20,20,36">
 
-                <!-- 1. Executive Financial Summary Row -->
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                <!-- 1. Executive Financial Summary Row (Visible only to School Admins) -->
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10" IsVisible="{Binding IsAdminView}">
                     <!-- Invoiced -->
                     <Border Grid.Column="0"
                             StrokeShape="RoundRectangle 12"
@@ -58,7 +58,7 @@
                 </Grid>
 
                 <!-- 2. Invoices Section Header -->
-                <Label Text="Student Invoices &amp; Accounts"
+                <Label Text="Student Invoices &amp; Statements"
                        FontSize="15"
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}" />
@@ -134,13 +134,14 @@
                                         </Grid>
                                     </Border>
 
-                                    <!-- Bottom Action Row: Due Date and Record Payment CTA -->
+                                    <!-- Bottom Action Row: Due Date and CTA Buttons -->
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
                                         <Label Text="{Binding DueDate, StringFormat='Due Date: {0:MMM dd, yyyy}'}"
                                                FontSize="11"
                                                TextColor="{StaticResource TextMuted}"
                                                VerticalOptions="Center" />
 
+                                        <!-- Admin Action: Record Payment -->
                                         <Button Grid.Column="1"
                                                 Text="Record Payment"
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=RecordPaymentPromptCommand}"
@@ -151,7 +152,24 @@
                                                 FontAttributes="Bold"
                                                 HeightRequest="34"
                                                 Padding="14,0"
-                                                CornerRadius="6" />
+                                                CornerRadius="6"
+                                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=CanRecordPayment}" />
+
+                                        <!-- Student & Parent Action: View Statement / Invoice Details -->
+                                        <Button Grid.Column="1"
+                                                Text="View Invoice"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=ViewInvoiceDetailsCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource Secondary}"
+                                                BorderColor="{StaticResource SecondaryBorder}"
+                                                BorderWidth="1"
+                                                FontSize="11"
+                                                FontAttributes="Bold"
+                                                HeightRequest="34"
+                                                Padding="14,0"
+                                                CornerRadius="6"
+                                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=IsReadOnlyInvoice}" />
                                     </Grid>
 
                                 </VerticalStackLayout>

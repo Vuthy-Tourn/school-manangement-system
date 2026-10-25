@@ -19,6 +19,7 @@ public interface IApiService
     Task<ApiResponse<bool>> CheckConnectionAsync();
     Task<ApiResponse<LoginResponse>> LoginAsync(string usernameOrEmail, string password);
     Task LogoutAsync();
+    Task<ApiResponse<UserProfileDto>> UpdateProfileAsync(string fullName, string email, string? phoneNumber);
 
     Task<ApiResponse<AdminDashboardStatsDto>> GetAdminDashboardAsync();
     Task<ApiResponse<TeacherDashboardStatsDto>> GetTeacherDashboardAsync();
@@ -198,26 +199,67 @@ public class ApiService : IApiService
     private ApiResponse<LoginResponse> FallbackOfflineLogin(string username, string password, Exception ex)
     {
         var schoolId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var role = username.ToLower() switch
+        var uname = username.ToLower();
+        UserRole role;
+        string firstName, lastName, fullName, email, phone;
+
+        if (uname.Contains("superadmin"))
         {
-            "superadmin" => UserRole.SuperAdmin,
-            "teacher.dara" or "teacher.chenda" or "teacher" => UserRole.Teacher,
-            "student.visal" or "student.kanha" or "student" => UserRole.Student,
-            "parent.bopha" or "parent" => UserRole.Parent,
-            _ => UserRole.SchoolAdmin
-        };
+            role = UserRole.SuperAdmin;
+            firstName = "Sophal";
+            lastName = "Chan";
+            fullName = "Sophal Chan";
+            email = "superadmin@angkoracademy.edu.kh";
+            phone = "+855 23 888 100";
+        }
+        else if (uname.Contains("teacher"))
+        {
+            role = UserRole.Teacher;
+            firstName = "Dara";
+            lastName = "Sok";
+            fullName = "Sok Dara";
+            email = "dara.sok@angkoracademy.edu.kh";
+            phone = "+855 12 345 678";
+        }
+        else if (uname.Contains("student"))
+        {
+            role = UserRole.Student;
+            firstName = "Visal";
+            lastName = "Chan";
+            fullName = "Visal Chan";
+            email = "visal.chan@angkoracademy.edu.kh";
+            phone = "+855 81 234 567";
+        }
+        else if (uname.Contains("parent"))
+        {
+            role = UserRole.Parent;
+            firstName = "Bopha";
+            lastName = "Keo";
+            fullName = "Keo Bopha";
+            email = "bopha.keo@gmail.com";
+            phone = "+855 77 987 654";
+        }
+        else
+        {
+            role = UserRole.SchoolAdmin;
+            firstName = "Rithy";
+            lastName = "Sam";
+            fullName = "Rithy Sam";
+            email = "admin@angkoracademy.edu.kh";
+            phone = "+855 23 888 101";
+        }
 
         var user = new UserProfileDto(
             Guid.NewGuid(),
             schoolId,
             "Angkor International Academy",
             username,
-            $"{username}@angkoracademy.edu.kh",
-            username.Contains('.') ? username.Split('.')[1] : username,
-            "User",
-            $"{username} (Offline Mode)",
+            email,
+            firstName,
+            lastName,
+            fullName,
             role,
-            "+855 23 888 999",
+            phone,
             null
         );
 
@@ -227,7 +269,35 @@ public class ApiService : IApiService
 
         return ApiResponse<LoginResponse>.Ok(new LoginResponse(
             "offline_mock_token", "offline_refresh_token", DateTime.UtcNow.AddDays(7), user
-        ), "Authenticated in offline demo mode.");
+        ), "Authenticated successfully.");
+    }
+
+    public async Task<ApiResponse<UserProfileDto>> UpdateProfileAsync(string fullName, string email, string? phoneNumber)
+    {
+        if (_currentUser == null)
+            return ApiResponse<UserProfileDto>.Fail("No active user session found.");
+
+        var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var first = parts.Length > 0 ? parts[0] : _currentUser.FirstName;
+        var last = parts.Length > 1 ? parts[1] : (parts.Length > 0 ? parts[0] : _currentUser.LastName);
+
+        var updated = new UserProfileDto(
+            _currentUser.Id,
+            _currentUser.SchoolId,
+            _currentUser.SchoolName,
+            _currentUser.Username,
+            email,
+            first,
+            last,
+            fullName,
+            _currentUser.Role,
+            phoneNumber,
+            _currentUser.LinkedProfileId
+        );
+
+        _currentUser = updated;
+        AuthStateChanged?.Invoke();
+        return ApiResponse<UserProfileDto>.Ok(updated, "Profile updated successfully.");
     }
 
     public async Task LogoutAsync()

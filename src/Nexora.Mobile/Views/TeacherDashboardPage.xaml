@@ -116,23 +116,21 @@
                 </VerticalStackLayout>
 
                 <!-- 3. Key Metrics Cards -->
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                     <!-- Classes -->
                     <Border Grid.Column="0"
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_classes.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Classes" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_classes.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Classes" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.AssignedClassesCount}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}" />
-                            <Label Text="Assigned Sections" FontSize="10" TextColor="{StaticResource TextMuted}" />
+                            <Label Text="Sections" FontSize="10" TextColor="{StaticResource TextMuted}" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -141,17 +139,15 @@
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_students.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Students" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_students.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Students" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.TotalStudentsTaught}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Secondary}" />
-                            <Label Text="Taught Total" FontSize="10" TextColor="{StaticResource TextMuted}" />
+                            <Label Text="Enrolled" FontSize="10" TextColor="{StaticResource TextMuted}" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -160,17 +156,15 @@
                             StrokeShape="RoundRectangle 12"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="14,14">
-                        <VerticalStackLayout Spacing="6">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Image Source="icon_grades.png" WidthRequest="18" HeightRequest="18" />
-                                <Label Text="Subjects" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            Padding="12,12">
+                        <VerticalStackLayout Spacing="4">
+                            <Image Source="icon_grades.png" WidthRequest="20" HeightRequest="20" HorizontalOptions="Start" />
+                            <Label Text="Subjects" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" LineBreakMode="WordWrap" />
                             <Label Text="{Binding Stats.AssignedSubjectsCount}"
-                                   FontSize="22"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource SuccessText}" />
-                            <Label Text="Curriculum Courses" FontSize="10" TextColor="{StaticResource TextMuted}" />
+                            <Label Text="Courses" FontSize="10" TextColor="{StaticResource TextMuted}" />
                         </VerticalStackLayout>
                     </Border>
                 </Grid>
