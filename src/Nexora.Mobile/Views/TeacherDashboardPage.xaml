@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.TeacherDashboardPage"
+             x:Name="TeacherDashboardRootPage"
              x:DataType="vm:TeacherDashboardViewModel"
              Title="Teacher Portal"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -199,7 +200,7 @@
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="vm:DayChipViewModel">
                                     <Button Text="{Binding Name}"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TeacherDashboardViewModel}}, Path=SelectDayCommand}"
+                                            Command="{Binding BindingContext.SelectDayCommand, Source={x:Reference TeacherDashboardRootPage}}"
                                             CommandParameter="{Binding .}"
                                             CornerRadius="8"
                                             Padding="14,6"
@@ -343,7 +344,7 @@
                                                     CornerRadius="6"
                                                     Padding="12,6"
                                                     MinimumHeightRequest="32"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TeacherDashboardViewModel}}, Path=QuickTakeAttendanceCommand}"
+                                                    Command="{Binding BindingContext.QuickTakeAttendanceCommand, Source={x:Reference TeacherDashboardRootPage}}"
                                                     CommandParameter="{Binding .}"
                                                     VerticalOptions="Center" />
                                         </Grid>

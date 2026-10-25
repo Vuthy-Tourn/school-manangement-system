@@ -53,6 +53,7 @@ public interface IApiService
     Task<ApiResponse<List<ExamDto>>> GetExamsAsync();
     Task<ApiResponse<List<AssessmentComponentDto>>> GetAssessmentComponentsAsync(Guid examId, Guid classId);
     Task<ApiResponse<List<StudentGradeDto>>> GetComponentGradesAsync(Guid componentId);
+    Task<ApiResponse<List<StudentGradeDto>>> GetStudentAllGradesAsync(Guid studentId, Guid examId);
     Task<ApiResponse<bool>> RecordBatchGradesAsync(BatchGradeEntryRequest request);
     Task<ApiResponse<bool>> RecordSingleGradeAsync(Guid componentId, Guid studentId, decimal score, string? remarks = null);
     Task<ApiResponse<ReportCardDto>> GetStudentReportCardAsync(Guid studentId, Guid examId);
@@ -764,7 +765,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<ClassSectionDto>>>("api/academic/classes", JsonOptions);
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<ClassSectionDto>>>("api/academics/classes", JsonOptions);
             if (res?.Data != null) return res;
         }
         catch (Exception ex)
@@ -779,7 +780,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<SubjectDto>>>("api/academic/subjects", JsonOptions);
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<SubjectDto>>>("api/academics/subjects", JsonOptions);
             if (res?.Data != null) return res;
         }
         catch (Exception ex)
@@ -1056,7 +1057,8 @@ public class ApiService : IApiService
             LogException("GetAssessmentComponentsAsync", ex);
         }
 
-        var list = _mockComponents.Where(c => classId == Guid.Empty || c.ClassSectionId == classId).ToList();
+        var targetClassId = classId != Guid.Empty ? classId : Class10AId;
+        var list = _mockComponents.Where(c => c.ClassSectionId == targetClassId).ToList();
         return ApiResponse<List<AssessmentComponentDto>>.Ok(list);
     }
 
@@ -1096,6 +1098,53 @@ public class ApiService : IApiService
             }
         }
         return ApiResponse<List<StudentGradeDto>>.Ok(list);
+    }
+
+    public async Task<ApiResponse<List<StudentGradeDto>>> GetStudentAllGradesAsync(Guid studentId, Guid examId)
+    {
+        try
+        {
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<ReportCardDto>>($"api/grades/report-card/{studentId}/{examId}", JsonOptions);
+            if (res?.Data?.Subjects != null && res.Data.Subjects.Count > 0)
+            {
+                var list = res.Data.Subjects.Select(s => new StudentGradeDto(
+                    Guid.NewGuid(),
+                    s.SubjectId,
+                    "Midterm Exam",
+                    s.SubjectId,
+                    s.SubjectName,
+                    studentId,
+                    res.Data.StudentName,
+                    res.Data.AdmissionNumber,
+                    s.TotalScore,
+                    s.MaxScore,
+                    s.Percentage,
+                    s.GradeLetter,
+                    s.GradePoint,
+                    "Official Academic Record"
+                )).ToList();
+                return ApiResponse<List<StudentGradeDto>>.Ok(list);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("GetStudentAllGradesAsync", ex);
+        }
+
+        // Authoritative fallback: return student's exact distinct grades from _mockGrades
+        var studentGrades = _mockGrades.Where(g => g.StudentId == studentId).ToList();
+        if (studentGrades.Count == 0)
+        {
+            studentGrades = _mockGrades.Where(g => g.StudentId == StudentVisalId).ToList();
+        }
+
+        // Deduplicate by SubjectName
+        var distinct = studentGrades
+            .GroupBy(g => g.SubjectName)
+            .Select(g => g.First())
+            .ToList();
+
+        return ApiResponse<List<StudentGradeDto>>.Ok(distinct);
     }
 
     public async Task<ApiResponse<bool>> RecordSingleGradeAsync(Guid componentId, Guid studentId, decimal score, string? remarks = null)
@@ -1168,7 +1217,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<ReportCardDto>>($"api/grades/report-cards?studentId={studentId}&examId={examId}", JsonOptions);
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<ReportCardDto>>($"api/grades/report-card/{studentId}/{examId}", JsonOptions);
             if (res?.Data != null) return res;
         }
         catch (Exception ex)
@@ -1179,12 +1228,21 @@ public class ApiService : IApiService
         var student = _mockStudents.FirstOrDefault(s => s.Id == studentId) ?? _mockStudents.First();
         var subjects = new List<SubjectReportItem>
         {
-            new(Guid.NewGuid(), "Mathematics", "MATH101", 4, 94.5m, 100m, 94.5m, "A", 4.0m),
-            new(Guid.NewGuid(), "Physics", "PHY101", 3, 88.0m, 100m, 88.0m, "B", 3.0m)
+            new(SubjKhmerId, "Khmer Literature", "KHM101", 4, 92.0m, 100m, 92.0m, "A", 4.0m),
+            new(SubjMathId, "Mathematics", "MATH101", 4, 95.0m, 100m, 95.0m, "A", 4.0m),
+            new(SubjEnglishId, "English Communication", "ENG101", 3, 94.0m, 100m, 94.0m, "A", 4.0m),
+            new(SubjPhysicsId, "Physics", "PHY101", 3, 88.0m, 100m, 88.0m, "B", 3.0m),
+            new(SubjChemistryId, "Chemistry", "CHM101", 3, 86.5m, 100m, 86.5m, "B", 3.0m),
+            new(SubjBiologyId, "Biology", "BIO101", 3, 90.0m, 100m, 90.0m, "A", 4.0m),
+            new(SubjHistoryId, "History", "HIS101", 2, 91.5m, 100m, 91.5m, "A", 4.0m),
+            new(SubjIctId, "Computer Science & ICT", "ICT101", 2, 98.0m, 100m, 98.0m, "A", 4.0m)
         };
+        var totalObtained = subjects.Sum(s => s.TotalScore);
+        var totalMax = subjects.Sum(s => s.MaxScore);
+        var pct = totalMax > 0 ? (totalObtained / totalMax) * 100m : 0m;
         return ApiResponse<ReportCardDto>.Ok(new ReportCardDto(
             student.Id, student.FullName, student.AdmissionNumber, "10-A", "2026-2027", "Semester 1",
-            subjects, 182.5m, 200m, 91.25m, 3.5m, "A", 1));
+            subjects, totalObtained, totalMax, Math.Round(pct, 2), 3.85m, "A", 1));
     }
 
     public async Task<ApiResponse<List<InvoiceDto>>> GetInvoicesAsync(Guid? studentId = null, InvoiceStatus? status = null)

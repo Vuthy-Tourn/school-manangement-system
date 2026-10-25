@@ -16,6 +16,11 @@ public partial class StudentsViewModel : BaseViewModel
     [ObservableProperty]
     private string _searchTerm = string.Empty;
 
+    partial void OnSearchTermChanged(string value)
+    {
+        _ = LoadStudentsAsync();
+    }
+
     [ObservableProperty]
     private ObservableCollection<StudentDto> _students = new();
 
@@ -339,6 +344,22 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<AttendanceItemViewModel> _studentItems = new();
     [ObservableProperty] private AttendanceSummaryDto? _summary;
 
+    partial void OnSelectedClassChanged(ClassSectionDto? value)
+    {
+        if (value != null && !IsBusy)
+        {
+            _ = LoadAttendanceAsync();
+        }
+    }
+
+    partial void OnSelectedDateChanged(DateTime value)
+    {
+        if (!IsBusy)
+        {
+            _ = LoadAttendanceAsync();
+        }
+    }
+
     public AttendanceViewModel(IApiService apiService)
     {
         _apiService = apiService;
@@ -645,15 +666,17 @@ public partial class GradesViewModel : BaseViewModel
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
-        if (value != null && SelectedExam != null && !IsBusy)
+        if (value != null)
         {
+            SelectedStudentFilter = null;
+            SearchText = string.Empty;
             _ = LoadComponentsAsync();
         }
     }
 
     partial void OnSelectedExamChanged(ExamDto? value)
     {
-        if (value != null && SelectedClass != null && !IsBusy)
+        if (value != null && SelectedClass != null)
         {
             _ = LoadComponentsAsync();
         }
@@ -747,9 +770,15 @@ public partial class GradesViewModel : BaseViewModel
                     SelectedComponent = Components.FirstOrDefault();
                 }
 
+                // Strictly deduplicate chips by display title / subject name
+                var seenChips = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var c in Components)
                 {
-                    chips.Add(new SubjectChipViewModel(c, !IsStudentView && c.Id == SelectedComponent?.Id));
+                    var title = string.IsNullOrWhiteSpace(c.SubjectName) ? c.Name : c.SubjectName;
+                    if (seenChips.Add(title))
+                    {
+                        chips.Add(new SubjectChipViewModel(c, !IsStudentView && c.Id == SelectedComponent?.Id));
+                    }
                 }
                 SubjectChips = new ObservableCollection<SubjectChipViewModel>(chips);
 
@@ -779,7 +808,7 @@ public partial class GradesViewModel : BaseViewModel
     {
         if (chip == null) return;
         foreach (var c in SubjectChips)
-            c.IsSelected = (c.Component.Id == chip.Component.Id);
+            c.IsSelected = (c.Component.Id == chip.Component.Id && c.DisplayTitle == chip.DisplayTitle);
 
         SelectedComponent = chip.Component;
         ActiveSubjectHeader = chip.DisplayTitle;
@@ -800,67 +829,55 @@ public partial class GradesViewModel : BaseViewModel
 
             if (IsStudentView)
             {
-                var studentName = (role == UserRole.Student) ? (_apiService.CurrentUser?.FullName ?? "Visal Chan") : "Visal Chan";
-                var firstName = studentName.Split(' ').FirstOrDefault() ?? "Visal";
-                var studentId = _apiService.CurrentUser?.LinkedProfileId;
+                var studentId = _apiService.CurrentUser?.LinkedProfileId ?? Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+                var allGradesRes = await _apiService.GetStudentAllGradesAsync(studentId, SelectedExam?.Id ?? Guid.Empty);
+                var allGrades = allGradesRes.Data ?? new List<StudentGradeDto>();
 
                 if (SelectedComponent.Id == Guid.Empty)
                 {
-                    // Load all subject grades for student or parent to review complete curriculum
-                    foreach (var comp in Components)
+                    // "All Subjects": display complete curriculum with distinct real grades
+                    var seenSubjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var g in allGrades)
                     {
-                        var compGradesRes = await _apiService.GetComponentGradesAsync(comp.Id);
-                        if (compGradesRes.Success && compGradesRes.Data != null)
-                        {
-                            var match = compGradesRes.Data.FirstOrDefault(g =>
-                                (studentId.HasValue && g.StudentId == studentId.Value) ||
-                                g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase) ||
-                                g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase));
+                        var subj = !string.IsNullOrWhiteSpace(g.SubjectName) ? g.SubjectName : "Subject";
+                        if (!seenSubjects.Add(subj)) continue; // Guarantee no duplicate cards
 
-                            if (match != null)
-                            {
-                                var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
-                                {
-                                    StudentId = match.StudentId,
-                                    StudentName = match.StudentName,
-                                    AdmissionNumber = match.AdmissionNumber,
-                                    SubjectName = !string.IsNullOrWhiteSpace(comp.SubjectName) ? comp.SubjectName : match.SubjectName,
-                                    ComponentName = comp.Name,
-                                    Remarks = match.Remarks,
-                                    IsStudentView = true
-                                };
-                                vm.SetScore(match.ScoreObtained);
-                                items.Add(vm);
-                            }
-                        }
+                        var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
+                        {
+                            StudentId = g.StudentId,
+                            StudentName = g.StudentName,
+                            AdmissionNumber = g.AdmissionNumber,
+                            SubjectName = subj,
+                            ComponentName = g.ComponentName,
+                            Remarks = g.Remarks,
+                            IsStudentView = true
+                        };
+                        vm.SetScore(g.ScoreObtained);
+                        items.Add(vm);
                     }
                 }
                 else
                 {
-                    // Single subject selected
-                    var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
-                    if (res.Success && res.Data != null)
-                    {
-                        var match = res.Data.FirstOrDefault(g =>
-                            (studentId.HasValue && g.StudentId == studentId.Value) ||
-                            g.StudentName.Equals(studentName, StringComparison.OrdinalIgnoreCase) ||
-                            g.StudentName.Contains(firstName, StringComparison.OrdinalIgnoreCase));
+                    // Specific Subject Chip clicked: filter strictly to that subject!
+                    var targetSubject = string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName;
+                    var match = allGrades.FirstOrDefault(g =>
+                        g.SubjectName.Equals(targetSubject, StringComparison.OrdinalIgnoreCase) ||
+                        g.AssessmentComponentId == SelectedComponent.Id);
 
-                        if (match != null)
+                    if (match != null)
+                    {
+                        var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
                         {
-                            var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
-                            {
-                                StudentId = match.StudentId,
-                                StudentName = match.StudentName,
-                                AdmissionNumber = match.AdmissionNumber,
-                                SubjectName = !string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.SubjectName : match.SubjectName,
-                                ComponentName = SelectedComponent.Name,
-                                Remarks = match.Remarks,
-                                IsStudentView = true
-                            };
-                            vm.SetScore(match.ScoreObtained);
-                            items.Add(vm);
-                        }
+                            StudentId = match.StudentId,
+                            StudentName = match.StudentName,
+                            AdmissionNumber = match.AdmissionNumber,
+                            SubjectName = targetSubject,
+                            ComponentName = match.ComponentName,
+                            Remarks = match.Remarks,
+                            IsStudentView = true
+                        };
+                        vm.SetScore(match.ScoreObtained);
+                        items.Add(vm);
                     }
                 }
             }

@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.TimetablesPage"
+             x:Name="TimetablesRootPage"
              x:DataType="vm:TimetablesViewModel"
              Title="Class Timetable"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -53,10 +54,11 @@
                                     Padding="16,0"
                                     StrokeThickness="1">
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TimetablesViewModel}}, Path=SelectDayCommand}"
+                                    <TapGestureRecognizer Command="{Binding BindingContext.SelectDayCommand, Source={x:Reference TimetablesRootPage}}"
                                                           CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Label Text="{Binding Name}"
+                                       InputTransparent="True"
                                        FontSize="12"
                                        FontAttributes="Bold"
                                        VerticalOptions="Center"

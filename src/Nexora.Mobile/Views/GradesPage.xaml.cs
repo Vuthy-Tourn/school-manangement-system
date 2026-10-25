@@ -26,9 +26,9 @@ public partial class GradesPage : ContentPage
             _viewModel.SelectedExam = exam;
         }
 
-        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null && !_viewModel.IsBusy)
+        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null)
         {
-            await _viewModel.LoadComponentsCommand.ExecuteAsync(null);
+            await _viewModel.LoadComponentsAsync();
         }
     }
 
@@ -39,9 +39,9 @@ public partial class GradesPage : ContentPage
             _viewModel.SelectedClass = cls;
         }
 
-        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null && !_viewModel.IsBusy)
+        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null)
         {
-            await _viewModel.LoadComponentsCommand.ExecuteAsync(null);
+            await _viewModel.LoadComponentsAsync();
         }
     }
 
@@ -55,9 +55,9 @@ public partial class GradesPage : ContentPage
 
     private async void OnFilterChanged(object sender, EventArgs e)
     {
-        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null && !_viewModel.IsBusy)
+        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null)
         {
-            await _viewModel.LoadComponentsCommand.ExecuteAsync(null);
+            await _viewModel.LoadComponentsAsync();
         }
     }
 

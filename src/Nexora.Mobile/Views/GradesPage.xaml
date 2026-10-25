@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              x:Class="Nexora.Mobile.Views.GradesPage"
+             x:Name="GradesRootPage"
              x:DataType="vm:GradesViewModel"
              Title="{Binding PortalTitle}"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -145,13 +146,14 @@
                                     HeightRequest="34"
                                     Padding="14,6">
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SelectSubjectChipCommand}"
+                                    <TapGestureRecognizer Command="{Binding BindingContext.SelectSubjectChipCommand, Source={x:Reference GradesRootPage}}"
                                                           CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Label Text="{Binding DisplayTitle}"
                                        FontSize="11"
                                        FontAttributes="Bold"
                                        TextColor="{Binding ChipTextColor}"
+                                       InputTransparent="True"
                                        VerticalOptions="Center"
                                        HorizontalOptions="Center" />
                             </Border>
@@ -249,7 +251,7 @@
                                         WidthRequest="64"
                                         HeightRequest="36"
                                         Padding="4,0"
-                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=CanEditGrades}">
+                                        IsVisible="{Binding BindingContext.CanEditGrades, Source={x:Reference GradesRootPage}}">
                                     <Entry Text="{Binding ScoreText}"
                                            Keyboard="Numeric"
                                            HorizontalTextAlignment="Center"
@@ -267,7 +269,7 @@
                                         StrokeThickness="1"
                                         Padding="10,6"
                                         VerticalOptions="Center"
-                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=IsReadOnlyGrades}">
+                                        IsVisible="{Binding BindingContext.IsReadOnlyGrades, Source={x:Reference GradesRootPage}}">
                                     <Label Text="{Binding ScoreObtained, StringFormat='{0:F0} / 100'}"
                                            FontSize="12"
                                            FontAttributes="Bold"
@@ -278,7 +280,7 @@
                                 <!-- Quick Save Checkmark for Teacher (No Report Card Button) -->
                                 <Button Grid.Column="4"
                                         Text="Save"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=SaveSingleGradeCommand}"
+                                        Command="{Binding BindingContext.SaveSingleGradeCommand, Source={x:Reference GradesRootPage}}"
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="{StaticResource PrimaryLight}"
                                         TextColor="{StaticResource Primary}"
@@ -289,7 +291,7 @@
                                         HeightRequest="36"
                                         Padding="12,0"
                                         CornerRadius="6"
-                                        IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:GradesViewModel}}, Path=CanEditGrades}" />
+                                        IsVisible="{Binding BindingContext.CanEditGrades, Source={x:Reference GradesRootPage}}" />
 
                             </Grid>
                         </Border>

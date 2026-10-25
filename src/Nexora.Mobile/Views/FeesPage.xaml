@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.FeesPage"
+             x:Name="FeesRootPage"
              x:DataType="vm:FeesViewModel"
              Title="{Binding PageTitle}"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -144,7 +145,7 @@
                                         <!-- Admin Action: Record Payment -->
                                         <Button Grid.Column="1"
                                                 Text="Record Payment"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=RecordPaymentPromptCommand}"
+                                                Command="{Binding BindingContext.RecordPaymentPromptCommand, Source={x:Reference FeesRootPage}}"
                                                 CommandParameter="{Binding .}"
                                                 BackgroundColor="{StaticResource Primary}"
                                                 TextColor="{StaticResource White}"
@@ -153,12 +154,12 @@
                                                 HeightRequest="34"
                                                 Padding="14,0"
                                                 CornerRadius="6"
-                                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=CanRecordPayment}" />
+                                                IsVisible="{Binding BindingContext.CanRecordPayment, Source={x:Reference FeesRootPage}}" />
 
                                         <!-- Student & Parent Action: View Statement / Invoice Details -->
                                         <Button Grid.Column="1"
                                                 Text="View Invoice"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=ViewInvoiceDetailsCommand}"
+                                                Command="{Binding BindingContext.ViewInvoiceDetailsCommand, Source={x:Reference FeesRootPage}}"
                                                 CommandParameter="{Binding .}"
                                                 BackgroundColor="{StaticResource SecondaryLight}"
                                                 TextColor="{StaticResource Secondary}"
@@ -169,7 +170,7 @@
                                                 HeightRequest="34"
                                                 Padding="14,0"
                                                 CornerRadius="6"
-                                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:FeesViewModel}}, Path=IsReadOnlyInvoice}" />
+                                                IsVisible="{Binding BindingContext.IsReadOnlyInvoice, Source={x:Reference FeesRootPage}}" />
                                     </Grid>
 
                                 </VerticalStackLayout>

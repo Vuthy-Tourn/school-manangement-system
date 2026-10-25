@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.AnnouncementsPage"
+             x:Name="AnnouncementsRootPage"
              x:DataType="vm:AnnouncementsViewModel"
              Title="Campus Announcements"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -144,10 +145,10 @@
                                     <HorizontalStackLayout Spacing="8"
                                                            Margin="0,4,0,0"
                                                            HorizontalOptions="End"
-                                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=CanManage}">
+                                                           IsVisible="{Binding BindingContext.CanManage, Source={x:Reference AnnouncementsRootPage}}">
                                         <!-- Edit Button -->
                                         <Button Text="Edit"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=OpenEditDialogCommand}"
+                                                Command="{Binding BindingContext.OpenEditDialogCommand, Source={x:Reference AnnouncementsRootPage}}"
                                                 CommandParameter="{Binding .}"
                                                 BackgroundColor="{StaticResource SecondaryLight}"
                                                 TextColor="{StaticResource SecondaryDark}"
@@ -159,7 +160,7 @@
 
                                         <!-- Delete Button -->
                                         <Button Text="Delete"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AnnouncementsViewModel}}, Path=DeleteAnnouncementCommand}"
+                                                Command="{Binding BindingContext.DeleteAnnouncementCommand, Source={x:Reference AnnouncementsRootPage}}"
                                                 CommandParameter="{Binding .}"
                                                 BackgroundColor="#FEE2E2"
                                                 TextColor="#DC2626"

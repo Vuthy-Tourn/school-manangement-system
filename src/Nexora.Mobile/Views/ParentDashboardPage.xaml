@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
              x:Class="Nexora.Mobile.Views.ParentDashboardPage"
+             x:Name="ParentDashboardRootPage"
              x:DataType="vm:ParentDashboardViewModel"
              Title="Parent Portal"
              BackgroundColor="{StaticResource SurfaceLight}">
@@ -77,10 +78,10 @@
                                         StrokeThickness="1.5"
                                         Padding="14,10">
                                     <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ParentDashboardViewModel}}, Path=SelectChildCommand}"
+                                        <TapGestureRecognizer Command="{Binding BindingContext.SelectChildCommand, Source={x:Reference ParentDashboardRootPage}}"
                                                               CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center" InputTransparent="True">
                                         <Border StrokeShape="RoundRectangle 16"
                                                 BackgroundColor="{StaticResource PrimaryLight}"
                                                 Stroke="{StaticResource PrimaryBorder}"
