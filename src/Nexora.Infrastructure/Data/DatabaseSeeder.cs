@@ -972,36 +972,81 @@ public class DatabaseSeeder
             }
         }
 
-        // Ensure Midterm Exam and 8 Assessment Components exist for Class 10-A
+        // Ensure Midterm Exam, Quiz, and Final Exam exist with Assessment Components for Class 10-A
+        var semester1 = await _context.Semesters.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.SchoolId == school.Id && s.IsCurrent)
+            ?? await _context.Semesters.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.SchoolId == school.Id);
+
         var exam = await _context.Exams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.SchoolId == school.Id && e.Name.Contains("Midterm"));
-        if (exam == null)
+        if (exam == null && semester1 != null)
         {
-            var semester1 = await _context.Semesters.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.SchoolId == school.Id && s.IsCurrent)
-                ?? await _context.Semesters.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.SchoolId == school.Id);
-            if (semester1 != null)
+            exam = new Exam
             {
-                exam = new Exam
-                {
-                    Id = Guid.NewGuid(),
-                    SchoolId = school.Id,
-                    AcademicYearId = academicYear.Id,
-                    SemesterId = semester1.Id,
-                    Name = "Semester 1 Midterm Examination",
-                    StartDate = DateTime.SpecifyKind(new DateTime(2026, 11, 15), DateTimeKind.Utc),
-                    EndDate = DateTime.SpecifyKind(new DateTime(2026, 11, 25), DateTimeKind.Utc),
-                    IsPublished = true,
-                    PublishedAtUtc = DateTime.UtcNow
-                };
-                _context.Exams.Add(exam);
-                hasChanges = true;
-            }
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                AcademicYearId = academicYear.Id,
+                SemesterId = semester1.Id,
+                Name = "Semester 1 Midterm Examination",
+                StartDate = DateTime.SpecifyKind(new DateTime(2026, 11, 15), DateTimeKind.Utc),
+                EndDate = DateTime.SpecifyKind(new DateTime(2026, 11, 25), DateTimeKind.Utc),
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow
+            };
+            _context.Exams.Add(exam);
+            hasChanges = true;
         }
 
-        if (exam != null)
+        var quizExam = await _context.Exams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.SchoolId == school.Id && e.Name.Contains("Monthly Assessment"));
+        if (quizExam == null && semester1 != null)
+        {
+            quizExam = new Exam
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                AcademicYearId = academicYear.Id,
+                SemesterId = semester1.Id,
+                Name = "Semester 1 Monthly Assessment (October)",
+                StartDate = DateTime.SpecifyKind(new DateTime(2026, 10, 1), DateTimeKind.Utc),
+                EndDate = DateTime.SpecifyKind(new DateTime(2026, 10, 10), DateTimeKind.Utc),
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow
+            };
+            _context.Exams.Add(quizExam);
+            hasChanges = true;
+        }
+
+        var finalExam = await _context.Exams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.SchoolId == school.Id && e.Name.Contains("Final Examination"));
+        if (finalExam == null && semester1 != null)
+        {
+            finalExam = new Exam
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                AcademicYearId = academicYear.Id,
+                SemesterId = semester1.Id,
+                Name = "Semester 1 Final Examination",
+                StartDate = DateTime.SpecifyKind(new DateTime(2027, 1, 10), DateTimeKind.Utc),
+                EndDate = DateTime.SpecifyKind(new DateTime(2027, 1, 20), DateTimeKind.Utc),
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow
+            };
+            _context.Exams.Add(finalExam);
+            hasChanges = true;
+        }
+
+        var targetExams = new[] { exam, quizExam, finalExam }.Where(e => e != null).Select(e => e!).ToList();
+
+        if (targetExams.Count > 0)
         {
             var subjects = await _context.Subjects.IgnoreQueryFilters().Where(s => s.SchoolId == school.Id).ToListAsync();
-            var existingComponents = await _context.AssessmentComponents.IgnoreQueryFilters()
-                .Where(c => c.ClassSectionId == class10A.Id && c.ExamId == exam.Id)
+            var allClassStudents = await _context.Students.IgnoreQueryFilters()
+                .Where(s => s.SchoolId == school.Id && s.CurrentClassSectionId == class10A.Id)
+                .ToListAsync();
+
+            var adminUser = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.SchoolId == school.Id && u.Role == UserRole.SchoolAdmin);
+            var graderId = adminUser?.Id ?? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
+            var existingGrades = await _context.StudentGrades.IgnoreQueryFilters()
+                .Where(g => g.SchoolId == school.Id)
                 .ToListAsync();
 
             var subjectSpecs = new List<(string Code, string Keyword, string CompName)>
@@ -1016,45 +1061,6 @@ public class DatabaseSeeder
                 ("ICT101", "ICT", "ICT Practical Project")
             };
 
-            var activeComponents = new List<AssessmentComponent>();
-            foreach (var spec in subjectSpecs)
-            {
-                var subj = subjects.FirstOrDefault(s => s.Code == spec.Code)
-                    ?? subjects.FirstOrDefault(s => s.Name.Contains(spec.Keyword));
-                if (subj == null) continue;
-
-                var comp = existingComponents.FirstOrDefault(c => c.SubjectId == subj.Id);
-                if (comp == null)
-                {
-                    comp = new AssessmentComponent
-                    {
-                        Id = Guid.NewGuid(),
-                        SchoolId = school.Id,
-                        ExamId = exam.Id,
-                        SubjectId = subj.Id,
-                        ClassSectionId = class10A.Id,
-                        Name = spec.CompName,
-                        MaxScore = 100m,
-                        WeightPercentage = 40m
-                    };
-                    _context.AssessmentComponents.Add(comp);
-                    hasChanges = true;
-                }
-                activeComponents.Add(comp);
-            }
-
-            // Ensure all 8 Class 10-A students have recorded grades across all 8 assessment components
-            var allClassStudents = await _context.Students.IgnoreQueryFilters()
-                .Where(s => s.SchoolId == school.Id && s.CurrentClassSectionId == class10A.Id)
-                .ToListAsync();
-
-            var adminUser = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.SchoolId == school.Id && u.Role == UserRole.SchoolAdmin);
-            var graderId = adminUser?.Id ?? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-
-            var existingGrades = await _context.StudentGrades.IgnoreQueryFilters()
-                .Where(g => g.SchoolId == school.Id)
-                .ToListAsync();
-
             var sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
             {
                 { "ADM-2026-0001", (94.0m, "Outstanding analytical ability and class participation") },
@@ -1067,29 +1073,69 @@ public class DatabaseSeeder
                 { "ADM-2026-0008", (92.0m, "Superior exam performance and high exam score") }
             };
 
-            foreach (var comp in activeComponents)
+            foreach (var targetExam in targetExams)
             {
-                foreach (var st in allClassStudents)
-                {
-                    bool gradeExists = existingGrades.Any(g => g.AssessmentComponentId == comp.Id && g.StudentId == st.Id);
-                    if (!gradeExists)
-                    {
-                        var (baseScore, remarks) = sampleScores.TryGetValue(st.AdmissionNumber, out var sc)
-                            ? sc
-                            : (88.0m, "Good academic performance");
+                var existingComponents = await _context.AssessmentComponents.IgnoreQueryFilters()
+                    .Where(c => c.ClassSectionId == class10A.Id && c.ExamId == targetExam.Id)
+                    .ToListAsync();
 
-                        _context.StudentGrades.Add(new StudentGrade
+                var activeComponents = new List<AssessmentComponent>();
+                foreach (var spec in subjectSpecs)
+                {
+                    var subj = subjects.FirstOrDefault(s => s.Code == spec.Code)
+                        ?? subjects.FirstOrDefault(s => s.Name.Contains(spec.Keyword));
+                    if (subj == null) continue;
+
+                    var comp = existingComponents.FirstOrDefault(c => c.SubjectId == subj.Id);
+                    if (comp == null)
+                    {
+                        var compTitle = targetExam.Name.Contains("Monthly")
+                            ? "Monthly Quiz Assessment"
+                            : targetExam.Name.Contains("Final")
+                                ? "Comprehensive Final Exam"
+                                : spec.CompName;
+
+                        comp = new AssessmentComponent
                         {
                             Id = Guid.NewGuid(),
                             SchoolId = school.Id,
-                            AssessmentComponentId = comp.Id,
-                            StudentId = st.Id,
-                            ScoreObtained = baseScore,
-                            Remarks = remarks,
-                            GradedByUserId = graderId,
-                            GradedAtUtc = DateTime.UtcNow
-                        });
+                            ExamId = targetExam.Id,
+                            SubjectId = subj.Id,
+                            ClassSectionId = class10A.Id,
+                            Name = compTitle,
+                            MaxScore = 100m,
+                            WeightPercentage = targetExam.Name.Contains("Monthly") ? 20m : 40m
+                        };
+                        _context.AssessmentComponents.Add(comp);
                         hasChanges = true;
+                    }
+                    activeComponents.Add(comp);
+                }
+
+                foreach (var comp in activeComponents)
+                {
+                    foreach (var st in allClassStudents)
+                    {
+                        bool gradeExists = existingGrades.Any(g => g.AssessmentComponentId == comp.Id && g.StudentId == st.Id);
+                        if (!gradeExists)
+                        {
+                            var (baseScore, remarks) = sampleScores.TryGetValue(st.AdmissionNumber, out var sc)
+                                ? sc
+                                : (88.0m, "Good academic performance");
+
+                            _context.StudentGrades.Add(new StudentGrade
+                            {
+                                Id = Guid.NewGuid(),
+                                SchoolId = school.Id,
+                                AssessmentComponentId = comp.Id,
+                                StudentId = st.Id,
+                                ScoreObtained = baseScore,
+                                Remarks = remarks,
+                                GradedByUserId = graderId,
+                                GradedAtUtc = DateTime.UtcNow
+                            });
+                            hasChanges = true;
+                        }
                     }
                 }
             }

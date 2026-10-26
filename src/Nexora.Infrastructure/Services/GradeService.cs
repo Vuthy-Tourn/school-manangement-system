@@ -99,11 +99,24 @@ public class GradeService : IGradeService
 
     public async Task<ApiResponse<List<AssessmentComponentDto>>> GetAssessmentComponentsAsync(Guid examId, Guid classSectionId, CancellationToken ct = default)
     {
-        var components = await _context.AssessmentComponents
-            .Where(a => a.ExamId == examId && a.ClassSectionId == classSectionId)
+        var query = _context.AssessmentComponents
             .Include(a => a.Exam)
             .Include(a => a.Subject)
             .Include(a => a.ClassSection)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (examId != Guid.Empty)
+        {
+            query = query.Where(a => a.ExamId == examId);
+        }
+
+        if (classSectionId != Guid.Empty)
+        {
+            query = query.Where(a => a.ClassSectionId == classSectionId);
+        }
+
+        var components = await query
             .Select(a => new AssessmentComponentDto(
                 a.Id,
                 a.ExamId,
@@ -117,6 +130,30 @@ public class GradeService : IGradeService
                 a.WeightPercentage
             ))
             .ToListAsync(ct);
+
+        // Fallback: If no components found for this specific examId in classSectionId, return components for the classSectionId
+        if (components.Count == 0 && classSectionId != Guid.Empty)
+        {
+            components = await _context.AssessmentComponents
+                .Where(a => a.ClassSectionId == classSectionId)
+                .Include(a => a.Exam)
+                .Include(a => a.Subject)
+                .Include(a => a.ClassSection)
+                .AsNoTracking()
+                .Select(a => new AssessmentComponentDto(
+                    a.Id,
+                    a.ExamId,
+                    a.Exam != null ? a.Exam.Name : string.Empty,
+                    a.SubjectId,
+                    a.Subject != null ? a.Subject.Name : string.Empty,
+                    a.ClassSectionId,
+                    a.ClassSection != null ? a.ClassSection.Name : string.Empty,
+                    a.Name,
+                    a.MaxScore,
+                    a.WeightPercentage
+                ))
+                .ToListAsync(ct);
+        }
 
         return ApiResponse<List<AssessmentComponentDto>>.Ok(components);
     }
@@ -220,7 +257,61 @@ public class GradeService : IGradeService
             }
         }
 
-        // Fallback to existing grades if no enrollments found
+        // Fallback to students by CurrentClassSectionId if no enrollments found
+        if (dtoList.Count == 0)
+        {
+            var classStudents = await _context.Students
+                .Where(s => s.CurrentClassSectionId == component.ClassSectionId && s.Status == StudentStatus.Active)
+                .OrderBy(s => s.LastName)
+                .ThenBy(s => s.FirstName)
+                .ToListAsync(ct);
+
+            foreach (var student in classStudents)
+            {
+                if (gradeMap.TryGetValue(student.Id, out var g))
+                {
+                    var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
+                    var matchingScale = scales.FirstOrDefault(s => percentage >= s.MinPercentage && percentage <= s.MaxPercentage);
+                    dtoList.Add(new StudentGradeDto(
+                        g.Id,
+                        component.Id,
+                        component.Name,
+                        component.SubjectId,
+                        component.Subject?.Name ?? string.Empty,
+                        student.Id,
+                        student.FullName,
+                        student.AdmissionNumber,
+                        g.ScoreObtained,
+                        maxScore,
+                        percentage,
+                        matchingScale?.GradeLetter ?? "F",
+                        matchingScale?.GradePoint ?? 0.0m,
+                        g.Remarks
+                    ));
+                }
+                else
+                {
+                    dtoList.Add(new StudentGradeDto(
+                        Guid.NewGuid(),
+                        component.Id,
+                        component.Name,
+                        component.SubjectId,
+                        component.Subject?.Name ?? string.Empty,
+                        student.Id,
+                        student.FullName,
+                        student.AdmissionNumber,
+                        0m,
+                        maxScore,
+                        0m,
+                        "F",
+                        0.0m,
+                        null
+                    ));
+                }
+            }
+        }
+
+        // Fallback to existing grades if no enrollments or students found
         if (dtoList.Count == 0 && existingGrades.Count > 0)
         {
             dtoList = existingGrades.Select(g =>

@@ -35,7 +35,6 @@
                                 <Picker ItemsSource="{Binding Exams}"
                                         ItemDisplayBinding="{Binding Name}"
                                         SelectedItem="{Binding SelectedExam}"
-                                        SelectedIndexChanged="OnExamChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -56,7 +55,6 @@
                                 <Picker ItemsSource="{Binding Classes}"
                                         ItemDisplayBinding="{Binding Name}"
                                         SelectedItem="{Binding SelectedClass}"
-                                        SelectedIndexChanged="OnClassSectionChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -139,7 +137,6 @@
                                 <Picker ItemsSource="{Binding StudentOptions}"
                                         ItemDisplayBinding="{Binding DisplayName}"
                                         SelectedItem="{Binding SelectedStudentFilter}"
-                                        SelectedIndexChanged="OnStudentFilterPickerChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="11"
                                         VerticalOptions="Center" />
@@ -170,6 +167,109 @@
                                 </Grid>
                             </Border>
                         </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Student / Parent Academic Performance & Total Grade Card -->
+            <Border IsVisible="{Binding IsStudentView}"
+                    StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="16,14">
+                <VerticalStackLayout Spacing="12">
+                    <!-- Top Row: Academic Summary Title, Standing, & Grade Badge -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Label Text="ACADEMIC SUMMARY"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextMuted}"
+                                       CharacterSpacing="0.8" />
+                                <Label Text="•" TextColor="{StaticResource TextMuted}" FontSize="10" />
+                                <Label Text="{Binding TotalSubjectsCountText}"
+                                       FontSize="10"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       FontAttributes="Bold" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding AcademicStandingText}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <!-- Overall Letter Grade Badge -->
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{Binding OverallGradeBadgeBg}"
+                                Padding="12,6"
+                                VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                <Label Text="Grade" FontSize="11" FontAttributes="Bold" TextColor="{Binding OverallGradeBadgeColor}" VerticalOptions="Center" />
+                                <Label Text="{Binding OverallGradeLetter}" FontSize="16" FontAttributes="Bold" TextColor="{Binding OverallGradeBadgeColor}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <!-- Divider -->
+                    <BoxView HeightRequest="1" Color="{StaticResource SurfaceBorder}" />
+
+                    <!-- 4 Metric Pillars: Total Score | Average | GPA (4.0) | Class Rank -->
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                        <!-- Total Score -->
+                        <Border Grid.Column="0"
+                                StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="6,10">
+                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                <Label Text="Total Score" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                <Label Text="{Binding TotalScoreText}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Average Score -->
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="6,10">
+                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                <Label Text="Average" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                <Label Text="{Binding OverallPercentageText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Cumulative GPA -->
+                        <Border Grid.Column="2"
+                                StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="6,10">
+                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                <Label Text="GPA (4.0)" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                <Label Text="{Binding CumulativeGpaText}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Class Rank -->
+                        <Border Grid.Column="3"
+                                StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="6,10">
+                            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                <Label Text="Standing" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                                <Label Text="{Binding ClassRank, StringFormat='#{0}'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource WarningText}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
                     </Grid>
                 </VerticalStackLayout>
             </Border>

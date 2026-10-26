@@ -252,7 +252,7 @@
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource TextSecondary}"
                                        VerticalOptions="Center" />
-                                <Button Text="📋 Ask Permission"
+                                <Button Text="Ask Permission"
                                         Command="{Binding OpenPermissionModalCommand}"
                                         BackgroundColor="{StaticResource PrimaryLight}"
                                         TextColor="{StaticResource Primary}"
@@ -557,13 +557,18 @@
         </RefreshView>
 
         <!-- 3. Full-Screen Backdrop Overlay for Ask Permission Modal (Reusable for Parents) -->
+        <!-- 3. Full-Screen Backdrop Overlay for Ask Permission Modal (Reusable for Parents) -->
         <Grid BackgroundColor="#99000000"
               IsVisible="{Binding IsPermissionModalVisible}"
+              IgnoreSafeArea="True"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
               InputTransparent="False"
               Padding="24"
               ZIndex="99">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ClosePermissionModalCommand}" />
+            </Grid.GestureRecognizers>
             <Border StrokeShape="RoundRectangle 16"
                     BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
@@ -571,11 +576,14 @@
                     VerticalOptions="Center"
                     MaximumWidthRequest="440"
                     HorizontalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
                 <ScrollView MaximumHeightRequest="560">
                     <VerticalStackLayout Spacing="14">
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                             <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Label Text="📋 Ask Permission for Child"
+                                <Label Text="Ask Permission for Child"
                                        FontSize="16"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource TextPrimary}" />
@@ -695,9 +703,10 @@
                                     Command="{Binding SubmitPermissionCommand}"
                                     BackgroundColor="{StaticResource Primary}"
                                     TextColor="{StaticResource White}"
-                                    FontSize="13"
+                                    FontSize="12"
                                     FontAttributes="Bold"
                                     HeightRequest="42"
+                                    Padding="4,0"
                                     CornerRadius="8" />
                         </Grid>
                     </VerticalStackLayout>

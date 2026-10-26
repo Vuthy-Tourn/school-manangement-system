@@ -1188,7 +1188,11 @@ public class ApiService : IApiService
 
         return ApiResponse<List<ExamDto>>.Ok(new List<ExamDto>
         {
-            new(ExamMidtermId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Midterm Examination", DateTime.UtcNow.AddDays(-10), DateTime.UtcNow.AddDays(5), true, DateTime.UtcNow)
+            new(ExamMidtermId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Midterm Examination", DateTime.UtcNow.AddDays(-20), DateTime.UtcNow.AddDays(-10), true, DateTime.UtcNow.AddDays(-10)),
+            new(ExamQuiz1Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Monthly Assessment (October)", DateTime.UtcNow.AddDays(-35), DateTime.UtcNow.AddDays(-30), true, DateTime.UtcNow.AddDays(-30)),
+            new(ExamFinal1Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Final Examination", DateTime.UtcNow.AddDays(40), DateTime.UtcNow.AddDays(50), false, null),
+            new(ExamMidterm2Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 2", "Semester 2 Midterm Examination", DateTime.UtcNow.AddDays(120), DateTime.UtcNow.AddDays(130), false, null),
+            new(ExamFinal2Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 2", "Semester 2 Final Annual Examination", DateTime.UtcNow.AddDays(200), DateTime.UtcNow.AddDays(210), false, null)
         });
     }
 
@@ -1200,7 +1204,7 @@ public class ApiService : IApiService
                 ? $"api/grades/components?examId={examId}&classSectionId={classId}"
                 : $"api/grades/components?examId={examId}";
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>(url, JsonOptions);
-            if (res?.Data != null && res.Data.Count >= 8) return res;
+            if (res?.Data != null && res.Data.Count > 0) return res;
         }
         catch (Exception ex)
         {
@@ -1208,10 +1212,18 @@ public class ApiService : IApiService
         }
 
         var targetClassId = classId != Guid.Empty ? classId : Class10AId;
-        var list = _mockComponents.Where(c => c.ClassSectionId == targetClassId).ToList();
+        var targetExamId = examId != Guid.Empty ? examId : ExamMidtermId;
+
+        var list = _mockComponents
+            .Where(c => (c.ClassSectionId == targetClassId || c.ClassSectionId == Class10AId) &&
+                        (c.ExamId == targetExamId || c.ExamId == ExamMidtermId))
+            .GroupBy(c => c.SubjectId)
+            .Select(g => g.First())
+            .ToList();
+
         if (list.Count == 0)
         {
-            list = _mockComponents.Where(c => c.ClassSectionId == Class10AId).ToList();
+            list = _mockComponents.Where(c => c.ClassSectionId == Class10AId).Take(8).ToList();
         }
         return ApiResponse<List<AssessmentComponentDto>>.Ok(list);
     }
@@ -1233,22 +1245,47 @@ public class ApiService : IApiService
         {
             var comp = _mockComponents.FirstOrDefault(c => c.Id == componentId);
             var compName = comp?.Name ?? "Midterm Exam";
-            var subjId = comp?.SubjectId ?? Guid.NewGuid();
+            var subjId = comp?.SubjectId ?? SubjMathId;
             var subjName = comp?.SubjectName ?? "Mathematics";
             var classId = comp?.ClassSectionId ?? Class10AId;
 
-            var targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active && x.CurrentClassSectionId == classId).ToList();
-            if (targetStudents.Count == 0)
-                targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active).ToList();
-
-            foreach (var s in targetStudents)
+            // Fallback to existing mock grades for the same subject if available
+            var existingSubjectGrades = _mockGrades.Where(g => g.SubjectId == subjId).GroupBy(g => g.StudentId).Select(g => g.First()).ToList();
+            if (existingSubjectGrades.Count > 0)
             {
-                var g = new StudentGradeDto(
-                    Guid.NewGuid(), componentId, compName, subjId, subjName,
-                    s.Id, s.FullName, s.AdmissionNumber, 85m, 100m, 85m, "A", 4.0m, "Good performance"
-                );
-                list.Add(g);
-                _mockGrades.Add(g);
+                foreach (var eg in existingSubjectGrades)
+                {
+                    var g = new StudentGradeDto(
+                        Guid.NewGuid(), componentId, compName, subjId, subjName,
+                        eg.StudentId, eg.StudentName, eg.AdmissionNumber,
+                        eg.ScoreObtained, eg.MaxScore, eg.Percentage,
+                        eg.GradeLetter, eg.GradePoint, eg.Remarks
+                    );
+                    list.Add(g);
+                    _mockGrades.Add(g);
+                }
+            }
+            else
+            {
+                var targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active && (x.CurrentClassSectionId == classId || classId == Guid.Empty)).ToList();
+                if (targetStudents.Count == 0)
+                    targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active).ToList();
+
+                var baseScores = new decimal[] { 92m, 88m, 85m, 89m, 91m, 94m, 86m, 95m };
+                int idx = 0;
+                foreach (var s in targetStudents)
+                {
+                    var score = baseScores[idx % baseScores.Length];
+                    var letter = score >= 85 ? "A" : score >= 75 ? "B" : score >= 65 ? "C" : score >= 50 ? "D" : "F";
+                    var gpa = score >= 85 ? 4.0m : score >= 75 ? 3.0m : score >= 65 ? 2.0m : score >= 50 ? 1.0m : 0.0m;
+                    var g = new StudentGradeDto(
+                        Guid.NewGuid(), componentId, compName, subjId, subjName,
+                        s.Id, s.FullName, s.AdmissionNumber, score, 100m, score, letter, gpa, "Good performance"
+                    );
+                    list.Add(g);
+                    _mockGrades.Add(g);
+                    idx++;
+                }
             }
         }
         return ApiResponse<List<StudentGradeDto>>.Ok(list);
@@ -1331,7 +1368,16 @@ public class ApiService : IApiService
         }
 
         // Authoritative fallback: return student's exact distinct grades from _mockGrades
-        var studentGrades = _mockGrades.Where(g => g.StudentId == studentId).ToList();
+        var examCompIds = _mockComponents.Where(c => examId != Guid.Empty && c.ExamId == examId).Select(c => c.Id).ToHashSet();
+        var studentGrades = _mockGrades
+            .Where(g => g.StudentId == studentId && (examCompIds.Count == 0 || examCompIds.Contains(g.AssessmentComponentId)))
+            .ToList();
+
+        if (studentGrades.Count == 0)
+        {
+            studentGrades = _mockGrades.Where(g => g.StudentId == studentId).ToList();
+        }
+
         if (studentGrades.Count == 0)
         {
             var studentObj = _mockStudents.FirstOrDefault(s => s.Id == studentId);
@@ -1757,6 +1803,10 @@ public class ApiService : IApiService
     private static readonly Guid Class10AId = Guid.Parse("a0000000-0000-0000-0000-000000000001");
     private static readonly Guid Class10BId = Guid.Parse("a0000000-0000-0000-0000-000000000002");
     private static readonly Guid ExamMidtermId = Guid.Parse("b0000000-0000-0000-0000-000000000001");
+    private static readonly Guid ExamQuiz1Id = Guid.Parse("b0000000-0000-0000-0000-000000000002");
+    private static readonly Guid ExamFinal1Id = Guid.Parse("b0000000-0000-0000-0000-000000000003");
+    private static readonly Guid ExamMidterm2Id = Guid.Parse("b0000000-0000-0000-0000-000000000004");
+    private static readonly Guid ExamFinal2Id = Guid.Parse("b0000000-0000-0000-0000-000000000005");
 
     private static readonly Guid SubjKhmerId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static readonly Guid SubjMathId = Guid.Parse("10000000-0000-0000-0000-000000000002");
@@ -1793,6 +1843,24 @@ public class ApiService : IApiService
     private static readonly Guid CompBiology10BId = Guid.Parse("d0000000-0000-0000-0000-000000000016");
     private static readonly Guid CompHistory10BId = Guid.Parse("d0000000-0000-0000-0000-000000000017");
     private static readonly Guid CompIct10BId = Guid.Parse("d0000000-0000-0000-0000-000000000018");
+ 
+    private static readonly Guid CompQuizKhmerId = Guid.Parse("d0000000-0000-0000-0000-000000000021");
+    private static readonly Guid CompQuizMathId = Guid.Parse("d0000000-0000-0000-0000-000000000022");
+    private static readonly Guid CompQuizPhysicsId = Guid.Parse("d0000000-0000-0000-0000-000000000023");
+    private static readonly Guid CompQuizChemistryId = Guid.Parse("d0000000-0000-0000-0000-000000000024");
+    private static readonly Guid CompQuizEnglishId = Guid.Parse("d0000000-0000-0000-0000-000000000025");
+    private static readonly Guid CompQuizBiologyId = Guid.Parse("d0000000-0000-0000-0000-000000000026");
+    private static readonly Guid CompQuizHistoryId = Guid.Parse("d0000000-0000-0000-0000-000000000027");
+    private static readonly Guid CompQuizIctId = Guid.Parse("d0000000-0000-0000-0000-000000000028");
+
+    private static readonly Guid CompFinalKhmerId = Guid.Parse("d0000000-0000-0000-0000-000000000031");
+    private static readonly Guid CompFinalMathId = Guid.Parse("d0000000-0000-0000-0000-000000000032");
+    private static readonly Guid CompFinalPhysicsId = Guid.Parse("d0000000-0000-0000-0000-000000000033");
+    private static readonly Guid CompFinalChemistryId = Guid.Parse("d0000000-0000-0000-0000-000000000034");
+    private static readonly Guid CompFinalEnglishId = Guid.Parse("d0000000-0000-0000-0000-000000000035");
+    private static readonly Guid CompFinalBiologyId = Guid.Parse("d0000000-0000-0000-0000-000000000036");
+    private static readonly Guid CompFinalHistoryId = Guid.Parse("d0000000-0000-0000-0000-000000000037");
+    private static readonly Guid CompFinalIctId = Guid.Parse("d0000000-0000-0000-0000-000000000038");
 
     private static readonly Guid StudentVisalId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     private static readonly Guid StudentKanhaId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
@@ -1922,6 +1990,7 @@ public class ApiService : IApiService
 
     private static List<AssessmentComponentDto> InitializeMockComponents() => new()
     {
+        // Semester 1 Midterm Components (Class 10-A)
         new(CompKhmerId, ExamMidtermId, "Semester 1 Midterm", SubjKhmerId, "Khmer Literature", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompMathId, ExamMidtermId, "Semester 1 Midterm", SubjMathId, "Mathematics", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompPhysicsId, ExamMidtermId, "Semester 1 Midterm", SubjPhysicsId, "Physics", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
@@ -1930,6 +1999,26 @@ public class ApiService : IApiService
         new(CompBiologyId, ExamMidtermId, "Semester 1 Midterm", SubjBiologyId, "Biology", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompHistoryId, ExamMidtermId, "Semester 1 Midterm", SubjHistoryId, "History", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
         new(CompIctId, ExamMidtermId, "Semester 1 Midterm", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Midterm Exam", 100m, 40m),
+
+        // Semester 1 Monthly Assessment (October 2026) Components (Class 10-A)
+        new(CompQuizKhmerId, ExamQuiz1Id, "October Monthly Assessment", SubjKhmerId, "Khmer Literature", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizMathId, ExamQuiz1Id, "October Monthly Assessment", SubjMathId, "Mathematics", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizPhysicsId, ExamQuiz1Id, "October Monthly Assessment", SubjPhysicsId, "Physics", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizChemistryId, ExamQuiz1Id, "October Monthly Assessment", SubjChemistryId, "Chemistry", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizEnglishId, ExamQuiz1Id, "October Monthly Assessment", SubjEnglishId, "English Communication", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizBiologyId, ExamQuiz1Id, "October Monthly Assessment", SubjBiologyId, "Biology", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizHistoryId, ExamQuiz1Id, "October Monthly Assessment", SubjHistoryId, "History", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+        new(CompQuizIctId, ExamQuiz1Id, "October Monthly Assessment", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Monthly Quiz", 100m, 20m),
+
+        // Semester 1 Final Examination Components (Class 10-A)
+        new(CompFinalKhmerId, ExamFinal1Id, "Semester 1 Final", SubjKhmerId, "Khmer Literature", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalMathId, ExamFinal1Id, "Semester 1 Final", SubjMathId, "Mathematics", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalPhysicsId, ExamFinal1Id, "Semester 1 Final", SubjPhysicsId, "Physics", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalChemistryId, ExamFinal1Id, "Semester 1 Final", SubjChemistryId, "Chemistry", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalEnglishId, ExamFinal1Id, "Semester 1 Final", SubjEnglishId, "English Communication", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalBiologyId, ExamFinal1Id, "Semester 1 Final", SubjBiologyId, "Biology", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalHistoryId, ExamFinal1Id, "Semester 1 Final", SubjHistoryId, "History", Class10AId, "10-A", "Final Exam", 100m, 40m),
+        new(CompFinalIctId, ExamFinal1Id, "Semester 1 Final", SubjIctId, "Computer Science & ICT", Class10AId, "10-A", "Final Exam", 100m, 40m),
 
         // Class 10-B Components
         new(CompKhmer10BId, ExamMidtermId, "Semester 1 Midterm", SubjKhmerId, "Khmer Literature", Class10BId, "10-B", "Midterm Exam", 100m, 40m),
@@ -2141,7 +2230,27 @@ public class ApiService : IApiService
         new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 90.0m, 100m, 90.0m, "A", 4.0m, "Clear communication"),
         new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 87.0m, 100m, 87.0m, "B", 3.0m, "Good genetics grasp"),
         new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid essays"),
-        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 96.0m, 100m, 96.0m, "A", 4.0m, "Top coder")
+        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 96.0m, 100m, 96.0m, "A", 4.0m, "Top coder"),
+
+        // === October Monthly Quiz Grades (Visal Chan) ===
+        new(Guid.NewGuid(), CompQuizKhmerId, "Monthly Quiz", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Superb vocabulary and classical quiz"),
+        new(Guid.NewGuid(), CompQuizMathId, "Monthly Quiz", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 96.0m, 100m, 96.0m, "A", 4.0m, "Perfect score on calculus problem sets"),
+        new(Guid.NewGuid(), CompQuizEnglishId, "Monthly Quiz", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Great oral presentation score"),
+        new(Guid.NewGuid(), CompQuizPhysicsId, "Monthly Quiz", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 90.0m, 100m, 90.0m, "A", 4.0m, "High precision kinematics quiz"),
+        new(Guid.NewGuid(), CompQuizChemistryId, "Monthly Quiz", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 89.0m, 100m, 89.0m, "B", 3.0m, "Good periodic trends assessment"),
+        new(Guid.NewGuid(), CompQuizBiologyId, "Monthly Quiz", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Accurate cell organelle diagrams"),
+        new(Guid.NewGuid(), CompQuizHistoryId, "Monthly Quiz", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.0m, 100m, 91.0m, "A", 4.0m, "Thorough timeline knowledge"),
+        new(Guid.NewGuid(), CompQuizIctId, "Monthly Quiz", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 99.0m, 100m, 99.0m, "A", 4.0m, "Outstanding algorithm test score"),
+
+        // === Semester 1 Final Exam Grades (Visal Chan) ===
+        new(Guid.NewGuid(), CompFinalKhmerId, "Final Exam", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 93.0m, 100m, 93.0m, "A", 4.0m, "Mastery of literary essays"),
+        new(Guid.NewGuid(), CompFinalMathId, "Final Exam", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 97.0m, 100m, 97.0m, "A", 4.0m, "Flawless mathematical reasoning"),
+        new(Guid.NewGuid(), CompFinalEnglishId, "Final Exam", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 95.0m, 100m, 95.0m, "A", 4.0m, "Excellent rhetoric and analytical essay"),
+        new(Guid.NewGuid(), CompFinalPhysicsId, "Final Exam", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.0m, 100m, 91.0m, "A", 4.0m, "Great thermodynamics performance"),
+        new(Guid.NewGuid(), CompFinalChemistryId, "Final Exam", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 88.0m, 100m, 88.0m, "B", 3.0m, "Very good organic chemistry final"),
+        new(Guid.NewGuid(), CompFinalBiologyId, "Final Exam", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 93.0m, 100m, 93.0m, "A", 4.0m, "Strong genetics and physiology answers"),
+        new(Guid.NewGuid(), CompFinalHistoryId, "Final Exam", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Deep historical synthesis"),
+        new(Guid.NewGuid(), CompFinalIctId, "Final Exam", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 99.0m, 100m, 99.0m, "A", 4.0m, "Flawless software engineering project")
     };
 
     private static List<InvoiceDto> InitializeMockInvoices() => new()

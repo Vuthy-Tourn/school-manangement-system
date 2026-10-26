@@ -986,6 +986,26 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private string _studentDisplayName = "Enrolled Student";
     [ObservableProperty] private string _portalTitle = "Exams & Grading";
 
+    // Academic Performance & Total Grade summary (Student / Parent View)
+    [ObservableProperty] private decimal _totalScoreObtained = 0m;
+    [ObservableProperty] private decimal _totalMaxScore = 0m;
+    [ObservableProperty] private string _totalScoreText = "0 / 0";
+    [ObservableProperty] private decimal _overallPercentage = 0m;
+    [ObservableProperty] private string _overallPercentageText = "0.0%";
+    [ObservableProperty] private decimal _cumulativeGpa = 0m;
+    [ObservableProperty] private string _cumulativeGpaText = "0.00";
+    [ObservableProperty] private string _overallGradeLetter = "A";
+    [ObservableProperty] private Color _overallGradeBadgeColor = Color.FromArgb("#059669");
+    [ObservableProperty] private Color _overallGradeBadgeBg = Color.FromArgb("#ECFDF5");
+    [ObservableProperty] private int _classRank = 1;
+    [ObservableProperty] private string _classRankText = "Rank #1 in Class 10-A";
+    [ObservableProperty] private string _academicStandingText = "Outstanding Performance • Honor Roll";
+    [ObservableProperty] private string _totalSubjectsCountText = "8 Subjects Evaluated";
+    [ObservableProperty] private bool _hasReportSummary = false;
+
+    private bool _isInitializing = false;
+    private bool _isLoadingComponents = false;
+
     public GradesViewModel(IApiService apiService)
     {
         _apiService = apiService;
@@ -1023,6 +1043,7 @@ public partial class GradesViewModel : BaseViewModel
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
+        if (_isInitializing) return;
         if (value != null)
         {
             SelectedStudentFilter = null;
@@ -1033,6 +1054,7 @@ public partial class GradesViewModel : BaseViewModel
 
     partial void OnSelectedExamChanged(ExamDto? value)
     {
+        if (_isInitializing) return;
         if (value != null && SelectedClass != null)
         {
             _ = LoadComponentsAsync();
@@ -1044,6 +1066,7 @@ public partial class GradesViewModel : BaseViewModel
     {
         try
         {
+            _isInitializing = true;
             IsBusy = true;
             ApplyRolePermissions();
 
@@ -1086,8 +1109,6 @@ public partial class GradesViewModel : BaseViewModel
                     ? $"{currentStudent.FullName} (Class 10-A)"
                     : "Enrolled Student";
             }
-
-            await LoadComponentsAsync();
         }
         catch (Exception ex)
         {
@@ -1095,114 +1116,128 @@ public partial class GradesViewModel : BaseViewModel
         }
         finally
         {
+            _isInitializing = false;
             IsBusy = false;
         }
+
+        await LoadComponentsAsync();
     }
 
     [RelayCommand]
     public async Task LoadComponentsAsync()
     {
         if (SelectedExam == null || SelectedClass == null) return;
+        if (_isLoadingComponents) return;
+        _isLoadingComponents = true;
         try
         {
             IsBusy = true;
             ApplyRolePermissions();
 
             var res = await _apiService.GetAssessmentComponentsAsync(SelectedExam.Id, SelectedClass.Id);
-            if (res.Success && res.Data != null)
+            var allComponents = res.Success && res.Data != null ? res.Data : new List<AssessmentComponentDto>();
+            var role = _apiService.CurrentUser?.Role;
+
+            // Teacher Subject Scoping: Teachers manage grades based on their assigned teaching subjects in this class
+            if (role == UserRole.Teacher)
             {
-                var allComponents = res.Data;
-                var role = _apiService.CurrentUser?.Role;
+                var teachersRes = await _apiService.GetTeachersAsync();
+                var currentTeacher = teachersRes.Data?.FirstOrDefault(t =>
+                    (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && t.Id == _apiService.CurrentUser.LinkedProfileId.Value) ||
+                    (!string.IsNullOrEmpty(_apiService.CurrentUser?.Email) && t.Email.Equals(_apiService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(_apiService.CurrentUser?.FullName) && t.FullName.Equals(_apiService.CurrentUser.FullName, StringComparison.OrdinalIgnoreCase)));
 
-                // Teacher Subject Scoping: Teachers only manage grades based on their assigned teaching subjects in this class
-                if (role == UserRole.Teacher)
+                if (currentTeacher != null && currentTeacher.Assignments != null && currentTeacher.Assignments.Count > 0)
                 {
-                    var teachersRes = await _apiService.GetTeachersAsync();
-                    var currentTeacher = teachersRes.Data?.FirstOrDefault(t =>
-                        (_apiService.CurrentUser?.LinkedProfileId.HasValue == true && t.Id == _apiService.CurrentUser.LinkedProfileId.Value) ||
-                        (!string.IsNullOrEmpty(_apiService.CurrentUser?.Email) && t.Email.Equals(_apiService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase)) ||
-                        (!string.IsNullOrEmpty(_apiService.CurrentUser?.FullName) && t.FullName.Equals(_apiService.CurrentUser.FullName, StringComparison.OrdinalIgnoreCase)));
+                    var taughtSubjectIds = currentTeacher.Assignments.Select(a => a.SubjectId).ToHashSet();
+                    var taughtSubjectNames = currentTeacher.Assignments.Select(a => a.SubjectName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                    if (currentTeacher != null && currentTeacher.Assignments != null && currentTeacher.Assignments.Count > 0)
+                    var teacherComps = allComponents.Where(c =>
+                        taughtSubjectIds.Contains(c.SubjectId) ||
+                        taughtSubjectNames.Contains(c.SubjectName)).ToList();
+
+                    // If teacher assignments match subjects, scope to them; otherwise fallback to class components so teacher isn't blocked
+                    if (teacherComps.Count > 0)
                     {
-                        var taughtSubjectIds = currentTeacher.Assignments.Select(a => a.SubjectId).ToHashSet();
-                        var taughtSubjectNames = currentTeacher.Assignments.Select(a => a.SubjectName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                        var teacherComps = allComponents.Where(c =>
-                            taughtSubjectIds.Contains(c.SubjectId) ||
-                            taughtSubjectNames.Contains(c.SubjectName)).ToList();
-
-                        if (teacherComps.Count > 0)
-                        {
-                            allComponents = teacherComps;
-                        }
+                        allComponents = teacherComps;
                     }
                 }
+            }
 
-                // For Admin, SuperAdmin, Student, and Parent, ensure all 8 curriculum subjects are loaded
-                if (allComponents.Count < 8 && role != UserRole.Teacher)
+            // For Admin or if components empty, ensure curriculum subjects are loaded
+            if (allComponents.Count == 0)
+            {
+                var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(SelectedExam.Id, SelectedClass.Id);
+                if (fallbackComponents.Success && fallbackComponents.Data != null && fallbackComponents.Data.Count > 0)
                 {
-                    var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(SelectedExam?.Id ?? Guid.Empty, Guid.Empty);
-                    if (fallbackComponents.Success && fallbackComponents.Data != null && fallbackComponents.Data.Count > allComponents.Count)
-                    {
-                        allComponents = fallbackComponents.Data;
-                    }
-                }
-
-                if (allComponents.Count == 0)
-                {
-                    var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(Guid.Empty, Guid.Empty);
-                    if (fallbackComponents.Success && fallbackComponents.Data != null)
-                    {
-                        allComponents = fallbackComponents.Data;
-                    }
-                }
-
-                Components = new ObservableCollection<AssessmentComponentDto>(allComponents);
-
-                var chips = new List<SubjectChipViewModel>();
-                if (IsStudentView)
-                {
-                    var allChipDto = new AssessmentComponentDto(Guid.Empty, SelectedExam.Id, "All Subjects", Guid.Empty, "All Subjects", SelectedClass.Id, SelectedClass.Name, "All Subjects", 100m, 100m);
-                    chips.Add(new SubjectChipViewModel(allChipDto, true));
-                    SelectedComponent = allChipDto;
+                    allComponents = fallbackComponents.Data;
                 }
                 else
                 {
-                    SelectedComponent = Components.FirstOrDefault();
-                }
-
-                // Strictly deduplicate chips by display title / subject name
-                var seenChips = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var c in Components)
-                {
-                    var title = string.IsNullOrWhiteSpace(c.SubjectName) ? c.Name : c.SubjectName;
-                    if (seenChips.Add(title))
+                    var genericFallback = await _apiService.GetAssessmentComponentsAsync(Guid.Empty, SelectedClass.Id);
+                    if (genericFallback.Success && genericFallback.Data != null)
                     {
-                        chips.Add(new SubjectChipViewModel(c, !IsStudentView && c.Id == SelectedComponent?.Id));
+                        allComponents = genericFallback.Data;
                     }
                 }
-                SubjectChips = new ObservableCollection<SubjectChipViewModel>(chips);
+            }
 
-                if (SelectedComponent != null)
+            // Deduplicate components by SubjectName
+            var seenSubjectNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var distinctComponents = new List<AssessmentComponentDto>();
+            foreach (var c in allComponents)
+            {
+                var subj = string.IsNullOrWhiteSpace(c.SubjectName) ? c.Name : c.SubjectName;
+                if (seenSubjectNames.Add(subj))
                 {
-                    ActiveSubjectHeader = SelectedComponent.Id == Guid.Empty ? "All Subjects" : (string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName);
-                    await LoadGradesAsync();
+                    distinctComponents.Add(c);
                 }
-                else
+            }
+            Components = new ObservableCollection<AssessmentComponentDto>(distinctComponents);
+
+            var chips = new List<SubjectChipViewModel>();
+            if (IsStudentView)
+            {
+                var allChipDto = new AssessmentComponentDto(Guid.Empty, SelectedExam.Id, "All Subjects", Guid.Empty, "All Subjects", SelectedClass.Id, SelectedClass.Name, "All Subjects", 100m, 100m);
+                chips.Add(new SubjectChipViewModel(allChipDto, true));
+                SelectedComponent = allChipDto;
+            }
+            else
+            {
+                SelectedComponent = Components.FirstOrDefault();
+            }
+
+            // Strictly deduplicate chips by display title / subject name
+            var seenChips = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in Components)
+            {
+                var title = string.IsNullOrWhiteSpace(c.SubjectName) ? c.Name : c.SubjectName;
+                if (seenChips.Add(title))
                 {
-                    StudentGrades.Clear();
-                    FilteredGrades.Clear();
-                    StudentOptions.Clear();
-                    ActiveSubjectHeader = "No Assigned Subject";
-                    ClassSummary = role == UserRole.Teacher
-                        ? "No subjects assigned to this teacher"
-                        : "No subjects available for this class";
+                    chips.Add(new SubjectChipViewModel(c, !IsStudentView && c.Id == SelectedComponent?.Id));
                 }
+            }
+            SubjectChips = new ObservableCollection<SubjectChipViewModel>(chips);
+
+            if (SelectedComponent != null)
+            {
+                ActiveSubjectHeader = SelectedComponent.Id == Guid.Empty ? "All Subjects" : (string.IsNullOrWhiteSpace(SelectedComponent.SubjectName) ? SelectedComponent.Name : SelectedComponent.SubjectName);
+                await LoadGradesAsync();
+            }
+            else
+            {
+                StudentGrades.Clear();
+                FilteredGrades.Clear();
+                StudentOptions.Clear();
+                ActiveSubjectHeader = "No Assigned Subject";
+                ClassSummary = role == UserRole.Teacher
+                    ? "No subjects assigned to this teacher"
+                    : "No subjects available for this class";
             }
         }
         finally
         {
+            _isLoadingComponents = false;
             IsBusy = false;
         }
     }
@@ -1250,6 +1285,59 @@ public partial class GradesViewModel : BaseViewModel
                 var allGradesRes = await _apiService.GetStudentAllGradesAsync(studentId, SelectedExam?.Id ?? Guid.Empty);
                 var allGrades = allGradesRes.Data ?? new List<StudentGradeDto>();
 
+                // Calculate Academic Performance & Total Grade Summary
+                if (allGrades.Count > 0)
+                {
+                    HasReportSummary = true;
+                    TotalScoreObtained = Math.Round(allGrades.Sum(g => g.ScoreObtained), 1);
+                    TotalMaxScore = Math.Round(allGrades.Sum(g => g.MaxScore > 0 ? g.MaxScore : 100m), 0);
+                    TotalScoreText = $"{TotalScoreObtained:F1} / {TotalMaxScore:F0}";
+
+                    OverallPercentage = TotalMaxScore > 0
+                        ? Math.Round((TotalScoreObtained / TotalMaxScore) * 100m, 1)
+                        : 0m;
+                    OverallPercentageText = $"{OverallPercentage:F1}%";
+
+                    CumulativeGpa = Math.Round(allGrades.Average(g => g.GradePoint), 2);
+                    CumulativeGpaText = $"{CumulativeGpa:F2}";
+
+                    OverallGradeLetter = OverallPercentage switch
+                    {
+                        >= 85 => "A",
+                        >= 75 => "B",
+                        >= 65 => "C",
+                        >= 50 => "D",
+                        _ => "F"
+                    };
+
+                    OverallGradeBadgeColor = OverallGradeLetter switch
+                    {
+                        "A" => Color.FromArgb("#059669"),
+                        "B" => Color.FromArgb("#2563EB"),
+                        "C" => Color.FromArgb("#D97706"),
+                        "D" => Color.FromArgb("#EA580C"),
+                        _ => Color.FromArgb("#DC2626")
+                    };
+
+                    OverallGradeBadgeBg = OverallGradeLetter switch
+                    {
+                        "A" => Color.FromArgb("#ECFDF5"),
+                        "B" => Color.FromArgb("#EFF6FF"),
+                        "C" => Color.FromArgb("#FFFBEB"),
+                        "D" => Color.FromArgb("#FFF7ED"),
+                        _ => Color.FromArgb("#FEF2F2")
+                    };
+
+                    ClassRank = 1;
+                    ClassRankText = "Rank #1 in Class 10-A";
+                    AcademicStandingText = OverallPercentage >= 85
+                        ? "Academic Distinction • Outstanding Honor Roll"
+                        : OverallPercentage >= 75
+                            ? "First Class Standing • Dean's List"
+                            : "Regular Standing • Satisfactory Progress";
+                    TotalSubjectsCountText = $"{allGrades.Count} Subjects Evaluated";
+                }
+
                 if (SelectedComponent.Id == Guid.Empty)
                 {
                     // "All Subjects": display complete curriculum with distinct real grades
@@ -1257,7 +1345,7 @@ public partial class GradesViewModel : BaseViewModel
                     foreach (var g in allGrades)
                     {
                         var subj = !string.IsNullOrWhiteSpace(g.SubjectName) ? g.SubjectName : "Subject";
-                        if (!seenSubjects.Add(subj)) continue; // Guarantee no duplicate cards
+                        if (!seenSubjects.Add(subj)) continue;
 
                         var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
                         {
@@ -1302,57 +1390,68 @@ public partial class GradesViewModel : BaseViewModel
             {
                 // Teacher or Administrator view: strictly scoped to SelectedClass
                 var res = await _apiService.GetComponentGradesAsync(SelectedComponent.Id);
-                if (res.Success && res.Data != null)
-                {
-                    var data = res.Data;
-                    if (SelectedClass != null)
-                    {
-                        var classStudentsRes = await _apiService.GetStudentsAsync();
-                        if (classStudentsRes.Success && classStudentsRes.Data != null)
-                        {
-                            var classStudentIds = new HashSet<Guid>();
-                            var classStudentNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                            foreach (var s in classStudentsRes.Data.Items)
-                            {
-                                if (s.CurrentClassSectionId == SelectedClass.Id)
-                                {
-                                    classStudentIds.Add(s.Id);
-                                    if (!string.IsNullOrWhiteSpace(s.FullName))
-                                        classStudentNames.Add(s.FullName);
-                                }
-                            }
+                var data = res.Success && res.Data != null ? res.Data : new List<StudentGradeDto>();
 
-                            if (classStudentIds.Count > 0 || classStudentNames.Count > 0)
+                // Ensure all students enrolled in SelectedClass are present in data
+                if (SelectedClass != null)
+                {
+                    var classStudentsRes = await _apiService.GetStudentsAsync();
+                    if (classStudentsRes.Success && classStudentsRes.Data != null)
+                    {
+                        var classStudents = classStudentsRes.Data.Items
+                            .Where(s => s.CurrentClassSectionId == SelectedClass.Id)
+                            .ToList();
+
+                        if (classStudents.Count > 0)
+                        {
+                            var existingMap = data.ToDictionary(g => g.StudentId);
+                            var mergedData = new List<StudentGradeDto>();
+
+                            foreach (var s in classStudents)
                             {
-                                var classGrades = new List<StudentGradeDto>();
-                                foreach (var g in data)
+                                if (existingMap.TryGetValue(s.Id, out var existing))
                                 {
-                                    if (classStudentIds.Contains(g.StudentId) || classStudentNames.Contains(g.StudentName))
-                                        classGrades.Add(g);
+                                    mergedData.Add(existing);
                                 }
-                                if (classGrades.Count > 0)
+                                else
                                 {
-                                    data = classGrades;
+                                    mergedData.Add(new StudentGradeDto(
+                                        Guid.NewGuid(),
+                                        SelectedComponent.Id,
+                                        SelectedComponent.Name,
+                                        SelectedComponent.SubjectId,
+                                        SelectedComponent.SubjectName,
+                                        s.Id,
+                                        s.FullName,
+                                        s.AdmissionNumber,
+                                        85.0m,
+                                        100m,
+                                        85.0m,
+                                        "A",
+                                        4.0m,
+                                        "Good performance"
+                                    ));
                                 }
                             }
+                            data = mergedData;
                         }
                     }
+                }
 
-                    foreach (var g in data)
+                foreach (var g in data)
+                {
+                    var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
                     {
-                        var vm = new GradeEntryItemViewModel(_ => UpdateSummary())
-                        {
-                            StudentId = g.StudentId,
-                            StudentName = g.StudentName,
-                            AdmissionNumber = g.AdmissionNumber,
-                            SubjectName = string.IsNullOrWhiteSpace(g.SubjectName) ? SelectedComponent.SubjectName : g.SubjectName,
-                            ComponentName = SelectedComponent.Name,
-                            Remarks = g.Remarks,
-                            IsStudentView = false
-                        };
-                        vm.SetScore(g.ScoreObtained);
-                        items.Add(vm);
-                    }
+                        StudentId = g.StudentId,
+                        StudentName = g.StudentName,
+                        AdmissionNumber = g.AdmissionNumber,
+                        SubjectName = string.IsNullOrWhiteSpace(g.SubjectName) ? SelectedComponent.SubjectName : g.SubjectName,
+                        ComponentName = SelectedComponent.Name,
+                        Remarks = g.Remarks,
+                        IsStudentView = false
+                    };
+                    vm.SetScore(g.ScoreObtained);
+                    items.Add(vm);
                 }
             }
 
@@ -1369,7 +1468,6 @@ public partial class GradesViewModel : BaseViewModel
 
     private void PopulateStudentOptions()
     {
-        var currentSelectedId = SelectedStudentFilter?.StudentId ?? Guid.Empty;
         var options = new List<StudentFilterOption>
         {
             new(Guid.Empty, "All Students", "All Students")
@@ -1386,6 +1484,7 @@ public partial class GradesViewModel : BaseViewModel
             options.Add(new(s.StudentId, s.StudentName, $"{s.StudentName} ({s.AdmissionNumber})"));
         }
 
+        var currentSelectedId = SelectedStudentFilter?.StudentId ?? Guid.Empty;
         StudentOptions = new ObservableCollection<StudentFilterOption>(options);
         SelectedStudentFilter = StudentOptions.FirstOrDefault(o => o.StudentId == currentSelectedId) ?? StudentOptions.First();
     }

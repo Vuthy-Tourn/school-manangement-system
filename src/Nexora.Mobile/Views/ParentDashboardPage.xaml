@@ -124,33 +124,37 @@
                             Padding="18,16">
                         <VerticalStackLayout Spacing="14">
                             <!-- Card Title & Ask Permission Button -->
-                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                        <Image Source="icon_attendance.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                                        <Label Text="Today's School Attendance"
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                                <Grid Grid.Column="0" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalOptions="Center">
+                                    <Image Grid.Column="0" Source="icon_attendance.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="Today's Attendance"
                                                FontSize="15"
                                                FontAttributes="Bold"
                                                TextColor="{StaticResource TextPrimary}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
                                                VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
-                                    <Label Text="Live campus arrival &amp; check-in verification"
-                                           FontSize="11"
-                                           TextColor="{StaticResource TextMuted}" />
-                                </VerticalStackLayout>
+                                        <Label Text="Live campus arrival &amp; check-in verification"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextMuted}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
+                                    </VerticalStackLayout>
+                                </Grid>
 
-                                <!-- Ask Permission Action Button -->
+                                <!-- Ask Permission Action Button (No Emoji) -->
                                 <Button Grid.Column="1"
-                                        Text="📋 Ask Permission"
+                                        Text="Ask Permission"
                                         Command="{Binding OpenPermissionModalCommand}"
                                         BackgroundColor="{StaticResource PrimaryLight}"
                                         TextColor="{StaticResource Primary}"
                                         BorderColor="{StaticResource PrimaryBorder}"
                                         BorderWidth="1"
-                                        FontSize="12"
+                                        FontSize="11"
                                         FontAttributes="Bold"
-                                        HeightRequest="36"
-                                        Padding="12,0"
+                                        HeightRequest="34"
+                                        Padding="10,0"
                                         CornerRadius="8"
                                         VerticalOptions="Center" />
                             </Grid>
@@ -613,11 +617,15 @@
         <!-- Full-Screen Backdrop Overlay for Ask Permission Modal -->
         <Grid BackgroundColor="#99000000"
               IsVisible="{Binding IsPermissionModalVisible}"
+              IgnoreSafeArea="True"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
               InputTransparent="False"
               Padding="24"
               ZIndex="99">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ClosePermissionModalCommand}" />
+            </Grid.GestureRecognizers>
             <Border StrokeShape="RoundRectangle 16"
                     BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
@@ -625,12 +633,15 @@
                     VerticalOptions="Center"
                     MaximumWidthRequest="440"
                     HorizontalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
                 <ScrollView MaximumHeightRequest="560">
                     <VerticalStackLayout Spacing="14">
-                        <!-- Modal Header -->
+                        <!-- Modal Header (No Emoji) -->
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                             <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Label Text="📋 Ask Permission for Child"
+                                <Label Text="Ask Permission for Child"
                                        FontSize="16"
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource TextPrimary}" />
@@ -750,9 +761,10 @@
                                     Command="{Binding SubmitPermissionCommand}"
                                     BackgroundColor="{StaticResource Primary}"
                                     TextColor="{StaticResource White}"
-                                    FontSize="13"
+                                    FontSize="12"
                                     FontAttributes="Bold"
                                     HeightRequest="42"
+                                    Padding="4,0"
                                     CornerRadius="8" />
                         </Grid>
                     </VerticalStackLayout>
