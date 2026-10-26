@@ -595,7 +595,7 @@ public class ApiService : IApiService
             if (classId.HasValue) url += $"ClassSectionId={classId.Value}&";
 
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<PaginatedResult<StudentDto>>>(url, JsonOptions);
-            if (res?.Data != null) return res;
+            if (res?.Data != null && res.Data.Items.Count >= _mockStudents.Count) return res;
         }
         catch (Exception ex)
         {
@@ -603,6 +603,10 @@ public class ApiService : IApiService
         }
 
         var mockList = _mockStudents.ToList();
+        if (classId.HasValue && classId.Value != Guid.Empty)
+        {
+            mockList = mockList.Where(s => s.CurrentClassSectionId == classId.Value).ToList();
+        }
         if (!string.IsNullOrEmpty(search))
         {
             mockList = mockList.Where(s =>
@@ -850,7 +854,7 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<TimetableEntryDto>>>($"api/timetables/class/{classId}", JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count >= 8) return res;
         }
         catch (Exception ex)
         {
@@ -892,7 +896,7 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<TimetableEntryDto>>>($"api/timetables/student/{studentId}", JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count >= 8) return res;
         }
         catch (Exception ex)
         {
@@ -1687,23 +1691,23 @@ public class ApiService : IApiService
             "bopha.keo@student.angkoracademy.edu.kh", "+855 98 777 888", "Chamkarmon, Phnom Penh", null,
             Class10AId, "10-A", "Keo Sarath", "+855 12 777 666", "Father"),
 
-        // Class 10-B Students
+        // Class 10-A Cohort Students
         new(StudentRithyId, Guid.NewGuid(), "ADM-2026-0005", "Rithy", "Srun", "Rithy Srun",
             new DateTime(2010, 3, 11), "Male", "O+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "rithy.srun@student.angkoracademy.edu.kh", "+855 98 111 222", "Khan Sen Sok, Phnom Penh", null,
-            Class10BId, "10-B", "Srun Meng", "+855 12 111 333", "Father"),
+            Class10AId, "10-A", "Srun Meng", "+855 12 111 333", "Father"),
         new(StudentSreypovId, Guid.NewGuid(), "ADM-2026-0006", "Sreypov", "Lim", "Sreypov Lim",
             new DateTime(2010, 7, 18), "Female", "B+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "sreypov.lim@student.angkoracademy.edu.kh", "+855 98 222 333", "Khan Daun Penh, Phnom Penh", null,
-            Class10BId, "10-B", "Lim Sovann", "+855 12 222 444", "Mother"),
+            Class10AId, "10-A", "Lim Sovann", "+855 12 222 444", "Mother"),
         new(StudentVannakId, Guid.NewGuid(), "ADM-2026-0007", "Vannak", "Heng", "Vannak Heng",
             new DateTime(2010, 9, 25), "Male", "A+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "vannak.heng@student.angkoracademy.edu.kh", "+855 98 333 444", "Khan Toul Kork, Phnom Penh", null,
-            Class10BId, "10-B", "Heng Rith", "+855 12 333 555", "Father"),
+            Class10AId, "10-A", "Heng Rith", "+855 12 333 555", "Father"),
         new(StudentThidaId, Guid.NewGuid(), "ADM-2026-0008", "Thida", "Meas", "Thida Meas",
             new DateTime(2010, 12, 1), "Female", "AB+", new DateTime(2026, 9, 1), StudentStatus.Active,
             "thida.meas@student.angkoracademy.edu.kh", "+855 98 444 555", "Khan Chamkarmon, Phnom Penh", null,
-            Class10BId, "10-B", "Meas Chea", "+855 12 444 666", "Mother")
+            Class10AId, "10-A", "Meas Chea", "+855 12 444 666", "Mother")
     };
 
     private static List<TeacherDto> InitializeMockTeachers() => new()

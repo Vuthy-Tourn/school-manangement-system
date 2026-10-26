@@ -29,7 +29,9 @@ public class DatabaseSeeder
             // Disable tenant filters during initial seeding
             if (await _context.Schools.IgnoreQueryFilters().AnyAsync())
             {
-                _logger.LogInformation("Database already has data. Skipping seeding.");
+                var existingSchool = await _context.Schools.IgnoreQueryFilters().FirstAsync();
+                await EnsureRosterAndTimetableAsync(existingSchool);
+                _logger.LogInformation("Database already has data. Ensured full roster and timetable.");
                 return;
             }
 
@@ -552,6 +554,156 @@ public class DatabaseSeeder
         {
             _logger.LogError(ex, "An error occurred while seeding the database.");
             throw;
+        }
+    }
+
+    private async Task EnsureRosterAndTimetableAsync(School school)
+    {
+        var class10A = await _context.ClassSections.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.SchoolId == school.Id && c.Name == "10-A");
+        if (class10A == null) return;
+
+        var academicYear = await _context.AcademicYears.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.SchoolId == school.Id && a.IsCurrent)
+            ?? await _context.AcademicYears.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.SchoolId == school.Id);
+        if (academicYear == null) return;
+
+        var existingStudents = await _context.Students.IgnoreQueryFilters().Where(s => s.SchoolId == school.Id).ToListAsync();
+        var studentPasswordHash = _passwordHasher.HashPassword("Student@123!");
+
+        var additionalStudents = new List<(string Adm, string First, string Last, string Gender, string Email, string Phone, string Address, string EmergencyName, string EmergencyPhone, string Rel)>
+        {
+            ("ADM-2026-0003", "Dara", "Meng", "Male", "dara.meng@student.angkoracademy.edu.kh", "+855 98 333 444", "Toul Kork, Phnom Penh", "Meng Chhay", "+855 12 999 888", "Father"),
+            ("ADM-2026-0004", "Bopha", "Keo", "Female", "bopha.keo@student.angkoracademy.edu.kh", "+855 98 777 888", "Chamkarmon, Phnom Penh", "Keo Sarath", "+855 12 777 666", "Father"),
+            ("ADM-2026-0005", "Rithy", "Srun", "Male", "rithy.srun@student.angkoracademy.edu.kh", "+855 98 111 222", "Khan Sen Sok, Phnom Penh", "Srun Meng", "+855 12 111 333", "Father"),
+            ("ADM-2026-0006", "Sreypov", "Lim", "Female", "sreypov.lim@student.angkoracademy.edu.kh", "+855 98 222 333", "Khan Daun Penh, Phnom Penh", "Lim Sovann", "+855 12 222 444", "Mother"),
+            ("ADM-2026-0007", "Vannak", "Heng", "Male", "vannak.heng@student.angkoracademy.edu.kh", "+855 98 333 444", "Khan Toul Kork, Phnom Penh", "Heng Rith", "+855 12 333 555", "Father"),
+            ("ADM-2026-0008", "Thida", "Meas", "Female", "thida.meas@student.angkoracademy.edu.kh", "+855 98 444 555", "Khan Chamkarmon, Phnom Penh", "Meas Chea", "+855 12 444 666", "Mother")
+        };
+
+        int roll = existingStudents.Count + 1;
+        bool hasChanges = false;
+        foreach (var sData in additionalStudents)
+        {
+            if (!existingStudents.Any(s => s.AdmissionNumber == sData.Adm))
+            {
+                hasChanges = true;
+                var user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolId = school.Id,
+                    Username = $"student.{sData.First.ToLower()}",
+                    Email = sData.Email,
+                    PasswordHash = studentPasswordHash,
+                    FirstName = sData.First,
+                    LastName = sData.Last,
+                    Role = UserRole.Student,
+                    IsActive = true
+                };
+                _context.Users.Add(user);
+
+                var newStudent = new Student
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolId = school.Id,
+                    UserId = user.Id,
+                    AdmissionNumber = sData.Adm,
+                    FirstName = sData.First,
+                    LastName = sData.Last,
+                    DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 6, 15), DateTimeKind.Utc),
+                    Gender = sData.Gender,
+                    BloodGroup = "O+",
+                    EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                    Status = StudentStatus.Active,
+                    Email = sData.Email,
+                    PhoneNumber = sData.Phone,
+                    Address = sData.Address,
+                    CurrentClassSectionId = class10A.Id,
+                    EmergencyContactName = sData.EmergencyName,
+                    EmergencyContactPhone = sData.EmergencyPhone,
+                    EmergencyContactRelationship = sData.Rel
+                };
+                _context.Students.Add(newStudent);
+
+                _context.StudentEnrollments.Add(new StudentEnrollment
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolId = school.Id,
+                    StudentId = newStudent.Id,
+                    ClassSectionId = class10A.Id,
+                    AcademicYearId = academicYear.Id,
+                    RollNumber = roll++,
+                    EnrollmentDate = DateTime.UtcNow,
+                    Status = EnrollmentStatus.Enrolled
+                });
+            }
+        }
+
+        var existingTimetableCount = await _context.TimetableEntries.IgnoreQueryFilters().CountAsync(t => t.ClassSectionId == class10A.Id);
+        if (existingTimetableCount < 8)
+        {
+            var subjects = await _context.Subjects.IgnoreQueryFilters().Where(s => s.SchoolId == school.Id).ToListAsync();
+            var teachers = await _context.Teachers.IgnoreQueryFilters().Where(t => t.SchoolId == school.Id).ToListAsync();
+
+            var math = subjects.FirstOrDefault(s => s.Code == "MATH101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Math"));
+            var physics = subjects.FirstOrDefault(s => s.Code == "PHY101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Physics"));
+            var khmer = subjects.FirstOrDefault(s => s.Code == "KHM101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Khmer"));
+            var english = subjects.FirstOrDefault(s => s.Code == "ENG101") ?? subjects.FirstOrDefault(s => s.Name.Contains("English"));
+            var chemistry = subjects.FirstOrDefault(s => s.Code == "CHM101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Chemistry"));
+            var biology = subjects.FirstOrDefault(s => s.Code == "BIO101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Biology"));
+            var history = subjects.FirstOrDefault(s => s.Code == "HIS101") ?? subjects.FirstOrDefault(s => s.Name.Contains("History"));
+            var ict = subjects.FirstOrDefault(s => s.Code == "ICT101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Computer") || s.Name.Contains("ICT"));
+
+            var teacherDara = teachers.FirstOrDefault(t => t.FirstName == "Dara") ?? teachers.FirstOrDefault();
+            var teacherChenda = teachers.FirstOrDefault(t => t.FirstName == "Chenda") ?? teachers.LastOrDefault() ?? teacherDara;
+
+            if (math != null && physics != null && khmer != null && english != null &&
+                chemistry != null && biology != null && history != null && ict != null &&
+                teacherDara != null && teacherChenda != null)
+            {
+                var sparseEntries = await _context.TimetableEntries.IgnoreQueryFilters().Where(t => t.ClassSectionId == class10A.Id).ToListAsync();
+                if (sparseEntries.Any())
+                {
+                    _context.TimetableEntries.RemoveRange(sparseEntries);
+                }
+
+                _context.TimetableEntries.AddRange(
+                    // Monday
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = math.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = physics.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(10, 0, 0), EndTime = new TimeSpan(11, 30, 0), RoomNumber = "Physics Lab" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = khmer.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(14, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = english.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), RoomNumber = "Room 201" },
+
+                    // Tuesday
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = chemistry.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Chemistry Lab" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = biology.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(10, 0, 0), EndTime = new TimeSpan(11, 30, 0), RoomNumber = "Biology Lab" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = math.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(14, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = history.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), RoomNumber = "Room 201" },
+
+                    // Wednesday
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = ict.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Computer Lab 1" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = khmer.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(10, 0, 0), EndTime = new TimeSpan(11, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = english.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(14, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = physics.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), RoomNumber = "Physics Lab" },
+
+                    // Thursday
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = math.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = chemistry.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(10, 0, 0), EndTime = new TimeSpan(11, 30, 0), RoomNumber = "Chemistry Lab" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = history.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(14, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = biology.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), RoomNumber = "Biology Lab" },
+
+                    // Friday
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = khmer.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = english.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(10, 0, 0), EndTime = new TimeSpan(11, 30, 0), RoomNumber = "Room 201" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = ict.Id, TeacherId = teacherDara.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(14, 30, 0), RoomNumber = "Computer Lab 1" },
+                    new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, SubjectId = physics.Id, TeacherId = teacherChenda.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), RoomNumber = "Physics Lab" }
+                );
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges)
+        {
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Successfully verified and synchronized full roster and 8-subject timetable.");
         }
     }
 }
