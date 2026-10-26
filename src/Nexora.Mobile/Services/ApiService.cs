@@ -453,11 +453,6 @@ public class ApiService : IApiService
             if (res?.Data != null)
             {
                 var data = res.Data;
-                if (data.Student?.AdmissionNumber == "ADM-2026-0001" || CurrentUser?.Username?.Contains("visal") == true)
-                {
-                    data = data with { OverallAttendancePercentage = 100.0m };
-                }
-
                 if (data.TodaySchedule == null || data.TodaySchedule.Count == 0)
                 {
                     var dow = DateTime.Today.DayOfWeek;
@@ -480,13 +475,16 @@ public class ApiService : IApiService
         }
 
         var mockStudent = _mockStudents.First();
-        var studentAttendance = _mockAttendance.Where(a => a.StudentId == mockStudent.Id).ToList();
-        decimal attendancePct = (mockStudent.AdmissionNumber == "ADM-2026-0001" || mockStudent.FullName.Contains("Visal"))
-            ? 100.0m
-            : (studentAttendance.Count > 0
-                ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
-                               studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
-                : 100.0m);
+        var studentAttendance = _mockAttendance
+            .Where(a => a.StudentId == mockStudent.Id)
+            .GroupBy(a => a.Date)
+            .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+            .ToList();
+
+        decimal attendancePct = studentAttendance.Count > 0
+            ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
+                           studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
+            : 100.0m;
 
         var today = DateTime.Today.DayOfWeek;
         var dayToUse = (today >= DayOfWeek.Monday && today <= DayOfWeek.Friday) ? today : DayOfWeek.Monday;
@@ -542,12 +540,6 @@ public class ApiService : IApiService
             if (res?.Data != null)
             {
                 if (activeChildId.HasValue) CurrentSelectedChildId = activeChildId.Value;
-                if (res.Data.StudentDetails?.AdmissionNumber == "ADM-2026-0001" ||
-                    res.Data.StudentDetails?.FullName?.Contains("Visal") == true ||
-                    res.Data.Children.Any(c => c.AdmissionNumber == "ADM-2026-0001"))
-                {
-                    return ApiResponse<ParentDashboardStatsDto>.Ok(res.Data with { AttendancePercentage = 100.0m });
-                }
                 return res;
             }
         }
@@ -558,13 +550,16 @@ public class ApiService : IApiService
 
         var targetStudent = (activeChildId.HasValue ? _mockStudents.FirstOrDefault(s => s.Id == activeChildId.Value) : null) ?? _mockStudents.First();
         CurrentSelectedChildId = targetStudent.Id;
-        var studentAttendance = _mockAttendance.Where(a => a.StudentId == targetStudent.Id).ToList();
-        decimal attendancePct = (targetStudent.AdmissionNumber == "ADM-2026-0001" || targetStudent.FullName.Contains("Visal"))
-            ? 100.0m
-            : (studentAttendance.Count > 0
-                ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
-                               studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
-                : 100.0m);
+        var studentAttendance = _mockAttendance
+            .Where(a => a.StudentId == targetStudent.Id)
+            .GroupBy(a => a.Date)
+            .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+            .ToList();
+
+        decimal attendancePct = studentAttendance.Count > 0
+            ? Math.Round(((studentAttendance.Count(a => a.Status == AttendanceStatus.Present) +
+                           studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
+            : 100.0m;
 
         var children = _mockStudents.Take(2).Select(s => new LinkedStudentDto(
             s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName, "Child", s.Id == targetStudent.Id
@@ -1004,16 +999,22 @@ public class ApiService : IApiService
             LogException("GetClassAttendanceAsync", ex);
         }
 
-        var records = _mockAttendance.Where(a => a.Date == date && (classId == Guid.Empty || a.ClassSectionId == classId)).ToList();
+        var records = _mockAttendance
+            .Where(a => a.Date == date && (classId == Guid.Empty || a.ClassSectionId == classId || a.ClassSectionId == Class10AId))
+            .GroupBy(a => a.StudentId)
+            .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+            .ToList();
+
         if (records.Count == 0)
         {
             foreach (var s in _mockStudents.Where(x => x.Status == StudentStatus.Active))
             {
                 var r = new AttendanceRecordDto(
-                    Guid.NewGuid(), Guid.NewGuid(), classId, "10-A", s.Id, s.FullName, s.AdmissionNumber,
+                    Guid.NewGuid(), Guid.NewGuid(), classId != Guid.Empty ? classId : Class10AId, "10-A", s.Id, s.FullName, s.AdmissionNumber,
                     date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null
                 );
                 records.Add(r);
+                _mockAttendance.RemoveAll(a => a.StudentId == s.Id && a.Date == date);
                 _mockAttendance.Add(r);
             }
         }
@@ -1109,31 +1110,27 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AttendanceRecordDto>>>($"api/attendance/student/{studentId}/history", JsonOptions);
-            if (res?.Data != null) return res;
+            if (res?.Data != null && res.Data.Count > 0)
+            {
+                var deduplicated = res.Data
+                    .GroupBy(a => a.Date)
+                    .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+                    .OrderByDescending(a => a.Date)
+                    .ToList();
+                return ApiResponse<List<AttendanceRecordDto>>.Ok(deduplicated);
+            }
         }
         catch (Exception ex)
         {
             LogException("GetStudentAttendanceHistoryAsync", ex);
         }
 
-        var records = _mockAttendance.Where(a => a.StudentId == studentId).OrderByDescending(a => a.Date).ToList();
-        if (records.Count == 0)
-        {
-            var student = _mockStudents.FirstOrDefault(s => s.Id == studentId);
-            var name = student?.FullName ?? "Student";
-            var adm = student?.AdmissionNumber ?? "ADM-2026-0001";
-            var baseDate = DateOnly.FromDateTime(DateTime.Today);
-            for (int i = 0; i < 10; i++)
-            {
-                var d = baseDate.AddDays(-i);
-                var r = new AttendanceRecordDto(
-                    Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A",
-                    studentId, name, adm, d, AttendanceStatus.Present, null,
-                    DateTime.UtcNow.AddDays(-i).AddHours(-2), "Admin", null, null, null);
-                _mockAttendance.Add(r);
-                records.Add(r);
-            }
-        }
+        var records = _mockAttendance
+            .Where(a => a.StudentId == studentId)
+            .GroupBy(a => a.Date)
+            .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+            .OrderByDescending(a => a.Date)
+            .ToList();
 
         return ApiResponse<List<AttendanceRecordDto>>.Ok(records);
     }
@@ -1158,32 +1155,21 @@ public class ApiService : IApiService
             ? $"[Parent Permission] {request.Reason}"
             : $"[Parent Permission] {request.Reason}: {request.Remarks}";
 
-        var existing = _mockAttendance.FirstOrDefault(a => a.StudentId == request.StudentId && a.Date == request.Date);
-        if (existing != null)
-        {
-            var idx = _mockAttendance.IndexOf(existing);
-            _mockAttendance[idx] = existing with
-            {
-                Status = AttendanceStatus.Excused,
-                Remarks = reasonNote,
-                CorrectedAtUtc = DateTime.UtcNow,
-                CorrectedByName = CurrentUser?.FullName ?? "Parent",
-                CorrectionReason = $"Parent permission requested: {request.Reason}"
-            };
-        }
-        else
-        {
-            var student = _mockStudents.FirstOrDefault(s => s.Id == request.StudentId);
-            var name = student?.FullName ?? "Student";
-            var adm = student?.AdmissionNumber ?? "ADM-2026-0001";
-            _mockAttendance.Add(new AttendanceRecordDto(
-                Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A",
-                request.StudentId, name, adm, request.Date,
-                AttendanceStatus.Excused, reasonNote,
-                DateTime.UtcNow, CurrentUser?.FullName ?? "Parent",
-                null, null, null
-            ));
-        }
+        var student = _mockStudents.FirstOrDefault(s => s.Id == request.StudentId);
+        var name = student?.FullName ?? "Visal Chan";
+        var adm = student?.AdmissionNumber ?? "ADM-2026-0001";
+
+        // Remove any existing record for this student on this date to guarantee no duplicate day
+        _mockAttendance.RemoveAll(a => a.StudentId == request.StudentId && a.Date == request.Date);
+
+        var newRecord = new AttendanceRecordDto(
+            Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A",
+            request.StudentId, name, adm, request.Date,
+            AttendanceStatus.Excused, reasonNote,
+            DateTime.UtcNow, CurrentUser?.FullName ?? "Parent",
+            null, null, null
+        );
+        _mockAttendance.Insert(0, newRecord);
 
         return ApiResponse<bool>.Ok(true, "Permission request submitted successfully.");
     }
@@ -2000,16 +1986,65 @@ public class ApiService : IApiService
     private static List<AttendanceRecordDto> InitializeMockAttendance()
     {
         var records = new List<AttendanceRecordDto>();
-        var baseDate = DateOnly.FromDateTime(DateTime.Today);
+        var currentDate = DateTime.Today;
+        var schoolDays = new List<DateOnly>();
 
-        // 10 recent attendance days for Visal Chan (100% attendance: 10/10 Present)
-        for (int i = 0; i < 10; i++)
+        // Gather 30 past distinct school days (Mon-Fri only, no weekends)
+        int dayOffset = 0;
+        while (schoolDays.Count < 30)
         {
-            var d = baseDate.AddDays(-i);
-            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVisalId, "Visal Chan", "ADM-2026-0001", d, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null));
-            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", d, (i == 1 ? AttendanceStatus.Late : AttendanceStatus.Present), (i == 1 ? "Traffic delay" : null), DateTime.UtcNow, "Admin", null, null, null));
-            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentDaraId, "Dara Meng", "ADM-2026-0003", d, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null));
-            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentBophaId, "Bopha Keo", "ADM-2026-0004", d, (i == 3 ? AttendanceStatus.Late : AttendanceStatus.Present), null, DateTime.UtcNow, "Admin", null, null, null));
+            var date = currentDate.AddDays(-dayOffset);
+            if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+            {
+                schoolDays.Add(DateOnly.FromDateTime(date));
+            }
+            dayOffset++;
+        }
+
+        // Realistic attendance records for students over 30 distinct school days
+        for (int i = 0; i < schoolDays.Count; i++)
+        {
+            var d = schoolDays[i];
+            var checkInUtc = d.ToDateTime(new TimeOnly(7, 48)).AddMinutes(i % 12);
+
+            // 1. Visal Chan: 26 Present, 2 Late, 2 Excused (Total 30) -> Rate: 90.0%
+            AttendanceStatus visalStatus = AttendanceStatus.Present;
+            string? visalRemarks = null;
+            if (i == 0)
+            {
+                visalStatus = AttendanceStatus.Excused;
+                visalRemarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
+            }
+            else if (i == 3)
+            {
+                visalStatus = AttendanceStatus.Late;
+                visalRemarks = "Traffic delay on Russian Blvd (Checked in 08:22 AM)";
+            }
+            else if (i == 9)
+            {
+                visalStatus = AttendanceStatus.Late;
+                visalRemarks = "Monsoon heavy rain delay (Checked in 08:18 AM)";
+            }
+            else if (i == 16)
+            {
+                visalStatus = AttendanceStatus.Excused;
+                visalRemarks = "[Parent Permission] Doctor / Clinic Appointment";
+            }
+
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVisalId, "Visal Chan", "ADM-2026-0001", d, visalStatus, visalRemarks, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 2. Kanha Sok
+            var kanhaStatus = (i == 1 || i == 7) ? AttendanceStatus.Late : AttendanceStatus.Present;
+            var kanhaRemarks = (i == 1) ? "Commute delay" : (i == 7) ? "Traffic jam" : null;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", d, kanhaStatus, kanhaRemarks, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 3. Dara Meng
+            var daraStatus = (i == 12) ? AttendanceStatus.Excused : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentDaraId, "Dara Meng", "ADM-2026-0003", d, daraStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 4. Bopha Keo
+            var bophaStatus = (i == 4) ? AttendanceStatus.Late : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentBophaId, "Bopha Keo", "ADM-2026-0004", d, bophaStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
         }
 
         return records;

@@ -356,10 +356,6 @@ public class DashboardService : IDashboardService
             ? Math.Round(((attendanceList.Count(a => a.Status == AttendanceStatus.Present) +
                            attendanceList.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)attendanceList.Count) * 100m, 1)
             : 100.0m;
-        if (student.AdmissionNumber == "ADM-2026-0001")
-        {
-            attendancePct = 100.0m;
-        }
 
         var invoices = await _context.Invoices.Where(i => i.StudentId == student.Id).ToListAsync(ct);
         decimal pendingFees = invoices.Sum(i => i.RemainingBalance);
@@ -440,10 +436,6 @@ public class DashboardService : IDashboardService
             ? Math.Round(((attendanceList.Count(a => a.Status == AttendanceStatus.Present) +
                            attendanceList.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)attendanceList.Count) * 100m, 1)
             : 100.0m;
-        if (selectedStudent.AdmissionNumber == "ADM-2026-0001")
-        {
-            attendancePct = 100.0m;
-        }
 
         var pendingFees = await _context.Invoices.Where(i => i.StudentId == targetChildId).SumAsync(i => i.RemainingBalance, ct);
 

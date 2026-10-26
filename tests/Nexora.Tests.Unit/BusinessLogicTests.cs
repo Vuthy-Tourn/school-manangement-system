@@ -218,7 +218,7 @@ public class RoleBasedAuthenticationTests
         var adminTabs = new[] { "dashboard", "students", "attendance", "grades", "fees", "timetables", "announcements", "profile" };
         var teacherTabs = new[] { "dashboard", "attendance", "grades", "timetables", "announcements", "profile" };
         var studentTabs = new[] { "dashboard", "timetables", "grades", "fees", "announcements", "profile" };
-        var parentTabs = new[] { "dashboard", "grades", "fees", "timetables", "announcements", "profile" };
+        var parentTabs = new[] { "dashboard", "attendance", "grades", "fees", "timetables", "announcements", "profile" };
 
         teacherTabs.Should().NotContain("students");
         teacherTabs.Should().NotContain("fees");
@@ -227,7 +227,7 @@ public class RoleBasedAuthenticationTests
         studentTabs.Should().NotContain("attendance");
 
         parentTabs.Should().NotContain("students");
-        parentTabs.Should().NotContain("attendance");
+        parentTabs.Should().Contain("attendance");
 
         adminTabs.Should().Contain("students");
         adminTabs.Should().Contain("fees");
@@ -352,16 +352,46 @@ public class RoleBasedAuthenticationTests
     }
 
     [Fact]
-    public void AttendanceRate_WithExcusedPermissionDays_ShouldCountTowardsPresentRate()
+    public void AttendanceRate_WithExcusedAndLate_ShouldReduceRateBelow100Percent()
     {
-        // 8 Present days, 2 Excused leave days out of 10 days
-        int totalDays = 10;
-        int presentDays = 8;
-        int lateDays = 0;
+        // 26 Present days, 2 Late arrivals (0.5 credit each), 2 Excused absences out of 30 school days
+        int totalDays = 30;
+        int presentDays = 26;
+        int lateDays = 2;
         int excusedDays = 2;
 
-        decimal percentage = Math.Round(((presentDays + (lateDays * 0.5m) + excusedDays) / (decimal)totalDays) * 100m, 1);
+        decimal percentage = Math.Round(((presentDays + (lateDays * 0.5m)) / (decimal)totalDays) * 100m, 1);
 
-        percentage.Should().Be(100.0m);
+        // 26 + 1.0 = 27 / 30 = 90.0%
+        (presentDays + lateDays + excusedDays).Should().Be(totalDays);
+        percentage.Should().Be(90.0m);
+        percentage.Should().BeLessThan(100.0m);
+    }
+
+    [Fact]
+    public void AttendanceRecords_DeduplicateByDate_ShouldContainUniqueDays()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var yesterday = today.AddDays(-1);
+
+        var rawRecords = new List<(DateOnly Date, AttendanceStatus Status, DateTime RecordedAtUtc)>
+        {
+            (today, AttendanceStatus.Present, DateTime.UtcNow.AddHours(-2)),
+            (today, AttendanceStatus.Excused, DateTime.UtcNow.AddHours(-1)), // Latest updated record
+            (yesterday, AttendanceStatus.Late, DateTime.UtcNow.AddDays(-1)),
+            (yesterday, AttendanceStatus.Present, DateTime.UtcNow.AddDays(-1).AddHours(-3))
+        };
+
+        var deduplicated = rawRecords
+            .GroupBy(r => r.Date)
+            .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+            .OrderByDescending(r => r.Date)
+            .ToList();
+
+        deduplicated.Should().HaveCount(2);
+        deduplicated.First().Date.Should().Be(today);
+        deduplicated.First().Status.Should().Be(AttendanceStatus.Excused);
+        deduplicated.Last().Date.Should().Be(yesterday);
+        deduplicated.Last().Status.Should().Be(AttendanceStatus.Late);
     }
 }

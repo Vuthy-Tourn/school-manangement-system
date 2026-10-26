@@ -364,6 +364,28 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<LinkedStudentDto> _parentChildren = new();
     [ObservableProperty] private LinkedStudentDto? _selectedParentChild;
     [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _childAttendanceHistory = new();
+    [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _filteredChildAttendanceHistory = new();
+    private List<AttendanceRecordDisplayItem> _allChildAttendanceRecords = new();
+
+    // Filter controls for parent view
+    [ObservableProperty] private string _selectedAttendanceFilter = "All";
+    [ObservableProperty] private string _filterAllText = "All";
+    [ObservableProperty] private string _filterPresentText = "✓ Present";
+    [ObservableProperty] private string _filterLateText = "⏱ Late";
+    [ObservableProperty] private string _filterExcusedText = "📋 Excused";
+    [ObservableProperty] private string _filterAbsentText = "✕ Absent";
+
+    [ObservableProperty] private Color _filterAllBgColor = Color.FromArgb("#0F2042");
+    [ObservableProperty] private Color _filterAllTextColor = Color.FromArgb("#FFFFFF");
+    [ObservableProperty] private Color _filterPresentBgColor = Color.FromArgb("#F1F5F9");
+    [ObservableProperty] private Color _filterPresentTextColor = Color.FromArgb("#059669");
+    [ObservableProperty] private Color _filterLateBgColor = Color.FromArgb("#F1F5F9");
+    [ObservableProperty] private Color _filterLateTextColor = Color.FromArgb("#D97706");
+    [ObservableProperty] private Color _filterExcusedBgColor = Color.FromArgb("#F1F5F9");
+    [ObservableProperty] private Color _filterExcusedTextColor = Color.FromArgb("#2563EB");
+    [ObservableProperty] private Color _filterAbsentBgColor = Color.FromArgb("#F1F5F9");
+    [ObservableProperty] private Color _filterAbsentTextColor = Color.FromArgb("#DC2626");
+
     [ObservableProperty] private AttendanceRecordDisplayItem? _todayChildAttendance;
     [ObservableProperty] private bool _hasTodayChildAttendance;
     [ObservableProperty] private string _todayStatusBadgeText = "Present";
@@ -504,7 +526,15 @@ public partial class AttendanceViewModel : BaseViewModel
             var res = await _apiService.GetStudentAttendanceHistoryAsync(studentId);
             if (res.Success && res.Data != null)
             {
-                var displayItems = res.Data.Select(r => new AttendanceRecordDisplayItem(r)).ToList();
+                // Strict deduplication by Date: exactly one entry per calendar date
+                var displayItems = res.Data
+                    .GroupBy(r => r.Date)
+                    .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
+                    .OrderByDescending(r => r.Date)
+                    .Select(r => new AttendanceRecordDisplayItem(r))
+                    .ToList();
+
+                _allChildAttendanceRecords = displayItems;
                 ChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(displayItems);
 
                 ChildTotalDays = displayItems.Count;
@@ -513,9 +543,12 @@ public partial class AttendanceViewModel : BaseViewModel
                 ChildExcusedDays = displayItems.Count(d => d.Status == AttendanceStatus.Excused);
                 ChildAbsentDays = displayItems.Count(d => d.Status == AttendanceStatus.Absent);
 
+                // True presence rate calculation: Late arrival counts as half presence (0.5), Excused absence does not count as Present
                 CurrentPresentRate = ChildTotalDays > 0
-                    ? Math.Round(((ChildPresentDays + (ChildLateDays * 0.5m) + ChildExcusedDays) / (decimal)ChildTotalDays) * 100m, 1)
+                    ? Math.Round(((ChildPresentDays + (ChildLateDays * 0.5m)) / (decimal)ChildTotalDays) * 100m, 1)
                     : 100.0m;
+
+                ApplyAttendanceFilter();
 
                 var today = DateOnly.FromDateTime(DateTime.Today);
                 var todayRec = displayItems.FirstOrDefault(a => a.Date == today);
@@ -583,6 +616,48 @@ public partial class AttendanceViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    public void FilterAttendance(string filter)
+    {
+        SelectedAttendanceFilter = filter;
+        ApplyAttendanceFilter();
+    }
+
+    private void ApplyAttendanceFilter()
+    {
+        FilterAllText = $"All ({ChildTotalDays})";
+        FilterPresentText = $"✓ Present ({ChildPresentDays})";
+        FilterLateText = $"⏱ Late ({ChildLateDays})";
+        FilterExcusedText = $"📋 Excused ({ChildExcusedDays})";
+        FilterAbsentText = $"✕ Absent ({ChildAbsentDays})";
+
+        FilterAllBgColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#0F2042") : Color.FromArgb("#F1F5F9");
+        FilterAllTextColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#475569");
+
+        FilterPresentBgColor = SelectedAttendanceFilter == "Present" ? Color.FromArgb("#059669") : Color.FromArgb("#ECFDF5");
+        FilterPresentTextColor = SelectedAttendanceFilter == "Present" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#059669");
+
+        FilterLateBgColor = SelectedAttendanceFilter == "Late" ? Color.FromArgb("#D97706") : Color.FromArgb("#FFFBEB");
+        FilterLateTextColor = SelectedAttendanceFilter == "Late" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#D97706");
+
+        FilterExcusedBgColor = SelectedAttendanceFilter == "Excused" ? Color.FromArgb("#2563EB") : Color.FromArgb("#EFF6FF");
+        FilterExcusedTextColor = SelectedAttendanceFilter == "Excused" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#2563EB");
+
+        FilterAbsentBgColor = SelectedAttendanceFilter == "Absent" ? Color.FromArgb("#DC2626") : Color.FromArgb("#FEF2F2");
+        FilterAbsentTextColor = SelectedAttendanceFilter == "Absent" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#DC2626");
+
+        var filtered = SelectedAttendanceFilter switch
+        {
+            "Present" => _allChildAttendanceRecords.Where(r => r.Status == AttendanceStatus.Present),
+            "Late" => _allChildAttendanceRecords.Where(r => r.Status == AttendanceStatus.Late),
+            "Excused" => _allChildAttendanceRecords.Where(r => r.Status == AttendanceStatus.Excused),
+            "Absent" => _allChildAttendanceRecords.Where(r => r.Status == AttendanceStatus.Absent),
+            _ => _allChildAttendanceRecords
+        };
+
+        FilteredChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(filtered);
     }
 
     [RelayCommand]

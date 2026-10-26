@@ -367,7 +367,7 @@
                                 Padding="10,10">
                             <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
                                 <Label Text="Rate" FontSize="10" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
-                                <Label Text="{Binding CurrentPresentRate, StringFormat='{0:F0}%'}"
+                                <Label Text="{Binding CurrentPresentRate, StringFormat='{0:F1}%'}"
                                        FontSize="16" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
@@ -433,11 +433,61 @@
                                        VerticalOptions="Center" />
                             </Grid>
 
-                            <CollectionView ItemsSource="{Binding ChildAttendanceHistory}" SelectionMode="None">
+                            <!-- Interactive Attendance Filter Pills Bar -->
+                            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,0,0,4">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Button Text="{Binding FilterAllText}"
+                                            Command="{Binding FilterAttendanceCommand}"
+                                            CommandParameter="All"
+                                            BackgroundColor="{Binding FilterAllBgColor}"
+                                            TextColor="{Binding FilterAllTextColor}"
+                                            FontSize="11" FontAttributes="Bold"
+                                            HeightRequest="32" Padding="12,0"
+                                            CornerRadius="16" />
+
+                                    <Button Text="{Binding FilterPresentText}"
+                                            Command="{Binding FilterAttendanceCommand}"
+                                            CommandParameter="Present"
+                                            BackgroundColor="{Binding FilterPresentBgColor}"
+                                            TextColor="{Binding FilterPresentTextColor}"
+                                            FontSize="11" FontAttributes="Bold"
+                                            HeightRequest="32" Padding="12,0"
+                                            CornerRadius="16" />
+
+                                    <Button Text="{Binding FilterLateText}"
+                                            Command="{Binding FilterAttendanceCommand}"
+                                            CommandParameter="Late"
+                                            BackgroundColor="{Binding FilterLateBgColor}"
+                                            TextColor="{Binding FilterLateTextColor}"
+                                            FontSize="11" FontAttributes="Bold"
+                                            HeightRequest="32" Padding="12,0"
+                                            CornerRadius="16" />
+
+                                    <Button Text="{Binding FilterExcusedText}"
+                                            Command="{Binding FilterAttendanceCommand}"
+                                            CommandParameter="Excused"
+                                            BackgroundColor="{Binding FilterExcusedBgColor}"
+                                            TextColor="{Binding FilterExcusedTextColor}"
+                                            FontSize="11" FontAttributes="Bold"
+                                            HeightRequest="32" Padding="12,0"
+                                            CornerRadius="16" />
+
+                                    <Button Text="{Binding FilterAbsentText}"
+                                            Command="{Binding FilterAttendanceCommand}"
+                                            CommandParameter="Absent"
+                                            BackgroundColor="{Binding FilterAbsentBgColor}"
+                                            TextColor="{Binding FilterAbsentTextColor}"
+                                            FontSize="11" FontAttributes="Bold"
+                                            HeightRequest="32" Padding="12,0"
+                                            CornerRadius="16" />
+                                </HorizontalStackLayout>
+                            </ScrollView>
+
+                            <CollectionView ItemsSource="{Binding FilteredChildAttendanceHistory}" SelectionMode="None">
                                 <CollectionView.EmptyView>
                                     <VerticalStackLayout Spacing="6" Padding="0,20" HorizontalOptions="Center">
                                         <Image Source="icon_attendance.png" WidthRequest="32" HeightRequest="32" HorizontalOptions="Center" Opacity="0.5" />
-                                        <Label Text="No attendance records found for this student."
+                                        <Label Text="No attendance records found matching this filter."
                                                FontSize="12"
                                                TextColor="{StaticResource TextMuted}"
                                                HorizontalOptions="Center" />
