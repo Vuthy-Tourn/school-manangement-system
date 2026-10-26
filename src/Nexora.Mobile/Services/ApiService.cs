@@ -508,9 +508,20 @@ public class ApiService : IApiService
             return ApiResponse<List<LinkedStudentDto>>.Ok(dashboardRes.Data.Children);
         }
 
-        var fallbackChildren = _mockStudents.Take(2).Select(s => new LinkedStudentDto(
-            s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", s.Id == (CurrentSelectedChildId ?? StudentVisalId)
-        )).ToList();
+        // Bopha Keo is the mother of Visal Chan (ADM-2026-0001)
+        var fallbackChildren = _mockStudents
+            .Where(s => s.Id == StudentVisalId || s.EmergencyContactName?.Contains("Bopha", StringComparison.OrdinalIgnoreCase) == true)
+            .Select(s => new LinkedStudentDto(
+                s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", s.Id == (CurrentSelectedChildId ?? StudentVisalId)
+            )).ToList();
+
+        if (fallbackChildren.Count == 0)
+        {
+            fallbackChildren = _mockStudents.Take(1).Select(s => new LinkedStudentDto(
+                s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", true
+            )).ToList();
+        }
+
         return ApiResponse<List<LinkedStudentDto>>.Ok(fallbackChildren);
     }
 
@@ -902,7 +913,11 @@ public class ApiService : IApiService
             if (res.IsSuccessStatusCode)
             {
                 var body = await res.Content.ReadFromJsonAsync<ApiResponse<TimetableEntryDto>>(JsonOptions);
-                if (body != null) return body;
+                if (body?.Data != null)
+                {
+                    _mockSchedule.Add(body.Data);
+                    return body;
+                }
             }
         }
         catch (Exception ex)
@@ -910,9 +925,24 @@ public class ApiService : IApiService
             LogException("CreateTimetableEntryAsync", ex);
         }
 
+        var cls = _mockClasses.FirstOrDefault(c => c.Id == request.ClassSectionId);
+        var subj = _mockSubjects.FirstOrDefault(s => s.Id == request.SubjectId);
+        var teacher = _mockTeachers.FirstOrDefault(t => t.Id == request.TeacherId);
+
         var entry = new TimetableEntryDto(
-            Guid.NewGuid(), Guid.NewGuid(), request.ClassSectionId, "10-A", request.SubjectId, "Mathematics",
-            "MATH101", request.TeacherId, "Dara Sok", request.DayOfWeek, request.StartTime, request.EndTime, request.RoomNumber);
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            request.ClassSectionId,
+            cls?.Name ?? "10-A",
+            request.SubjectId,
+            subj?.Name ?? "Subject",
+            subj?.Code ?? "SUB101",
+            request.TeacherId,
+            teacher?.FullName ?? "Faculty Teacher",
+            request.DayOfWeek,
+            request.StartTime,
+            request.EndTime,
+            request.RoomNumber ?? cls?.RoomNumber ?? "Room 201");
         _mockSchedule.Add(entry);
         return ApiResponse<TimetableEntryDto>.Ok(entry);
     }
@@ -925,7 +955,11 @@ public class ApiService : IApiService
             if (res.IsSuccessStatusCode)
             {
                 var body = await res.Content.ReadFromJsonAsync<ApiResponse<bool>>(JsonOptions);
-                if (body != null) return body;
+                if (body != null)
+                {
+                    _mockSchedule.RemoveAll(x => x.Id == id);
+                    return body;
+                }
             }
         }
         catch (Exception ex)

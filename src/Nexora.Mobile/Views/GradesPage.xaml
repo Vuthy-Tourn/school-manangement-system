@@ -82,8 +82,27 @@
                             </Border>
                         </VerticalStackLayout>
 
-                        <!-- Child Selector Picker (Parent view) -->
-                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding IsParentView}">
+                        <!-- Single Child Badge (Parent view with 1 child) -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding IsSingleChildParent}">
+                            <Label Text="Student Academic Record"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource PrimaryBorder}"
+                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    Padding="10,0"
+                                    HeightRequest="38">
+                                <Label Text="{Binding StudentDisplayName}"
+                                       TextColor="{StaticResource Primary}"
+                                       FontAttributes="Bold"
+                                       FontSize="11"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Child Selector Picker (Parent view with multiple children) -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" IsVisible="{Binding HasMultipleChildren}">
                             <Label Text="Viewing Child"
                                    FontSize="11"
                                    FontAttributes="Bold"

@@ -641,6 +641,8 @@ public partial class GradesViewModel : BaseViewModel
     [ObservableProperty] private bool _isStudentView = false;
     [ObservableProperty] private bool _isParentView = false;
     [ObservableProperty] private bool _isStudentOnlyView = false;
+    [ObservableProperty] private bool _hasMultipleChildren = false;
+    [ObservableProperty] private bool _isSingleChildParent = false;
     [ObservableProperty] private ObservableCollection<LinkedStudentDto> _parentChildren = new();
     [ObservableProperty] private LinkedStudentDto? _selectedChild;
     [ObservableProperty] private string _studentDisplayName = "Enrolled Student";
@@ -728,6 +730,8 @@ public partial class GradesViewModel : BaseViewModel
                 if (childrenRes.Success && childrenRes.Data != null && childrenRes.Data.Count > 0)
                 {
                     ParentChildren = new ObservableCollection<LinkedStudentDto>(childrenRes.Data);
+                    HasMultipleChildren = ParentChildren.Count > 1;
+                    IsSingleChildParent = ParentChildren.Count == 1;
                     SelectedChild = ParentChildren.FirstOrDefault(c => c.StudentId == _apiService.CurrentSelectedChildId)
                         ?? ParentChildren.FirstOrDefault();
                     if (SelectedChild != null)
@@ -1349,9 +1353,19 @@ public partial class TimetablesViewModel : BaseViewModel
     [ObservableProperty] private string _dayHeaderTitle = "Monday Schedule";
     [ObservableProperty] private bool _canSwitchClass = true;
     [ObservableProperty] private bool _isStudentOrParent = false;
+    [ObservableProperty] private bool _canManageTimetable = false;
     [ObservableProperty] private string _pageHeaderTitle = "Weekly Class Timetable";
     [ObservableProperty] private string _pageHeaderSubtitle = "Select class and academic day to view class hours";
     [ObservableProperty] private string _enrolledClassBadgeText = "Class 10-A";
+
+    [ObservableProperty] private ObservableCollection<SubjectDto> _availableSubjects = new();
+    [ObservableProperty] private SubjectDto? _newSubject;
+    [ObservableProperty] private ObservableCollection<TeacherDto> _availableTeachers = new();
+    [ObservableProperty] private TeacherDto? _newTeacher;
+    [ObservableProperty] private TimeSpan _newStartTime = new(8, 0, 0);
+    [ObservableProperty] private TimeSpan _newEndTime = new(9, 30, 0);
+    [ObservableProperty] private string _newRoomNumber = "Room 201";
+    [ObservableProperty] private bool _isAddSlotModalVisible = false;
 
     public TimetablesViewModel(IApiService apiService)
     {
@@ -1398,6 +1412,30 @@ public partial class TimetablesViewModel : BaseViewModel
             var role = _apiService.CurrentUser?.Role;
             IsStudentOrParent = role is UserRole.Student or UserRole.Parent;
             CanSwitchClass = !IsStudentOrParent;
+            CanManageTimetable = role is UserRole.SuperAdmin or UserRole.SchoolAdmin;
+
+            if (CanManageTimetable)
+            {
+                if (AvailableSubjects.Count == 0)
+                {
+                    var subjRes = await _apiService.GetSubjectsAsync();
+                    if (subjRes.Success && subjRes.Data != null)
+                    {
+                        AvailableSubjects = new ObservableCollection<SubjectDto>(subjRes.Data);
+                        NewSubject = AvailableSubjects.FirstOrDefault();
+                    }
+                }
+
+                if (AvailableTeachers.Count == 0)
+                {
+                    var teacherRes = await _apiService.GetTeachersAsync();
+                    if (teacherRes.Success && teacherRes.Data != null)
+                    {
+                        AvailableTeachers = new ObservableCollection<TeacherDto>(teacherRes.Data);
+                        NewTeacher = AvailableTeachers.FirstOrDefault();
+                    }
+                }
+            }
 
             if (Classes.Count == 0)
             {
@@ -1530,6 +1568,123 @@ public partial class TimetablesViewModel : BaseViewModel
 
         ScheduleSlots = new ObservableCollection<TimetableEntryDto>(filtered);
         HasNoSlots = (ScheduleSlots.Count == 0);
+    }
+
+    [RelayCommand]
+    public void OpenAddSlotModal()
+    {
+        if (AvailableSubjects.Count > 0 && NewSubject == null)
+            NewSubject = AvailableSubjects.FirstOrDefault();
+        if (AvailableTeachers.Count > 0 && NewTeacher == null)
+            NewTeacher = AvailableTeachers.FirstOrDefault();
+
+        NewRoomNumber = SelectedClass?.RoomNumber ?? "Room 201";
+        IsAddSlotModalVisible = true;
+    }
+
+    [RelayCommand]
+    public void CloseAddSlotModal()
+    {
+        IsAddSlotModalVisible = false;
+    }
+
+    [RelayCommand]
+    public async Task SaveTimetableSlotAsync()
+    {
+        if (SelectedClass == null || NewSubject == null || NewTeacher == null)
+        {
+            if (Shell.Current != null)
+                await Shell.Current.DisplayAlert("Validation Error", "Please select class, subject, and teacher.", "OK");
+            return;
+        }
+
+        if (NewStartTime >= NewEndTime)
+        {
+            if (Shell.Current != null)
+                await Shell.Current.DisplayAlert("Validation Error", "End time must be after start time.", "OK");
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            var request = new CreateTimetableEntryRequest(
+                SelectedClass.Id,
+                NewSubject.Id,
+                NewTeacher.Id,
+                SelectedDay,
+                NewStartTime,
+                NewEndTime,
+                NewRoomNumber);
+
+            var res = await _apiService.CreateTimetableEntryAsync(request);
+            if (res.Success && res.Data != null)
+            {
+                IsAddSlotModalVisible = false;
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Success", $"Schedule slot assigned to {NewTeacher.FullName} successfully!", "OK");
+                await FetchClassTimetableInternalAsync(SelectedClass.Id);
+            }
+            else
+            {
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Error", res.Message ?? "Failed to assign schedule slot.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Shell.Current != null)
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteSlotAsync(TimetableEntryDto? slot)
+    {
+        if (slot == null) return;
+
+        bool confirm = true;
+        if (Shell.Current != null)
+        {
+            confirm = await Shell.Current.DisplayAlert(
+                "Remove Schedule Slot",
+                $"Are you sure you want to remove {slot.SubjectName} ({slot.StartTime:hh\\:mm} - {slot.EndTime:hh\\:mm}) from {slot.ClassName} on {slot.DayOfWeek}?",
+                "Remove",
+                "Cancel");
+        }
+
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            var res = await _apiService.DeleteTimetableEntryAsync(slot.Id);
+            if (res.Success)
+            {
+                _cachedClassEntries.RemoveAll(e => e.Id == slot.Id);
+                FilterSlotsForDay();
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Removed", "Schedule slot removed successfully.", "OK");
+            }
+            else
+            {
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Error", res.Message ?? "Failed to delete slot.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (Shell.Current != null)
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
 
