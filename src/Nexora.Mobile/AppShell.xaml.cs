@@ -15,6 +15,14 @@ public partial class AppShell : Shell
 
         // Register auxiliary / sub-routes
         Routing.RegisterRoute("student-form", typeof(StudentFormPage));
+        Routing.RegisterRoute("dashboard", typeof(ParentDashboardPage));
+        Routing.RegisterRoute("attendance", typeof(AttendancePage));
+        Routing.RegisterRoute("grades", typeof(GradesPage));
+        Routing.RegisterRoute("timetables", typeof(TimetablesPage));
+        Routing.RegisterRoute("fees", typeof(FeesPage));
+        Routing.RegisterRoute("announcements", typeof(AnnouncementsPage));
+        Routing.RegisterRoute("profile", typeof(ProfilePage));
+        Routing.RegisterRoute("students", typeof(StudentsPage));
 
         ConfigureRoleNavigation();
     }
@@ -78,7 +86,8 @@ public partial class AppShell : Shell
         var tab = new Tab
         {
             Title = title,
-            Icon = icon
+            Icon = icon,
+            Route = route
         };
         tab.Items.Add(new ShellContent
         {

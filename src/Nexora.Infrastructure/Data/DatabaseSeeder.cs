@@ -544,7 +544,7 @@ public class DatabaseSeeder
             };
             _context.ParentGuardians.Add(parentBopha);
 
-            _context.StudentGuardians.AddRange(
+            _context.StudentGuardians.Add(
                 new StudentGuardian
                 {
                     Id = Guid.NewGuid(),
@@ -552,14 +552,6 @@ public class DatabaseSeeder
                     GuardianId = parentBopha.Id,
                     Relationship = "Mother",
                     IsPrimaryContact = true
-                },
-                new StudentGuardian
-                {
-                    Id = Guid.NewGuid(),
-                    StudentId = studentKanha.Id,
-                    GuardianId = parentBopha.Id,
-                    Relationship = "Mother",
-                    IsPrimaryContact = false
                 }
             );
 
@@ -753,6 +745,7 @@ public class DatabaseSeeder
             });
 
             await _context.SaveChangesAsync();
+            await EnsureRosterAndTimetableAsync(school);
             _logger.LogInformation("Database seeded successfully with Angkor International Academy!");
         }
         catch (Exception ex)
@@ -840,6 +833,41 @@ public class DatabaseSeeder
                     Status = EnrollmentStatus.Enrolled
                 });
             }
+        }
+
+        // Verify and ensure all Class 10-A students have active StudentEnrollment records
+        var existingEnrollmentStudentIds = (await _context.StudentEnrollments.IgnoreQueryFilters()
+            .Where(e => e.ClassSectionId == class10A.Id)
+            .Select(e => e.StudentId)
+            .ToListAsync()).ToHashSet();
+
+        var existingStudentsIn10A = await _context.Students.IgnoreQueryFilters()
+            .Where(s => s.SchoolId == school.Id && s.CurrentClassSectionId == class10A.Id)
+            .ToListAsync();
+
+        foreach (var st in existingStudentsIn10A)
+        {
+            if (!existingEnrollmentStudentIds.Contains(st.Id))
+            {
+                _context.StudentEnrollments.Add(new StudentEnrollment
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolId = school.Id,
+                    StudentId = st.Id,
+                    ClassSectionId = class10A.Id,
+                    AcademicYearId = academicYear.Id,
+                    RollNumber = roll++,
+                    EnrollmentDate = DateTime.UtcNow,
+                    Status = EnrollmentStatus.Enrolled
+                });
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges)
+        {
+            await _context.SaveChangesAsync();
+            hasChanges = false;
         }
 
         // Ensure all 8 teachers exist in database
@@ -1033,7 +1061,46 @@ public class DatabaseSeeder
             hasChanges = true;
         }
 
-        var targetExams = new[] { exam, quizExam, finalExam }.Where(e => e != null).Select(e => e!).ToList();
+        var semester2 = await _context.Semesters.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.SchoolId == school.Id && s.Name.Contains("Semester 2"));
+        var midterm2Exam = await _context.Exams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.SchoolId == school.Id && e.Name.Contains("Semester 2 Midterm"));
+        if (midterm2Exam == null && semester2 != null)
+        {
+            midterm2Exam = new Exam
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                AcademicYearId = academicYear.Id,
+                SemesterId = semester2.Id,
+                Name = "Semester 2 Midterm Examination",
+                StartDate = DateTime.SpecifyKind(new DateTime(2027, 4, 15), DateTimeKind.Utc),
+                EndDate = DateTime.SpecifyKind(new DateTime(2027, 4, 25), DateTimeKind.Utc),
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow
+            };
+            _context.Exams.Add(midterm2Exam);
+            hasChanges = true;
+        }
+
+        var final2Exam = await _context.Exams.IgnoreQueryFilters().FirstOrDefaultAsync(e => e.SchoolId == school.Id && e.Name.Contains("Semester 2 Final"));
+        if (final2Exam == null && semester2 != null)
+        {
+            final2Exam = new Exam
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                AcademicYearId = academicYear.Id,
+                SemesterId = semester2.Id,
+                Name = "Semester 2 Final Annual Examination",
+                StartDate = DateTime.SpecifyKind(new DateTime(2027, 7, 5), DateTimeKind.Utc),
+                EndDate = DateTime.SpecifyKind(new DateTime(2027, 7, 15), DateTimeKind.Utc),
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow
+            };
+            _context.Exams.Add(final2Exam);
+            hasChanges = true;
+        }
+
+        var targetExams = new[] { exam, quizExam, finalExam, midterm2Exam, final2Exam }.Where(e => e != null).Select(e => e!).ToList();
 
         if (targetExams.Count > 0)
         {
@@ -1044,6 +1111,41 @@ public class DatabaseSeeder
 
             var adminUser = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.SchoolId == school.Id && u.Role == UserRole.SchoolAdmin);
             var graderId = adminUser?.Id ?? Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
+            // Ensure daily attendance records exist for ALL class 10-A students
+            var attToday = DateOnly.FromDateTime(DateTime.UtcNow);
+            for (int dIdx = 0; dIdx < 14; dIdx++)
+            {
+                var attDate = attToday.AddDays(-dIdx);
+                foreach (var st in allClassStudents)
+                {
+                    bool attExists = await _context.AttendanceRecords.IgnoreQueryFilters().AnyAsync(a => a.StudentId == st.Id && a.Date == attDate);
+                    if (!attExists)
+                    {
+                        var status = (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0002") ? AttendanceStatus.Late
+                            : (dIdx == 3 && st.AdmissionNumber == "ADM-2026-0003") ? AttendanceStatus.Excused
+                            : AttendanceStatus.Present;
+                        var remarks = (status == AttendanceStatus.Late) ? "Traffic delay"
+                            : (status == AttendanceStatus.Excused) ? "Medical appointment"
+                            : null;
+
+                        _context.AttendanceRecords.Add(new AttendanceRecord
+                        {
+                            Id = Guid.NewGuid(),
+                            SchoolId = school.Id,
+                            ClassSectionId = class10A.Id,
+                            StudentId = st.Id,
+                            Date = attDate,
+                            Status = status,
+                            Remarks = remarks,
+                            RecordedByUserId = graderId,
+                            RecordedAtUtc = DateTime.UtcNow
+                        });
+                        hasChanges = true;
+                    }
+                }
+            }
+
 
             var existingGrades = await _context.StudentGrades.IgnoreQueryFilters()
                 .Where(g => g.SchoolId == school.Id)

@@ -105,7 +105,7 @@
             </Border>
 
             <!-- Student Attendance Roster -->
-            <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadAttendanceCommand}">
+            <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
                 <CollectionView ItemsSource="{Binding StudentItems}">
                     <CollectionView.EmptyView>
                         <Border StrokeShape="RoundRectangle 12"
@@ -234,17 +234,18 @@
         </Grid>
 
         <!-- 2. PARENT ATTENDANCE VIEW -->
-        <RefreshView IsRefreshing="{Binding IsBusy}"
-                     Command="{Binding InitializeCommand}"
+        <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}"
                      IsVisible="{Binding IsParentView}">
             <ScrollView>
                 <VerticalStackLayout Spacing="20" Padding="20,16,20,30">
 
-                    <!-- Parent Children Switcher -->
+                    <!-- Parent Children Switcher (shown only if parent has multiple children) -->
                     <Border StrokeShape="RoundRectangle 14"
                             BackgroundColor="{StaticResource SurfaceCard}"
                             Stroke="{StaticResource SurfaceBorder}"
-                            Padding="16,14">
+                            Padding="16,14"
+                            IsVisible="{Binding HasMultipleChildren}">
                         <VerticalStackLayout Spacing="10">
                             <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                                 <Label Text="Select Child"
@@ -287,7 +288,7 @@
                             Stroke="{StaticResource SurfaceBorder}"
                             Padding="18,16">
                         <VerticalStackLayout Spacing="12">
-                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                                     <Label Text="Today's School Attendance Status"
                                            FontSize="15"
@@ -297,7 +298,20 @@
                                            FontSize="11"
                                            TextColor="{StaticResource TextMuted}" />
                                 </VerticalStackLayout>
-                                <Label Grid.Column="1"
+                                <Button Grid.Column="1"
+                                        Text="Ask Permission"
+                                        Command="{Binding OpenPermissionModalCommand}"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                        TextColor="{StaticResource Primary}"
+                                        BorderColor="{StaticResource PrimaryBorder}"
+                                        BorderWidth="1"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        HeightRequest="32"
+                                        Padding="10,0"
+                                        CornerRadius="6"
+                                        VerticalOptions="Center" />
+                                <Label Grid.Column="2"
                                        Text="{Binding SelectedParentChild.ClassName, TargetNullValue='10-A'}"
                                        FontSize="12"
                                        FontAttributes="Bold"
@@ -556,11 +570,9 @@
             </ScrollView>
         </RefreshView>
 
-        <!-- 3. Full-Screen Backdrop Overlay for Ask Permission Modal (Reusable for Parents) -->
-        <!-- 3. Full-Screen Backdrop Overlay for Ask Permission Modal (Reusable for Parents) -->
+        <!-- 3. Backdrop Overlay for Ask Permission Modal (Reusable for Parents) -->
         <Grid BackgroundColor="#99000000"
               IsVisible="{Binding IsPermissionModalVisible}"
-              IgnoreSafeArea="True"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
               InputTransparent="False"
@@ -577,7 +589,7 @@
                     MaximumWidthRequest="440"
                     HorizontalOptions="Center">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer />
+                    <TapGestureRecognizer Command="{Binding DoNothingCommand}" />
                 </Border.GestureRecognizers>
                 <ScrollView MaximumHeightRequest="560">
                     <VerticalStackLayout Spacing="14">

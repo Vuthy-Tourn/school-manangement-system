@@ -235,7 +235,23 @@ public partial class AdminDashboardViewModel : BaseViewModel
     [RelayCommand]
     private async Task NavigateToAsync(string route)
     {
-        await Shell.Current.GoToAsync($"///{route}");
+        if (string.IsNullOrWhiteSpace(route)) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync($"//{route}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NavigateToAsync error: {ex.Message}");
+            try
+            {
+                if (Shell.Current != null) await Shell.Current.GoToAsync(route);
+            }
+            catch { }
+        }
     }
 }
 
@@ -380,7 +396,23 @@ public partial class TeacherDashboardViewModel : BaseViewModel
     [RelayCommand]
     private async Task NavigateToAsync(string route)
     {
-        await Shell.Current.GoToAsync($"///{route}");
+        if (string.IsNullOrWhiteSpace(route)) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync($"//{route}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NavigateToAsync error: {ex.Message}");
+            try
+            {
+                if (Shell.Current != null) await Shell.Current.GoToAsync(route);
+            }
+            catch { }
+        }
     }
 }
 
@@ -444,7 +476,23 @@ public partial class StudentDashboardViewModel : BaseViewModel
     [RelayCommand]
     private async Task NavigateToAsync(string route)
     {
-        await Shell.Current.GoToAsync($"///{route}");
+        if (string.IsNullOrWhiteSpace(route)) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync($"//{route}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NavigateToAsync error: {ex.Message}");
+            try
+            {
+                if (Shell.Current != null) await Shell.Current.GoToAsync(route);
+            }
+            catch { }
+        }
     }
 }
 
@@ -457,6 +505,9 @@ public partial class ParentDashboardViewModel : BaseViewModel
 
     [ObservableProperty]
     private ObservableCollection<LinkedStudentDto> _children = new();
+
+    [ObservableProperty]
+    private bool _hasMultipleChildren = false;
 
     [ObservableProperty]
     private LinkedStudentDto? _selectedChild;
@@ -613,6 +664,7 @@ public partial class ParentDashboardViewModel : BaseViewModel
             {
                 Stats = res.Data;
                 Children = new ObservableCollection<LinkedStudentDto>(res.Data.Children);
+                HasMultipleChildren = Children.Count > 1;
                 SelectedChild = Children.FirstOrDefault(c => c.StudentId == res.Data.SelectedStudentId) ?? Children.FirstOrDefault();
                 RecentGrades = new ObservableCollection<StudentGradeDto>(res.Data.RecentGrades);
 
@@ -771,7 +823,8 @@ public partial class ParentDashboardViewModel : BaseViewModel
             _ => _allChildAttendanceRecords
         };
 
-        FilteredChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(filtered);
+        // Show only the most recent days on dashboard (top 5 school days)
+        FilteredChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(filtered.Take(5));
     }
 
     [RelayCommand]
@@ -851,9 +904,28 @@ public partial class ParentDashboardViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void DoNothing() { }
+
+    [RelayCommand]
     private async Task NavigateToAsync(string route)
     {
-        await Shell.Current.GoToAsync($"///{route}");
+        if (string.IsNullOrWhiteSpace(route)) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync($"//{route}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NavigateToAsync error: {ex.Message}");
+            try
+            {
+                if (Shell.Current != null) await Shell.Current.GoToAsync(route);
+            }
+            catch { }
+        }
     }
 }
 

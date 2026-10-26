@@ -561,9 +561,18 @@ public class ApiService : IApiService
                            studentAttendance.Count(a => a.Status == AttendanceStatus.Late) * 0.5m) / (decimal)studentAttendance.Count) * 100m, 1)
             : 100.0m;
 
-        var children = _mockStudents.Take(2).Select(s => new LinkedStudentDto(
-            s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName, "Child", s.Id == targetStudent.Id
-        )).ToList();
+        var children = _mockStudents
+            .Where(s => s.Id == StudentVisalId || s.EmergencyContactName?.Contains("Bopha", StringComparison.OrdinalIgnoreCase) == true)
+            .Select(s => new LinkedStudentDto(
+                s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", s.Id == targetStudent.Id
+            )).ToList();
+
+        if (children.Count == 0)
+        {
+            children = _mockStudents.Take(1).Select(s => new LinkedStudentDto(
+                s.Id, s.FullName, s.AdmissionNumber, s.CurrentClassName ?? "10-A", "Child", true
+            )).ToList();
+        }
 
         // Distinct subject grades for the selected child to avoid duplicates
         var childGrades = _mockGrades
@@ -989,36 +998,65 @@ public class ApiService : IApiService
 
     public async Task<ApiResponse<List<AttendanceRecordDto>>> GetClassAttendanceAsync(Guid classId, DateOnly date)
     {
+        var targetClassId = classId != Guid.Empty ? classId : Class10AId;
+        var activeClassStudents = _mockStudents
+            .Where(x => x.Status == StudentStatus.Active && (x.CurrentClassSectionId == targetClassId || x.CurrentClassSectionId == Class10AId || targetClassId == Class10AId))
+            .OrderBy(s => s.AdmissionNumber)
+            .ToList();
+
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AttendanceRecordDto>>>($"api/attendance/class/{classId}?date={date:yyyy-MM-dd}", JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count > 0)
+            {
+                // Ensure all active class students are included in the roster
+                var backendRecordsMap = res.Data.GroupBy(r => r.StudentId).ToDictionary(g => g.Key, g => g.First());
+                var merged = new List<AttendanceRecordDto>(res.Data);
+
+                foreach (var s in activeClassStudents)
+                {
+                    if (!backendRecordsMap.ContainsKey(s.Id))
+                    {
+                        merged.Add(new AttendanceRecordDto(
+                            Guid.NewGuid(), Guid.NewGuid(), targetClassId, "10-A",
+                            s.Id, s.FullName, s.AdmissionNumber, date,
+                            AttendanceStatus.Present, null, DateTime.UtcNow, "Homeroom Teacher", null, null, null
+                        ));
+                    }
+                }
+                return ApiResponse<List<AttendanceRecordDto>>.Ok(merged.OrderBy(a => a.AdmissionNumber).ToList());
+            }
         }
         catch (Exception ex)
         {
             LogException("GetClassAttendanceAsync", ex);
         }
 
-        var records = _mockAttendance
+        var existingForDate = _mockAttendance
             .Where(a => a.Date == date && (classId == Guid.Empty || a.ClassSectionId == classId || a.ClassSectionId == Class10AId))
             .GroupBy(a => a.StudentId)
             .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
-            .ToList();
+            .ToDictionary(a => a.StudentId);
 
-        if (records.Count == 0)
+        var records = new List<AttendanceRecordDto>();
+        foreach (var s in activeClassStudents)
         {
-            foreach (var s in _mockStudents.Where(x => x.Status == StudentStatus.Active))
+            if (existingForDate.TryGetValue(s.Id, out var existing))
+            {
+                records.Add(existing);
+            }
+            else
             {
                 var r = new AttendanceRecordDto(
-                    Guid.NewGuid(), Guid.NewGuid(), classId != Guid.Empty ? classId : Class10AId, "10-A", s.Id, s.FullName, s.AdmissionNumber,
-                    date, AttendanceStatus.Present, null, DateTime.UtcNow, "Admin", null, null, null
+                    Guid.NewGuid(), Guid.NewGuid(), targetClassId, "10-A", s.Id, s.FullName, s.AdmissionNumber,
+                    date, AttendanceStatus.Present, null, DateTime.UtcNow, "Homeroom Teacher", null, null, null
                 );
                 records.Add(r);
-                _mockAttendance.RemoveAll(a => a.StudentId == s.Id && a.Date == date);
                 _mockAttendance.Add(r);
             }
         }
-        return ApiResponse<List<AttendanceRecordDto>>.Ok(records);
+
+        return ApiResponse<List<AttendanceRecordDto>>.Ok(records.OrderBy(a => a.AdmissionNumber).ToList());
     }
 
     public async Task<ApiResponse<bool>> RecordBatchAttendanceAsync(BatchAttendanceRequest request)
@@ -1176,119 +1214,154 @@ public class ApiService : IApiService
 
     public async Task<ApiResponse<List<ExamDto>>> GetExamsAsync()
     {
-        try
-        {
-            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<ExamDto>>>("api/grades/exams", JsonOptions);
-            if (res?.Data != null) return res;
-        }
-        catch (Exception ex)
-        {
-            LogException("GetExamsAsync", ex);
-        }
-
-        return ApiResponse<List<ExamDto>>.Ok(new List<ExamDto>
+        var defaultExams = new List<ExamDto>
         {
             new(ExamMidtermId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Midterm Examination", DateTime.UtcNow.AddDays(-20), DateTime.UtcNow.AddDays(-10), true, DateTime.UtcNow.AddDays(-10)),
             new(ExamQuiz1Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Monthly Assessment (October)", DateTime.UtcNow.AddDays(-35), DateTime.UtcNow.AddDays(-30), true, DateTime.UtcNow.AddDays(-30)),
             new(ExamFinal1Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 1", "Semester 1 Final Examination", DateTime.UtcNow.AddDays(40), DateTime.UtcNow.AddDays(50), false, null),
             new(ExamMidterm2Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 2", "Semester 2 Midterm Examination", DateTime.UtcNow.AddDays(120), DateTime.UtcNow.AddDays(130), false, null),
             new(ExamFinal2Id, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Semester 2", "Semester 2 Final Annual Examination", DateTime.UtcNow.AddDays(200), DateTime.UtcNow.AddDays(210), false, null)
-        });
+        };
+
+        try
+        {
+            var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<ExamDto>>>("api/grades/exams", JsonOptions);
+            if (res?.Data != null && res.Data.Count > 0)
+            {
+                var combined = res.Data.UnionBy(defaultExams, e => e.Name).OrderBy(e => e.StartDate).ToList();
+                return ApiResponse<List<ExamDto>>.Ok(combined);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("GetExamsAsync", ex);
+        }
+
+        return ApiResponse<List<ExamDto>>.Ok(defaultExams);
     }
 
     public async Task<ApiResponse<List<AssessmentComponentDto>>> GetAssessmentComponentsAsync(Guid examId, Guid classId)
     {
+        var targetClassId = classId != Guid.Empty ? classId : Class10AId;
+        var targetExamId = examId != Guid.Empty ? examId : ExamMidtermId;
+
         try
         {
             var url = classId != Guid.Empty
                 ? $"api/grades/components?examId={examId}&classSectionId={classId}"
                 : $"api/grades/components?examId={examId}";
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<AssessmentComponentDto>>>(url, JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count >= 8) return res;
         }
         catch (Exception ex)
         {
             LogException("GetAssessmentComponentsAsync", ex);
         }
 
-        var targetClassId = classId != Guid.Empty ? classId : Class10AId;
-        var targetExamId = examId != Guid.Empty ? examId : ExamMidtermId;
-
         var list = _mockComponents
             .Where(c => (c.ClassSectionId == targetClassId || c.ClassSectionId == Class10AId) &&
-                        (c.ExamId == targetExamId || c.ExamId == ExamMidtermId))
+                        (c.ExamId == targetExamId))
             .GroupBy(c => c.SubjectId)
             .Select(g => g.First())
             .ToList();
 
-        if (list.Count == 0)
+        if (list.Count < 8)
         {
-            list = _mockComponents.Where(c => c.ClassSectionId == Class10AId).Take(8).ToList();
+            // Ensure all 8 curriculum subjects have a component for this exam
+            var existingSubjIds = list.Select(c => c.SubjectId).ToHashSet();
+            foreach (var subj in _mockSubjects)
+            {
+                if (!existingSubjIds.Contains(subj.Id))
+                {
+                    var newComp = new AssessmentComponentDto(
+                        Guid.NewGuid(), targetExamId, $"{subj.Name} Written Exam",
+                        subj.Id, subj.Name, targetClassId, "10-A", "Assessment Component", 100m, 40m
+                    );
+                    _mockComponents.Add(newComp);
+                    list.Add(newComp);
+                }
+            }
         }
         return ApiResponse<List<AssessmentComponentDto>>.Ok(list);
     }
 
     public async Task<ApiResponse<List<StudentGradeDto>>> GetComponentGradesAsync(Guid componentId)
     {
+        var comp = _mockComponents.FirstOrDefault(c => c.Id == componentId);
+        var compName = comp?.Name ?? "Assessment Exam";
+        var subjId = comp?.SubjectId ?? SubjMathId;
+        var subjName = comp?.SubjectName ?? "Mathematics";
+        var classId = comp?.ClassSectionId ?? Class10AId;
+
+        var sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
+        {
+            { "ADM-2026-0001", (94.5m, "Outstanding analytical ability") },
+            { "ADM-2026-0002", (89.0m, "Very good geometric reasoning") },
+            { "ADM-2026-0003", (91.0m, "Proficient problem solving") },
+            { "ADM-2026-0004", (84.0m, "Solid homework and active participation") },
+            { "ADM-2026-0005", (94.0m, "Excellent algebra and calculus") },
+            { "ADM-2026-0006", (87.0m, "Consistent performance and neat assignments") },
+            { "ADM-2026-0007", (92.0m, "Great calculation and critical thinking") },
+            { "ADM-2026-0008", (89.0m, "High exam score and good reasoning") },
+        };
+
+        var allClassStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active).OrderBy(s => s.AdmissionNumber).ToList();
+
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<StudentGradeDto>>>($"api/grades/components/{componentId}/grades", JsonOptions);
-            if (res?.Data != null && res.Data.Count > 0) return res;
+            if (res?.Data != null && res.Data.Count > 0)
+            {
+                var existingMap = res.Data.GroupBy(g => g.StudentId).ToDictionary(g => g.Key, g => g.First());
+                var merged = new List<StudentGradeDto>(res.Data);
+
+                foreach (var s in allClassStudents)
+                {
+                    if (!existingMap.ContainsKey(s.Id))
+                    {
+                        var (sc, remarks) = sampleScores.TryGetValue(s.AdmissionNumber, out var pair) ? pair : (88.0m, "Good performance");
+                        var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
+                        var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
+                        merged.Add(new StudentGradeDto(
+                            Guid.NewGuid(), componentId, compName, subjId, subjName,
+                            s.Id, s.FullName, s.AdmissionNumber, sc, 100m, sc, letter, gpa, remarks
+                        ));
+                    }
+                }
+                return ApiResponse<List<StudentGradeDto>>.Ok(merged.OrderBy(g => g.AdmissionNumber).ToList());
+            }
         }
         catch (Exception ex)
         {
             LogException("GetComponentGradesAsync", ex);
         }
 
-        var list = _mockGrades.Where(g => g.AssessmentComponentId == componentId).ToList();
-        if (list.Count == 0)
-        {
-            var comp = _mockComponents.FirstOrDefault(c => c.Id == componentId);
-            var compName = comp?.Name ?? "Midterm Exam";
-            var subjId = comp?.SubjectId ?? SubjMathId;
-            var subjName = comp?.SubjectName ?? "Mathematics";
-            var classId = comp?.ClassSectionId ?? Class10AId;
+        var existingForComp = _mockGrades.Where(g => g.AssessmentComponentId == componentId).ToList();
+        var mockMap = existingForComp.GroupBy(g => g.StudentId).ToDictionary(g => g.Key, g => g.First());
+        var resultList = new List<StudentGradeDto>();
 
-            // Fallback to existing mock grades for the same subject if available
-            var existingSubjectGrades = _mockGrades.Where(g => g.SubjectId == subjId).GroupBy(g => g.StudentId).Select(g => g.First()).ToList();
-            if (existingSubjectGrades.Count > 0)
+        foreach (var s in allClassStudents)
+        {
+            if (mockMap.TryGetValue(s.Id, out var eg))
             {
-                foreach (var eg in existingSubjectGrades)
-                {
-                    var g = new StudentGradeDto(
-                        Guid.NewGuid(), componentId, compName, subjId, subjName,
-                        eg.StudentId, eg.StudentName, eg.AdmissionNumber,
-                        eg.ScoreObtained, eg.MaxScore, eg.Percentage,
-                        eg.GradeLetter, eg.GradePoint, eg.Remarks
-                    );
-                    list.Add(g);
-                    _mockGrades.Add(g);
-                }
+                resultList.Add(eg);
             }
             else
             {
-                var targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active && (x.CurrentClassSectionId == classId || classId == Guid.Empty)).ToList();
-                if (targetStudents.Count == 0)
-                    targetStudents = _mockStudents.Where(x => x.Status == StudentStatus.Active).ToList();
-
-                var baseScores = new decimal[] { 92m, 88m, 85m, 89m, 91m, 94m, 86m, 95m };
-                int idx = 0;
-                foreach (var s in targetStudents)
-                {
-                    var score = baseScores[idx % baseScores.Length];
-                    var letter = score >= 85 ? "A" : score >= 75 ? "B" : score >= 65 ? "C" : score >= 50 ? "D" : "F";
-                    var gpa = score >= 85 ? 4.0m : score >= 75 ? 3.0m : score >= 65 ? 2.0m : score >= 50 ? 1.0m : 0.0m;
-                    var g = new StudentGradeDto(
-                        Guid.NewGuid(), componentId, compName, subjId, subjName,
-                        s.Id, s.FullName, s.AdmissionNumber, score, 100m, score, letter, gpa, "Good performance"
-                    );
-                    list.Add(g);
-                    _mockGrades.Add(g);
-                    idx++;
-                }
+                var (sc, remarks) = sampleScores.TryGetValue(s.AdmissionNumber, out var pair)
+                    ? pair
+                    : (88.0m, "Good performance");
+                var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
+                var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
+                var g = new StudentGradeDto(
+                    Guid.NewGuid(), componentId, compName, subjId, subjName,
+                    s.Id, s.FullName, s.AdmissionNumber, sc, 100m, sc, letter, gpa, remarks
+                );
+                resultList.Add(g);
+                _mockGrades.Add(g);
             }
         }
-        return ApiResponse<List<StudentGradeDto>>.Ok(list);
+        return ApiResponse<List<StudentGradeDto>>.Ok(resultList.OrderBy(g => g.AdmissionNumber).ToList());
     }
 
     public async Task<ApiResponse<List<StudentGradeDto>>> GetStudentAllGradesAsync(Guid studentId, Guid examId)
@@ -2134,6 +2207,22 @@ public class ApiService : IApiService
             // 4. Bopha Keo
             var bophaStatus = (i == 4) ? AttendanceStatus.Late : AttendanceStatus.Present;
             records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentBophaId, "Bopha Keo", "ADM-2026-0004", d, bophaStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 5. Rithy Srun
+            var rithyStatus = (i == 5) ? AttendanceStatus.Late : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentRithyId, "Rithy Srun", "ADM-2026-0005", d, rithyStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 6. Sreypov Lim
+            var sreypovStatus = (i == 8) ? AttendanceStatus.Late : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", d, sreypovStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 7. Vannak Heng
+            var vannakStatus = (i == 10) ? AttendanceStatus.Excused : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVannakId, "Vannak Heng", "ADM-2026-0007", d, vannakStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
+
+            // 8. Thida Meas
+            var thidaStatus = (i == 2) ? AttendanceStatus.Late : (i == 15) ? AttendanceStatus.Excused : AttendanceStatus.Present;
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentThidaId, "Thida Meas", "ADM-2026-0008", d, thidaStatus, null, checkInUtc, "Teacher Dara Sok", null, null, null));
         }
 
         return records;

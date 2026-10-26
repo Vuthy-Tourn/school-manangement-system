@@ -10,31 +10,11 @@ public partial class ParentDashboardPage : ContentPage
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel;
-
-        _viewModel.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ParentDashboardViewModel.IsPermissionModalVisible))
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    bool isModal = _viewModel.IsPermissionModalVisible;
-                    Shell.SetNavBarIsVisible(this, !isModal);
-                    Shell.SetTabBarIsVisible(this, !isModal);
-                });
-            }
-        };
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await _viewModel.LoadDashboardCommand.ExecuteAsync(null);
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        Shell.SetNavBarIsVisible(this, true);
-        Shell.SetTabBarIsVisible(this, true);
     }
 }

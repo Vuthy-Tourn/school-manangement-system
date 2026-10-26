@@ -192,12 +192,25 @@ public class GradeService : IGradeService
 
         var scales = await _context.GradeScales.OrderByDescending(s => s.MinPercentage).ToListAsync(ct);
 
+        var classStudents = await _context.Students
+            .Where(s => s.CurrentClassSectionId == component.ClassSectionId && s.Status == StudentStatus.Active)
+            .OrderBy(s => s.LastName)
+            .ThenBy(s => s.FirstName)
+            .ToListAsync(ct);
+
         var enrollments = await _context.StudentEnrollments
             .Where(e => e.ClassSectionId == component.ClassSectionId && e.Status == EnrollmentStatus.Enrolled)
             .Include(e => e.Student)
             .OrderBy(e => e.Student!.LastName)
             .ThenBy(e => e.Student!.FirstName)
             .ToListAsync(ct);
+
+        // Merge enrolled students so all active class students are covered
+        var allStudents = classStudents
+            .UnionBy(enrollments.Select(e => e.Student).Where(s => s != null)!, s => s!.Id)
+            .OrderBy(s => s.LastName)
+            .ThenBy(s => s.FirstName)
+            .ToList();
 
         var existingGrades = await _context.StudentGrades
             .Where(g => g.AssessmentComponentId == assessmentComponentId)
@@ -206,15 +219,12 @@ public class GradeService : IGradeService
             .Include(g => g.Student)
             .ToListAsync(ct);
 
-        var gradeMap = existingGrades.ToDictionary(g => g.StudentId);
+        var gradeMap = existingGrades.GroupBy(g => g.StudentId).ToDictionary(g => g.Key, g => g.First());
         var maxScore = component.MaxScore > 0 ? component.MaxScore : 100m;
         var dtoList = new List<StudentGradeDto>();
 
-        foreach (var enrollment in enrollments)
+        foreach (var student in allStudents)
         {
-            var student = enrollment.Student;
-            if (student == null) continue;
-
             if (gradeMap.TryGetValue(student.Id, out var g))
             {
                 var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
@@ -254,60 +264,6 @@ public class GradeService : IGradeService
                     0.0m,
                     null
                 ));
-            }
-        }
-
-        // Fallback to students by CurrentClassSectionId if no enrollments found
-        if (dtoList.Count == 0)
-        {
-            var classStudents = await _context.Students
-                .Where(s => s.CurrentClassSectionId == component.ClassSectionId && s.Status == StudentStatus.Active)
-                .OrderBy(s => s.LastName)
-                .ThenBy(s => s.FirstName)
-                .ToListAsync(ct);
-
-            foreach (var student in classStudents)
-            {
-                if (gradeMap.TryGetValue(student.Id, out var g))
-                {
-                    var percentage = maxScore > 0 ? Math.Round((g.ScoreObtained / maxScore) * 100m, 2) : 0m;
-                    var matchingScale = scales.FirstOrDefault(s => percentage >= s.MinPercentage && percentage <= s.MaxPercentage);
-                    dtoList.Add(new StudentGradeDto(
-                        g.Id,
-                        component.Id,
-                        component.Name,
-                        component.SubjectId,
-                        component.Subject?.Name ?? string.Empty,
-                        student.Id,
-                        student.FullName,
-                        student.AdmissionNumber,
-                        g.ScoreObtained,
-                        maxScore,
-                        percentage,
-                        matchingScale?.GradeLetter ?? "F",
-                        matchingScale?.GradePoint ?? 0.0m,
-                        g.Remarks
-                    ));
-                }
-                else
-                {
-                    dtoList.Add(new StudentGradeDto(
-                        Guid.NewGuid(),
-                        component.Id,
-                        component.Name,
-                        component.SubjectId,
-                        component.Subject?.Name ?? string.Empty,
-                        student.Id,
-                        student.FullName,
-                        student.AdmissionNumber,
-                        0m,
-                        maxScore,
-                        0m,
-                        "F",
-                        0.0m,
-                        null
-                    ));
-                }
             }
         }
 
@@ -355,7 +311,7 @@ public class GradeService : IGradeService
             .Where(g => g.AssessmentComponentId == request.AssessmentComponentId)
             .ToListAsync(ct);
 
-        var gradeMap = existingGrades.ToDictionary(g => g.StudentId);
+        var gradeMap = existingGrades.GroupBy(g => g.StudentId).ToDictionary(g => g.Key, g => g.First());
 
         foreach (var item in request.Grades)
         {
@@ -465,7 +421,7 @@ public class GradeService : IGradeService
             .Where(g => g.StudentId == studentId && componentIds.Contains(g.AssessmentComponentId))
             .ToListAsync(ct);
 
-        var gradeMap = grades.ToDictionary(g => g.AssessmentComponentId);
+        var gradeMap = grades.GroupBy(g => g.AssessmentComponentId).ToDictionary(g => g.Key, g => g.First());
 
         var subjectReports = new List<SubjectReportItem>();
         decimal totalScoreObtained = 0;

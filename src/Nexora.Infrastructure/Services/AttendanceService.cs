@@ -25,34 +25,98 @@ public class AttendanceService : IAttendanceService
 
     public async Task<ApiResponse<List<AttendanceRecordDto>>> GetClassAttendanceAsync(Guid classSectionId, DateOnly date, CancellationToken ct = default)
     {
-        var records = await _context.AttendanceRecords
+        var students = await _context.Students
+            .Where(s => s.CurrentClassSectionId == classSectionId && s.Status == StudentStatus.Active)
+            .Include(s => s.CurrentClassSection)
+            .OrderBy(s => s.LastName)
+            .ThenBy(s => s.FirstName)
+            .ToListAsync(ct);
+
+        var enrollments = await _context.StudentEnrollments
+            .Where(e => e.ClassSectionId == classSectionId && e.Status == EnrollmentStatus.Enrolled)
+            .Include(e => e.Student)
+                .ThenInclude(s => s!.CurrentClassSection)
+            .ToListAsync(ct);
+
+        var allClassStudents = students
+            .UnionBy(enrollments.Select(e => e.Student).Where(s => s != null)!, s => s!.Id)
+            .OrderBy(s => s.LastName)
+            .ThenBy(s => s.FirstName)
+            .ToList();
+
+        var existingRecords = await _context.AttendanceRecords
             .Where(a => a.ClassSectionId == classSectionId && a.Date == date)
             .Include(a => a.ClassSection)
             .Include(a => a.Student)
             .Include(a => a.RecordedByUser)
             .Include(a => a.CorrectedByUser)
-            .OrderBy(a => a.Student!.LastName)
-            .ThenBy(a => a.Student!.FirstName)
-            .Select(a => new AttendanceRecordDto(
-                a.Id,
-                a.SchoolId,
-                a.ClassSectionId,
+            .ToListAsync(ct);
+
+        var recordMap = existingRecords.GroupBy(r => r.StudentId).ToDictionary(g => g.Key, g => g.First());
+        var result = new List<AttendanceRecordDto>();
+
+        foreach (var s in allClassStudents)
+        {
+            if (recordMap.TryGetValue(s.Id, out var existing))
+            {
+                result.Add(new AttendanceRecordDto(
+                    existing.Id,
+                    existing.SchoolId,
+                    existing.ClassSectionId,
+                    existing.ClassSection?.Name ?? s.CurrentClassSection?.Name ?? string.Empty,
+                    s.Id,
+                    s.FullName,
+                    s.AdmissionNumber,
+                    existing.Date,
+                    existing.Status,
+                    existing.Remarks,
+                    existing.RecordedAtUtc,
+                    existing.RecordedByUser?.FullName,
+                    existing.CorrectedAtUtc,
+                    existing.CorrectedByUser?.FullName,
+                    existing.CorrectionReason
+                ));
+            }
+            else
+            {
+                result.Add(new AttendanceRecordDto(
+                    Guid.NewGuid(),
+                    s.SchoolId,
+                    classSectionId,
+                    s.CurrentClassSection?.Name ?? "10-A",
+                    s.Id,
+                    s.FullName,
+                    s.AdmissionNumber,
+                    date,
+                    AttendanceStatus.Present,
+                    null,
+                    DateTime.UtcNow,
+                    null,
+                    null,
+                    null,
+                    null
+                ));
+            }
+        }
+
+        // If no students had CurrentClassSectionId matching directly, fallback to records that matched
+        if (result.Count == 0 && existingRecords.Count > 0)
+        {
+            result = existingRecords.Select(a => new AttendanceRecordDto(
+                a.Id, a.SchoolId, a.ClassSectionId,
                 a.ClassSection != null ? a.ClassSection.Name : string.Empty,
                 a.StudentId,
                 a.Student != null ? a.Student.FullName : string.Empty,
                 a.Student != null ? a.Student.AdmissionNumber : string.Empty,
-                a.Date,
-                a.Status,
-                a.Remarks,
-                a.RecordedAtUtc,
+                a.Date, a.Status, a.Remarks, a.RecordedAtUtc,
                 a.RecordedByUser != null ? a.RecordedByUser.FullName : null,
                 a.CorrectedAtUtc,
                 a.CorrectedByUser != null ? a.CorrectedByUser.FullName : null,
                 a.CorrectionReason
-            ))
-            .ToListAsync(ct);
+            )).ToList();
+        }
 
-        return ApiResponse<List<AttendanceRecordDto>>.Ok(records);
+        return ApiResponse<List<AttendanceRecordDto>>.Ok(result);
     }
 
     public async Task<ApiResponse<bool>> RecordBatchAttendanceAsync(BatchAttendanceRequest request, CancellationToken ct = default)
@@ -66,7 +130,7 @@ public class AttendanceService : IAttendanceService
             .Where(a => a.ClassSectionId == request.ClassSectionId && a.Date == request.Date)
             .ToListAsync(ct);
 
-        var existingMap = existingRecords.ToDictionary(r => r.StudentId);
+        var existingMap = existingRecords.GroupBy(r => r.StudentId).ToDictionary(g => g.Key, g => g.First());
 
         foreach (var item in request.Records)
         {

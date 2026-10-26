@@ -60,8 +60,8 @@
                         </Grid>
                     </Border>
 
-                    <!-- 2. Children Switcher -->
-                    <VerticalStackLayout Spacing="8">
+                    <!-- 2. Children Switcher (shown only if parent has multiple children) -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasMultipleChildren}">
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                             <Label Grid.Column="0"
                                    Text="Enrolled Children"
@@ -524,6 +524,20 @@
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
+
+                            <!-- View Complete Attendance Records Navigation Button -->
+                            <Button Text="View Complete Attendance History →"
+                                    Command="{Binding NavigateToCommand}"
+                                    CommandParameter="attendance"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    TextColor="{StaticResource Primary}"
+                                    BorderColor="{StaticResource SurfaceBorder}"
+                                    BorderWidth="1"
+                                    FontSize="12"
+                                    FontAttributes="Bold"
+                                    HeightRequest="40"
+                                    CornerRadius="10"
+                                    Margin="0,4,0,0" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -614,10 +628,9 @@
             </ScrollView>
         </RefreshView>
 
-        <!-- Full-Screen Backdrop Overlay for Ask Permission Modal -->
+        <!-- Backdrop Overlay for Ask Permission Modal -->
         <Grid BackgroundColor="#99000000"
               IsVisible="{Binding IsPermissionModalVisible}"
-              IgnoreSafeArea="True"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
               InputTransparent="False"
@@ -634,7 +647,7 @@
                     MaximumWidthRequest="440"
                     HorizontalOptions="Center">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer />
+                    <TapGestureRecognizer Command="{Binding DoNothingCommand}" />
                 </Border.GestureRecognizers>
                 <ScrollView MaximumHeightRequest="560">
                     <VerticalStackLayout Spacing="14">
