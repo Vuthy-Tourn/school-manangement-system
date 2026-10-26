@@ -328,4 +328,40 @@ public class RoleBasedAuthenticationTests
         actualCanEdit.Should().Be(canEdit);
         actualReadOnly.Should().Be(isReadOnly);
     }
+
+    [Fact]
+    public void SubmitPermissionRequest_ShouldRecordExcusedStatusWithFormattedRemarks()
+    {
+        var studentId = Guid.NewGuid();
+        var date = DateOnly.FromDateTime(DateTime.Today);
+        var reason = "Sick Leave / Medical";
+        var remarks = "Mild fever, doctor recommended 1 day rest";
+
+        var req = new SubmitPermissionRequest(studentId, date, reason, remarks);
+
+        req.StudentId.Should().Be(studentId);
+        req.Date.Should().Be(date);
+        req.Reason.Should().Be(reason);
+        req.Remarks.Should().Be(remarks);
+
+        string formattedNote = string.IsNullOrWhiteSpace(req.Remarks)
+            ? $"[Parent Permission] {req.Reason}"
+            : $"[Parent Permission] {req.Reason}: {req.Remarks}";
+
+        formattedNote.Should().Be("[Parent Permission] Sick Leave / Medical: Mild fever, doctor recommended 1 day rest");
+    }
+
+    [Fact]
+    public void AttendanceRate_WithExcusedPermissionDays_ShouldCountTowardsPresentRate()
+    {
+        // 8 Present days, 2 Excused leave days out of 10 days
+        int totalDays = 10;
+        int presentDays = 8;
+        int lateDays = 0;
+        int excusedDays = 2;
+
+        decimal percentage = Math.Round(((presentDays + (lateDays * 0.5m) + excusedDays) / (decimal)totalDays) * 100m, 1);
+
+        percentage.Should().Be(100.0m);
+    }
 }

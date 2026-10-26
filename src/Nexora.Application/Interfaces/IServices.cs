@@ -65,6 +65,8 @@ public interface IAttendanceService
     Task<ApiResponse<bool>> CorrectAttendanceAsync(Guid id, CorrectAttendanceRequest request, CancellationToken ct = default);
     Task<ApiResponse<AttendanceSummaryDto>> GetClassAttendanceSummaryAsync(Guid classSectionId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct = default);
     Task<ApiResponse<StudentAttendanceStatsDto>> GetStudentAttendanceStatsAsync(Guid studentId, CancellationToken ct = default);
+    Task<ApiResponse<List<AttendanceRecordDto>>> GetStudentAttendanceHistoryAsync(Guid studentId, CancellationToken ct = default);
+    Task<ApiResponse<bool>> SubmitStudentPermissionAsync(SubmitPermissionRequest request, CancellationToken ct = default);
 }
 
 public interface IGradeService

@@ -314,6 +314,8 @@ public partial class ClassesViewModel : BaseViewModel
 // 5. Attendance ViewModel
 public partial class AttendanceItemViewModel : ObservableObject
 {
+    private readonly Action? _onStatusChanged;
+
     public Guid StudentId { get; set; }
     public string StudentName { get; set; } = string.Empty;
     public string AdmissionNumber { get; set; } = string.Empty;
@@ -323,6 +325,16 @@ public partial class AttendanceItemViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _remarks;
+
+    public AttendanceItemViewModel(Action? onStatusChanged = null)
+    {
+        _onStatusChanged = onStatusChanged;
+    }
+
+    partial void OnStatusChanged(AttendanceStatus value)
+    {
+        _onStatusChanged?.Invoke();
+    }
 
     [RelayCommand]
     private void SetStatus(string statusStr)
@@ -338,15 +350,54 @@ public partial class AttendanceViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
 
+    // Faculty & Admin class attendance properties
+    [ObservableProperty] private bool _isParentView = false;
+    [ObservableProperty] private bool _isFacultyView = true;
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
     [ObservableProperty] private ObservableCollection<AttendanceItemViewModel> _studentItems = new();
     [ObservableProperty] private AttendanceSummaryDto? _summary;
+    [ObservableProperty] private decimal _currentPresentRate = 100.0m;
+
+    // Parent Child Attendance properties
+    [ObservableProperty] private ObservableCollection<LinkedStudentDto> _parentChildren = new();
+    [ObservableProperty] private LinkedStudentDto? _selectedParentChild;
+    [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _childAttendanceHistory = new();
+    [ObservableProperty] private AttendanceRecordDisplayItem? _todayChildAttendance;
+    [ObservableProperty] private bool _hasTodayChildAttendance;
+    [ObservableProperty] private string _todayStatusBadgeText = "Present";
+    [ObservableProperty] private string _todayStatusText = "Present at School (On Campus)";
+    [ObservableProperty] private string _todayStatusDetails = "";
+    [ObservableProperty] private Color _todayStatusColor = Color.FromArgb("#10B981");
+    [ObservableProperty] private Color _todayStatusBgColor = Color.FromArgb("#ECFDF5");
+    [ObservableProperty] private Color _todayStatusBorderColor = Color.FromArgb("#A7F3D0");
+    [ObservableProperty] private string _todayStatusIcon = "✓";
+    [ObservableProperty] private int _childTotalDays = 0;
+    [ObservableProperty] private int _childPresentDays = 0;
+    [ObservableProperty] private int _childLateDays = 0;
+    [ObservableProperty] private int _childExcusedDays = 0;
+    [ObservableProperty] private int _childAbsentDays = 0;
+
+    // Ask Permission Modal Properties
+    [ObservableProperty] private bool _isPermissionModalVisible = false;
+    [ObservableProperty] private DateTime _permissionDate = DateTime.Today;
+    [ObservableProperty] private string _selectedPermissionReason = "Sick Leave / Medical";
+    [ObservableProperty] private ObservableCollection<string> _permissionReasons = new()
+    {
+        "Sick Leave / Medical",
+        "Doctor / Clinic Appointment",
+        "Family Emergency",
+        "Personal / Travel",
+        "Official Event / Competition",
+        "Other Excused Reason"
+    };
+    [ObservableProperty] private string _permissionRemarks = string.Empty;
+    [ObservableProperty] private LinkedStudentDto? _permissionTargetChild;
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
-        if (value != null && !IsBusy)
+        if (value != null && !IsBusy && IsFacultyView)
         {
             _ = LoadAttendanceAsync();
         }
@@ -354,9 +405,18 @@ public partial class AttendanceViewModel : BaseViewModel
 
     partial void OnSelectedDateChanged(DateTime value)
     {
-        if (!IsBusy)
+        if (!IsBusy && IsFacultyView)
         {
             _ = LoadAttendanceAsync();
+        }
+    }
+
+    partial void OnSelectedParentChildChanged(LinkedStudentDto? value)
+    {
+        if (value != null && IsParentView && !IsBusy)
+        {
+            _apiService.CurrentSelectedChildId = value.StudentId;
+            _ = LoadParentChildAttendanceAsync(value.StudentId);
         }
     }
 
@@ -366,26 +426,226 @@ public partial class AttendanceViewModel : BaseViewModel
         Title = "Attendance Management";
     }
 
+    public void RecalculatePresentRate()
+    {
+        if (StudentItems == null || StudentItems.Count == 0)
+        {
+            CurrentPresentRate = 100.0m;
+            return;
+        }
+
+        int total = StudentItems.Count;
+        int present = StudentItems.Count(s => s.Status == AttendanceStatus.Present);
+        int late = StudentItems.Count(s => s.Status == AttendanceStatus.Late);
+        int excused = StudentItems.Count(s => s.Status == AttendanceStatus.Excused);
+
+        decimal rate = total > 0
+            ? ((present + (late * 0.5m) + excused) / (decimal)total) * 100m
+            : 100.0m;
+        CurrentPresentRate = Math.Round(Math.Clamp(rate, 0m, 100m), 1);
+    }
+
     [RelayCommand]
     public async Task InitializeAsync()
     {
         try
         {
             IsBusy = true;
-            var classesRes = await _apiService.GetClassesAsync();
-            if (classesRes.Success && classesRes.Data != null)
+            var role = _apiService.CurrentUser?.Role;
+            IsParentView = role == UserRole.Parent;
+            IsFacultyView = !IsParentView;
+
+            if (IsParentView)
             {
-                Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
-                SelectedClass = Classes.FirstOrDefault();
-                if (SelectedClass != null)
+                Title = "Child School Attendance";
+                var parentDashRes = await _apiService.GetParentDashboardAsync(_apiService.CurrentSelectedChildId);
+                if (parentDashRes.Success && parentDashRes.Data != null)
                 {
-                    await LoadAttendanceAsync();
+                    ParentChildren = new ObservableCollection<LinkedStudentDto>(parentDashRes.Data.Children);
+                    SelectedParentChild = ParentChildren.FirstOrDefault(c => c.StudentId == parentDashRes.Data.SelectedStudentId)
+                        ?? ParentChildren.FirstOrDefault();
+                    if (SelectedParentChild != null)
+                    {
+                        await LoadParentChildAttendanceAsync(SelectedParentChild.StudentId);
+                    }
+                }
+            }
+            else
+            {
+                Title = "Attendance Management";
+                var classesRes = await _apiService.GetClassesAsync();
+                if (classesRes.Success && classesRes.Data != null)
+                {
+                    Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
+                    SelectedClass = Classes.FirstOrDefault();
+                    if (SelectedClass != null)
+                    {
+                        await LoadAttendanceAsync();
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadParentChildAttendanceAsync(Guid studentId)
+    {
+        try
+        {
+            IsBusy = true;
+            var res = await _apiService.GetStudentAttendanceHistoryAsync(studentId);
+            if (res.Success && res.Data != null)
+            {
+                var displayItems = res.Data.Select(r => new AttendanceRecordDisplayItem(r)).ToList();
+                ChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(displayItems);
+
+                ChildTotalDays = displayItems.Count;
+                ChildPresentDays = displayItems.Count(d => d.Status == AttendanceStatus.Present);
+                ChildLateDays = displayItems.Count(d => d.Status == AttendanceStatus.Late);
+                ChildExcusedDays = displayItems.Count(d => d.Status == AttendanceStatus.Excused);
+                ChildAbsentDays = displayItems.Count(d => d.Status == AttendanceStatus.Absent);
+
+                CurrentPresentRate = ChildTotalDays > 0
+                    ? Math.Round(((ChildPresentDays + (ChildLateDays * 0.5m) + ChildExcusedDays) / (decimal)ChildTotalDays) * 100m, 1)
+                    : 100.0m;
+
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                var todayRec = displayItems.FirstOrDefault(a => a.Date == today);
+                if (todayRec != null)
+                {
+                    TodayChildAttendance = todayRec;
+                    HasTodayChildAttendance = true;
+                    TodayStatusBadgeText = todayRec.StatusBadgeText;
+                    TodayStatusColor = todayRec.StatusColor;
+                    TodayStatusBgColor = todayRec.StatusBgColor;
+                    TodayStatusBorderColor = todayRec.StatusBorderColor;
+                    TodayStatusIcon = todayRec.StatusIcon;
+
+                    TodayStatusText = todayRec.Status switch
+                    {
+                        AttendanceStatus.Present => "Present at School (On Campus)",
+                        AttendanceStatus.Late => "Arrived Late to Class",
+                        AttendanceStatus.Excused => "Excused Absence / Leave Granted",
+                        AttendanceStatus.Absent => "Absent / Not Checked In",
+                        _ => "Attendance Recorded"
+                    };
+
+                    TodayStatusDetails = todayRec.Status switch
+                    {
+                        AttendanceStatus.Present => $"Your child arrived at school and checked in at {todayRec.CheckInTimeText}.",
+                        AttendanceStatus.Late => $"Your child arrived late today. Checked in at {todayRec.CheckInTimeText}. Note: {todayRec.Remarks ?? "Tardy"}",
+                        AttendanceStatus.Excused => $"Excused absence granted. Note: {todayRec.Remarks ?? "Permission approved by school."}",
+                        AttendanceStatus.Absent => "No check-in scan recorded today. Please submit permission or contact school office.",
+                        _ => "Attendance recorded."
+                    };
+                }
+                else
+                {
+                    TodayChildAttendance = null;
+                    HasTodayChildAttendance = false;
+                    var day = DateTime.Today.DayOfWeek;
+                    if (day is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                    {
+                        TodayStatusBadgeText = "Weekend";
+                        TodayStatusText = "Weekend / Campus Closed";
+                        TodayStatusDetails = "Classes are not in session today. School resumes Monday morning.";
+                        TodayStatusColor = Color.FromArgb("#6B7280");
+                        TodayStatusBgColor = Color.FromArgb("#F3F4F6");
+                        TodayStatusBorderColor = Color.FromArgb("#E5E7EB");
+                        TodayStatusIcon = "📅";
+                    }
+                    else
+                    {
+                        TodayStatusBadgeText = "Awaiting";
+                        TodayStatusText = "Awaiting Morning Roll Call";
+                        TodayStatusDetails = "Daily homeroom attendance is currently being registered by faculty.";
+                        TodayStatusColor = Color.FromArgb("#3B82F6");
+                        TodayStatusBgColor = Color.FromArgb("#EFF6FF");
+                        TodayStatusBorderColor = Color.FromArgb("#BFDBFE");
+                        TodayStatusIcon = "⏱";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenPermissionModal()
+    {
+        PermissionTargetChild = SelectedParentChild ?? ParentChildren.FirstOrDefault();
+        PermissionDate = DateTime.Today;
+        SelectedPermissionReason = PermissionReasons.FirstOrDefault() ?? "Sick Leave / Medical";
+        PermissionRemarks = string.Empty;
+        IsPermissionModalVisible = true;
+    }
+
+    [RelayCommand]
+    public void ClosePermissionModal()
+    {
+        IsPermissionModalVisible = false;
+    }
+
+    [RelayCommand]
+    public async Task SubmitPermissionAsync()
+    {
+        if (PermissionTargetChild == null)
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please select a child to request permission for.", "OK");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedPermissionReason))
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please select a reason for absence.", "OK");
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            var req = new SubmitPermissionRequest(
+                PermissionTargetChild.StudentId,
+                DateOnly.FromDateTime(PermissionDate),
+                SelectedPermissionReason,
+                PermissionRemarks
+            );
+
+            var res = await _apiService.SubmitStudentPermissionAsync(req);
+            IsPermissionModalVisible = false;
+
+            if (res.Success)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Permission Submitted",
+                    $"Official leave permission has been recorded for {PermissionTargetChild.FullName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
+                    "OK");
+
+                await LoadParentChildAttendanceAsync(PermissionTargetChild.StudentId);
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert("Submission Failed", res.Message, "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
         }
         finally
         {
@@ -406,7 +666,7 @@ public partial class AttendanceViewModel : BaseViewModel
             var res = await _apiService.GetClassAttendanceAsync(SelectedClass.Id, date);
             if (res.Success && res.Data != null)
             {
-                var items = res.Data.Select(r => new AttendanceItemViewModel
+                var items = res.Data.Select(r => new AttendanceItemViewModel(() => RecalculatePresentRate())
                 {
                     StudentId = r.StudentId,
                     StudentName = r.StudentName,
@@ -415,6 +675,7 @@ public partial class AttendanceViewModel : BaseViewModel
                     Remarks = r.Remarks
                 });
                 StudentItems = new ObservableCollection<AttendanceItemViewModel>(items);
+                RecalculatePresentRate();
             }
 
             var sumRes = await _apiService.GetClassAttendanceSummaryAsync(SelectedClass.Id);
@@ -437,6 +698,7 @@ public partial class AttendanceViewModel : BaseViewModel
         {
             item.Status = AttendanceStatus.Present;
         }
+        RecalculatePresentRate();
     }
 
     [RelayCommand]
@@ -475,6 +737,7 @@ public partial class AttendanceViewModel : BaseViewModel
         }
     }
 }
+
 
 // 6. Grades & Report Cards ViewModel
 public partial class GradeEntryItemViewModel : ObservableObject
@@ -801,10 +1064,20 @@ public partial class GradesViewModel : BaseViewModel
                     }
                 }
 
-                if (IsStudentView && allComponents.Count < 8)
+                // For Admin, SuperAdmin, Student, and Parent, ensure all 8 curriculum subjects are loaded
+                if (allComponents.Count < 8 && role != UserRole.Teacher)
                 {
                     var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(SelectedExam?.Id ?? Guid.Empty, Guid.Empty);
                     if (fallbackComponents.Success && fallbackComponents.Data != null && fallbackComponents.Data.Count > allComponents.Count)
+                    {
+                        allComponents = fallbackComponents.Data;
+                    }
+                }
+
+                if (allComponents.Count == 0)
+                {
+                    var fallbackComponents = await _apiService.GetAssessmentComponentsAsync(Guid.Empty, Guid.Empty);
+                    if (fallbackComponents.Success && fallbackComponents.Data != null)
                     {
                         allComponents = fallbackComponents.Data;
                     }
@@ -847,7 +1120,9 @@ public partial class GradesViewModel : BaseViewModel
                     FilteredGrades.Clear();
                     StudentOptions.Clear();
                     ActiveSubjectHeader = "No Assigned Subject";
-                    ClassSummary = "No subjects assigned to this teacher";
+                    ClassSummary = role == UserRole.Teacher
+                        ? "No subjects assigned to this teacher"
+                        : "No subjects available for this class";
                 }
             }
         }
@@ -961,21 +1236,29 @@ public partial class GradesViewModel : BaseViewModel
                         if (classStudentsRes.Success && classStudentsRes.Data != null)
                         {
                             var classStudentIds = new HashSet<Guid>();
+                            var classStudentNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             foreach (var s in classStudentsRes.Data.Items)
                             {
                                 if (s.CurrentClassSectionId == SelectedClass.Id)
+                                {
                                     classStudentIds.Add(s.Id);
+                                    if (!string.IsNullOrWhiteSpace(s.FullName))
+                                        classStudentNames.Add(s.FullName);
+                                }
                             }
 
-                            if (classStudentIds.Count > 0)
+                            if (classStudentIds.Count > 0 || classStudentNames.Count > 0)
                             {
                                 var classGrades = new List<StudentGradeDto>();
                                 foreach (var g in data)
                                 {
-                                    if (classStudentIds.Contains(g.StudentId))
+                                    if (classStudentIds.Contains(g.StudentId) || classStudentNames.Contains(g.StudentName))
                                         classGrades.Add(g);
                                 }
-                                data = classGrades;
+                                if (classGrades.Count > 0)
+                                {
+                                    data = classGrades;
+                                }
                             }
                         }
                     }
@@ -1362,10 +1645,20 @@ public partial class TimetablesViewModel : BaseViewModel
     [ObservableProperty] private SubjectDto? _newSubject;
     [ObservableProperty] private ObservableCollection<TeacherDto> _availableTeachers = new();
     [ObservableProperty] private TeacherDto? _newTeacher;
+    [ObservableProperty] private ClassSectionDto? _modalSelectedClass;
+    [ObservableProperty] private DayChipViewModel? _modalSelectedDayChip;
     [ObservableProperty] private TimeSpan _newStartTime = new(8, 0, 0);
     [ObservableProperty] private TimeSpan _newEndTime = new(9, 30, 0);
     [ObservableProperty] private string _newRoomNumber = "Room 201";
     [ObservableProperty] private bool _isAddSlotModalVisible = false;
+
+    partial void OnModalSelectedClassChanged(ClassSectionDto? value)
+    {
+        if (value != null && !string.IsNullOrWhiteSpace(value.RoomNumber))
+        {
+            NewRoomNumber = value.RoomNumber;
+        }
+    }
 
     public TimetablesViewModel(IApiService apiService)
     {
@@ -1573,12 +1866,15 @@ public partial class TimetablesViewModel : BaseViewModel
     [RelayCommand]
     public void OpenAddSlotModal()
     {
+        ModalSelectedClass = SelectedClass ?? Classes.FirstOrDefault();
+        ModalSelectedDayChip = Days.FirstOrDefault(d => d.Day == SelectedDay) ?? Days.FirstOrDefault();
+
         if (AvailableSubjects.Count > 0 && NewSubject == null)
             NewSubject = AvailableSubjects.FirstOrDefault();
         if (AvailableTeachers.Count > 0 && NewTeacher == null)
             NewTeacher = AvailableTeachers.FirstOrDefault();
 
-        NewRoomNumber = SelectedClass?.RoomNumber ?? "Room 201";
+        NewRoomNumber = ModalSelectedClass?.RoomNumber ?? SelectedClass?.RoomNumber ?? "Room 201";
         IsAddSlotModalVisible = true;
     }
 
@@ -1591,7 +1887,10 @@ public partial class TimetablesViewModel : BaseViewModel
     [RelayCommand]
     public async Task SaveTimetableSlotAsync()
     {
-        if (SelectedClass == null || NewSubject == null || NewTeacher == null)
+        var targetClass = ModalSelectedClass ?? SelectedClass;
+        var targetDay = ModalSelectedDayChip?.Day ?? SelectedDay;
+
+        if (targetClass == null || NewSubject == null || NewTeacher == null)
         {
             if (Shell.Current != null)
                 await Shell.Current.DisplayAlert("Validation Error", "Please select class, subject, and teacher.", "OK");
@@ -1609,10 +1908,10 @@ public partial class TimetablesViewModel : BaseViewModel
         {
             IsBusy = true;
             var request = new CreateTimetableEntryRequest(
-                SelectedClass.Id,
+                targetClass.Id,
                 NewSubject.Id,
                 NewTeacher.Id,
-                SelectedDay,
+                targetDay,
                 NewStartTime,
                 NewEndTime,
                 NewRoomNumber);
@@ -1622,8 +1921,16 @@ public partial class TimetablesViewModel : BaseViewModel
             {
                 IsAddSlotModalVisible = false;
                 if (Shell.Current != null)
-                    await Shell.Current.DisplayAlert("Success", $"Schedule slot assigned to {NewTeacher.FullName} successfully!", "OK");
-                await FetchClassTimetableInternalAsync(SelectedClass.Id);
+                    await Shell.Current.DisplayAlert("Success", $"Schedule slot assigned to {NewTeacher.FullName} for Class {targetClass.Name} ({targetDay}) successfully!", "OK");
+
+                // Switch view to match the newly assigned class and day
+                SelectedClass = targetClass;
+                SelectedDay = targetDay;
+                foreach (var d in Days)
+                    d.IsSelected = (d.Day == targetDay);
+                DayHeaderTitle = $"{targetDay} Schedule";
+
+                await FetchClassTimetableInternalAsync(targetClass.Id);
             }
             else
             {

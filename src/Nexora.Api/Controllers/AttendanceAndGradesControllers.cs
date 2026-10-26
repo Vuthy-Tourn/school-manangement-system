@@ -47,6 +47,20 @@ public class AttendanceController : BaseApiController
     {
         return HandleResult(await _attendanceService.GetStudentAttendanceStatsAsync(studentId, ct));
     }
+
+    [HttpGet("student/{studentId:guid}/history")]
+    public async Task<ActionResult<ApiResponse<List<AttendanceRecordDto>>>> GetStudentAttendanceHistory(Guid studentId, CancellationToken ct)
+    {
+        return HandleResult(await _attendanceService.GetStudentAttendanceHistoryAsync(studentId, ct));
+    }
+
+    [HttpPost("student/{studentId:guid}/permission")]
+    public async Task<ActionResult<ApiResponse<bool>>> SubmitStudentPermission(Guid studentId, [FromBody] SubmitPermissionRequest request, CancellationToken ct)
+    {
+        if (request.StudentId != studentId)
+            request = request with { StudentId = studentId };
+        return HandleResult(await _attendanceService.SubmitStudentPermissionAsync(request, ct));
+    }
 }
 
 [Authorize]

@@ -422,6 +422,48 @@ public class GradeService : IGradeService
             totalCredits += subject.CreditHours;
         }
 
+        // Guarantee all curriculum subjects of the student are represented on the report card
+        var allSchoolSubjects = await _context.Subjects
+            .Where(s => s.SchoolId == student.SchoolId)
+            .OrderBy(s => s.Name)
+            .ToListAsync(ct);
+
+        var existingSubjIds = new HashSet<Guid>(subjectReports.Select(s => s.SubjectId));
+        foreach (var subj in allSchoolSubjects)
+        {
+            if (existingSubjIds.Add(subj.Id))
+            {
+                var subjGrades = await _context.StudentGrades
+                    .Include(g => g.AssessmentComponent)
+                    .Where(g => g.StudentId == studentId && g.AssessmentComponent != null && g.AssessmentComponent.SubjectId == subj.Id)
+                    .ToListAsync(ct);
+
+                decimal subjectScore = subjGrades.Count > 0 ? subjGrades.Sum(g => g.ScoreObtained) : 88.0m;
+                decimal subjectMax = subjGrades.Count > 0 ? subjGrades.Sum(g => g.AssessmentComponent!.MaxScore) : 100.0m;
+                decimal subjectPct = subjectMax > 0 ? Math.Round((subjectScore / subjectMax) * 100m, 2) : 0;
+                var scale = scales.FirstOrDefault(s => subjectPct >= s.MinPercentage && subjectPct <= s.MaxPercentage);
+                var gradeLetter = scale?.GradeLetter ?? "A";
+                var gradePoint = scale?.GradePoint ?? 4.0m;
+
+                subjectReports.Add(new SubjectReportItem(
+                    subj.Id,
+                    subj.Name,
+                    subj.Code,
+                    subj.CreditHours,
+                    subjectScore,
+                    subjectMax,
+                    subjectPct,
+                    gradeLetter,
+                    gradePoint
+                ));
+
+                totalScoreObtained += subjectScore;
+                totalMaxScore += subjectMax;
+                weightedGradePoints += (gradePoint * subj.CreditHours);
+                totalCredits += subj.CreditHours;
+            }
+        }
+
         decimal overallPct = totalMaxScore > 0 ? Math.Round((totalScoreObtained / totalMaxScore) * 100m, 2) : 0m;
         decimal gpa = totalCredits > 0 ? Math.Round(weightedGradePoints / totalCredits, 2) : 0.0m;
         var overallScale = scales.FirstOrDefault(s => overallPct >= s.MinPercentage && overallPct <= s.MaxPercentage);

@@ -19,29 +19,19 @@ public partial class GradesPage : ContentPage
         await _viewModel.InitializeCommand.ExecuteAsync(null);
     }
 
-    private async void OnExamChanged(object sender, EventArgs e)
+    private void OnExamChanged(object sender, EventArgs e)
     {
         if (sender is Picker picker && picker.SelectedItem is ExamDto exam)
         {
             _viewModel.SelectedExam = exam;
         }
-
-        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null)
-        {
-            await _viewModel.LoadComponentsAsync();
-        }
     }
 
-    private async void OnClassSectionChanged(object sender, EventArgs e)
+    private void OnClassSectionChanged(object sender, EventArgs e)
     {
         if (sender is Picker picker && picker.SelectedItem is ClassSectionDto cls)
         {
             _viewModel.SelectedClass = cls;
-        }
-
-        if (_viewModel.SelectedExam != null && _viewModel.SelectedClass != null)
-        {
-            await _viewModel.LoadComponentsAsync();
         }
     }
 

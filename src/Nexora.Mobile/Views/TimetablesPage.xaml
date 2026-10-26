@@ -9,7 +9,9 @@
              Title="Class Timetable"
              BackgroundColor="{StaticResource SurfaceLight}">
 
-    <Grid RowDefinitions="Auto,*" Padding="20,16,20,20">
+    <Grid BackgroundColor="{StaticResource SurfaceLight}">
+        <!-- Main Timetable Content Layout -->
+        <Grid RowDefinitions="Auto,*" Padding="20,16,20,20">
 
         <!-- Class Section & Day Selection Header -->
         <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,16">
@@ -249,115 +251,148 @@
                 </VerticalStackLayout>
             </ScrollView>
         </RefreshView>
+        </Grid>
 
-        <!-- Admin Assign Timetable Slot Modal -->
-        <Grid Grid.RowSpan="2"
-              BackgroundColor="#80000000"
+        <!-- Full-Screen Backdrop Overlay for Admin Assign Timetable Slot Modal -->
+        <Grid BackgroundColor="#99000000"
               IsVisible="{Binding IsAddSlotModalVisible}"
-              Padding="20">
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill"
+              InputTransparent="False"
+              Padding="24">
             <Border StrokeShape="RoundRectangle 16"
-                    BackgroundColor="{StaticResource SurfaceCard}"
+                    BackgroundColor="{StaticResource Surface}"
                     Stroke="{StaticResource SurfaceBorder}"
                     Padding="20"
                     VerticalOptions="Center"
                     MaximumWidthRequest="420"
                     HorizontalOptions="Center">
-                <VerticalStackLayout Spacing="14">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="Assign Timetable Slot"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" />
-                            <Label Text="Schedule a subject and assign to teacher"
-                                   FontSize="11"
-                                   TextColor="{StaticResource TextSecondary}" />
-                        </VerticalStackLayout>
-                        <Button Grid.Column="1"
-                                Text="✕"
-                                Command="{Binding CloseAddSlotModalCommand}"
-                                BackgroundColor="Transparent"
-                                TextColor="{StaticResource TextSecondary}"
-                                FontSize="16"
-                                HeightRequest="36"
-                                WidthRequest="36"
-                                Padding="0" />
-                    </Grid>
+                <ScrollView MaximumHeightRequest="540">
+                    <VerticalStackLayout Spacing="13">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="Assign Timetable Slot"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="Schedule a subject and assign to teacher"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="✕"
+                                    Command="{Binding CloseAddSlotModalCommand}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource TextSecondary}"
+                                    FontSize="16"
+                                    HeightRequest="36"
+                                    WidthRequest="36"
+                                    Padding="0" />
+                        </Grid>
 
-                    <!-- Subject Picker -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Subject" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
-                            <Picker ItemsSource="{Binding AvailableSubjects}"
-                                    ItemDisplayBinding="{Binding Name}"
-                                    SelectedItem="{Binding NewSubject}"
-                                    Title="Select Subject"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    FontSize="12"
-                                    VerticalOptions="Center" />
-                        </Border>
-                    </VerticalStackLayout>
+                        <!-- Academic Class & Schedule Day Row -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Academic Class" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
+                                    <Picker ItemsSource="{Binding Classes}"
+                                            ItemDisplayBinding="{Binding Name}"
+                                            SelectedItem="{Binding ModalSelectedClass}"
+                                            Title="Class"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            FontSize="12"
+                                            VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="Schedule Day" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
+                                    <Picker ItemsSource="{Binding Days}"
+                                            ItemDisplayBinding="{Binding Name}"
+                                            SelectedItem="{Binding ModalSelectedDayChip}"
+                                            Title="Day"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            FontSize="12"
+                                            VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
 
-                    <!-- Teacher Picker -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Assign Teacher" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
-                            <Picker ItemsSource="{Binding AvailableTeachers}"
-                                    ItemDisplayBinding="{Binding FullName}"
-                                    SelectedItem="{Binding NewTeacher}"
-                                    Title="Select Teacher"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    FontSize="12"
-                                    VerticalOptions="Center" />
-                        </Border>
-                    </VerticalStackLayout>
-
-                    <!-- Start Time and End Time -->
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <Label Text="Start Time" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                        <!-- Subject Picker -->
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Subject" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
                             <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
-                                <TimePicker Time="{Binding NewStartTime}" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
+                                <Picker ItemsSource="{Binding AvailableSubjects}"
+                                        ItemDisplayBinding="{Binding Name}"
+                                        SelectedItem="{Binding NewSubject}"
+                                        Title="Select Subject"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="12"
+                                        VerticalOptions="Center" />
                             </Border>
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="End Time" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+
+                        <!-- Teacher Picker -->
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Assign Teacher" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
                             <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
-                                <TimePicker Time="{Binding NewEndTime}" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
+                                <Picker ItemsSource="{Binding AvailableTeachers}"
+                                        ItemDisplayBinding="{Binding FullName}"
+                                        SelectedItem="{Binding NewTeacher}"
+                                        Title="Select Teacher"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="12"
+                                        VerticalOptions="Center" />
                             </Border>
                         </VerticalStackLayout>
-                    </Grid>
 
-                    <!-- Room Number -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Room / Facility" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
-                        <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="10,0" HeightRequest="38">
-                            <Entry Text="{Binding NewRoomNumber}" Placeholder="e.g. Room 201, Physics Lab" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
-                        </Border>
+                        <!-- Start Time and End Time -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Start Time" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
+                                    <TimePicker Time="{Binding NewStartTime}" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="End Time" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="8,0" HeightRequest="38">
+                                    <TimePicker Time="{Binding NewEndTime}" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- Room Number -->
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Room / Facility" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8" Stroke="{StaticResource SurfaceBorder}" BackgroundColor="{StaticResource SurfaceLight}" Padding="10,0" HeightRequest="38">
+                                <Entry Text="{Binding NewRoomNumber}" Placeholder="e.g. Room 201, Physics Lab" TextColor="{StaticResource TextPrimary}" FontSize="12" VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Action Buttons -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,8,0,0">
+                            <Button Grid.Column="0"
+                                    Text="Cancel"
+                                    Command="{Binding CloseAddSlotModalCommand}"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    TextColor="{StaticResource TextSecondary}"
+                                    FontAttributes="Bold"
+                                    FontSize="12"
+                                    HeightRequest="40"
+                                    CornerRadius="8" />
+                            <Button Grid.Column="1"
+                                    Text="Assign Slot"
+                                    Command="{Binding SaveTimetableSlotCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    TextColor="{StaticResource White}"
+                                    FontAttributes="Bold"
+                                    FontSize="12"
+                                    HeightRequest="40"
+                                    CornerRadius="8" />
+                        </Grid>
                     </VerticalStackLayout>
-
-                    <!-- Action Buttons -->
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,8,0,0">
-                        <Button Grid.Column="0"
-                                Text="Cancel"
-                                Command="{Binding CloseAddSlotModalCommand}"
-                                BackgroundColor="{StaticResource SurfaceLight}"
-                                TextColor="{StaticResource TextSecondary}"
-                                FontAttributes="Bold"
-                                FontSize="12"
-                                HeightRequest="40"
-                                CornerRadius="8" />
-                        <Button Grid.Column="1"
-                                Text="Assign Slot"
-                                Command="{Binding SaveTimetableSlotCommand}"
-                                BackgroundColor="{StaticResource Primary}"
-                                TextColor="{StaticResource White}"
-                                FontAttributes="Bold"
-                                FontSize="12"
-                                HeightRequest="40"
-                                CornerRadius="8" />
-                    </Grid>
-                </VerticalStackLayout>
+                </ScrollView>
             </Border>
         </Grid>
 

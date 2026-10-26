@@ -184,4 +184,96 @@ public class AttendanceService : IAttendanceService
             percentage
         ));
     }
+
+    public async Task<ApiResponse<List<AttendanceRecordDto>>> GetStudentAttendanceHistoryAsync(Guid studentId, CancellationToken ct = default)
+    {
+        var records = await _context.AttendanceRecords
+            .Where(a => a.StudentId == studentId)
+            .Include(a => a.ClassSection)
+            .Include(a => a.Student)
+            .Include(a => a.RecordedByUser)
+            .Include(a => a.CorrectedByUser)
+            .OrderByDescending(a => a.Date)
+            .Select(a => new AttendanceRecordDto(
+                a.Id,
+                a.SchoolId,
+                a.ClassSectionId,
+                a.ClassSection != null ? a.ClassSection.Name : string.Empty,
+                a.StudentId,
+                a.Student != null ? a.Student.FullName : string.Empty,
+                a.Student != null ? a.Student.AdmissionNumber : string.Empty,
+                a.Date,
+                a.Status,
+                a.Remarks,
+                a.RecordedAtUtc,
+                a.RecordedByUser != null ? a.RecordedByUser.FullName : null,
+                a.CorrectedAtUtc,
+                a.CorrectedByUser != null ? a.CorrectedByUser.FullName : null,
+                a.CorrectionReason
+            ))
+            .ToListAsync(ct);
+
+        return ApiResponse<List<AttendanceRecordDto>>.Ok(records);
+    }
+
+    public async Task<ApiResponse<bool>> SubmitStudentPermissionAsync(SubmitPermissionRequest request, CancellationToken ct = default)
+    {
+        var student = await _context.Students.FindAsync(new object[] { request.StudentId }, ct);
+        if (student == null)
+            return ApiResponse<bool>.Fail("Student not found.");
+
+        var existingRecord = await _context.AttendanceRecords
+            .FirstOrDefaultAsync(a => a.StudentId == request.StudentId && a.Date == request.Date, ct);
+
+        string reasonNote = string.IsNullOrWhiteSpace(request.Remarks)
+            ? $"[Parent Permission] {request.Reason}"
+            : $"[Parent Permission] {request.Reason}: {request.Remarks}";
+
+        var userId = _currentUserService.UserId ?? Guid.Empty;
+
+        if (existingRecord != null)
+        {
+            var oldStatus = existingRecord.Status;
+            existingRecord.Status = AttendanceStatus.Excused;
+            existingRecord.Remarks = reasonNote;
+            existingRecord.CorrectedByUserId = userId;
+            existingRecord.CorrectedAtUtc = DateTime.UtcNow;
+            existingRecord.CorrectionReason = $"Parent permission requested: {request.Reason}";
+
+            await _auditLogService.LogAsync(
+                AuditAction.AttendanceCorrection,
+                nameof(AttendanceRecord),
+                existingRecord.Id.ToString(),
+                $"Permission excused attendance for {student.FullName} on {request.Date}. Reason: {request.Reason}",
+                oldValues: oldStatus.ToString(),
+                newValues: AttendanceStatus.Excused.ToString(),
+                ct: ct);
+        }
+        else
+        {
+            var newRecord = new AttendanceRecord
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = student.SchoolId,
+                ClassSectionId = student.CurrentClassSectionId ?? Guid.Empty,
+                StudentId = request.StudentId,
+                Date = request.Date,
+                Status = AttendanceStatus.Excused,
+                Remarks = reasonNote,
+                RecordedByUserId = userId,
+                RecordedAtUtc = DateTime.UtcNow
+            };
+            _context.AttendanceRecords.Add(newRecord);
+
+            await _auditLogService.LogAsync(
+                AuditAction.Create,
+                nameof(AttendanceRecord),
+                newRecord.Id.ToString(),
+                $"Recorded parent permission leave for {student.FullName} on {request.Date}. Reason: {request.Reason}",
+                ct: ct);
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return ApiResponse<bool>.Ok(true, "Permission request submitted successfully.");
+    }
 }

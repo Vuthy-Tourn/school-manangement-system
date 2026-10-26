@@ -58,3 +58,10 @@ public record StudentAttendanceStatsDto(
     int ExcusedDays,
     decimal AttendancePercentage
 );
+
+public record SubmitPermissionRequest(
+    Guid StudentId,
+    DateOnly Date,
+    string Reason,
+    string? Remarks
+);

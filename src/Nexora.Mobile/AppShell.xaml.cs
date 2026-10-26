@@ -48,6 +48,7 @@ public partial class AppShell : Shell
 
             case UserRole.Parent:
                 tabBar.Items.Add(CreateTab("Dashboard", "icon_dashboard.png", "dashboard", typeof(ParentDashboardPage)));
+                tabBar.Items.Add(CreateTab("Attendance", "icon_attendance.png", "attendance", typeof(AttendancePage)));
                 tabBar.Items.Add(CreateTab("Grades", "icon_grades.png", "grades", typeof(GradesPage)));
                 tabBar.Items.Add(CreateTab("Fees", "icon_fees.png", "fees", typeof(FeesPage)));
                 tabBar.Items.Add(CreateTab("Timetable", "icon_timetable.png", "timetables", typeof(TimetablesPage)));

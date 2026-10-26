@@ -28,6 +28,86 @@ public class GradeDistributionSegment
     public Color SegmentColor { get; set; } = Colors.Gray;
 }
 
+public class AttendanceRecordDisplayItem
+{
+    public AttendanceRecordDto Record { get; }
+    public Guid Id => Record.Id;
+    public Guid StudentId => Record.StudentId;
+    public string StudentName => Record.StudentName;
+    public string AdmissionNumber => Record.AdmissionNumber;
+    public DateOnly Date => Record.Date;
+    public AttendanceStatus Status => Record.Status;
+    public string? Remarks => Record.Remarks;
+    public bool HasRemarks => !string.IsNullOrWhiteSpace(Record.Remarks);
+    public DateTime RecordedAtUtc => Record.RecordedAtUtc;
+
+    public string FormattedDate => Record.Date.ToString("ddd, MMM dd, yyyy");
+    public string DayName => Record.Date.ToString("dddd");
+    public string ShortDate => Record.Date.ToString("MMM dd");
+
+    public string StatusBadgeText => Record.Status switch
+    {
+        AttendanceStatus.Present => "Present",
+        AttendanceStatus.Late => "Late",
+        AttendanceStatus.Excused => "Excused",
+        AttendanceStatus.Absent => "Absent",
+        _ => "Unknown"
+    };
+
+    public string StatusDetailedText => Record.Status switch
+    {
+        AttendanceStatus.Present => "Present at School (On Campus)",
+        AttendanceStatus.Late => "Arrived Late to Class",
+        AttendanceStatus.Excused => "Excused Absence (Permission Granted)",
+        AttendanceStatus.Absent => "Absent / Not Checked In",
+        _ => "Unknown Status"
+    };
+
+    public string StatusIcon => Record.Status switch
+    {
+        AttendanceStatus.Present => "✓",
+        AttendanceStatus.Late => "⏱",
+        AttendanceStatus.Excused => "📋",
+        AttendanceStatus.Absent => "✕",
+        _ => "•"
+    };
+
+    public Color StatusColor => Record.Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#10B981"),
+        AttendanceStatus.Late => Color.FromArgb("#F59E0B"),
+        AttendanceStatus.Excused => Color.FromArgb("#3B82F6"),
+        AttendanceStatus.Absent => Color.FromArgb("#EF4444"),
+        _ => Colors.Gray
+    };
+
+    public Color StatusBgColor => Record.Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#ECFDF5"),
+        AttendanceStatus.Late => Color.FromArgb("#FFFBEB"),
+        AttendanceStatus.Excused => Color.FromArgb("#EFF6FF"),
+        AttendanceStatus.Absent => Color.FromArgb("#FEF2F2"),
+        _ => Color.FromArgb("#F3F4F6")
+    };
+
+    public Color StatusBorderColor => Record.Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#A7F3D0"),
+        AttendanceStatus.Late => Color.FromArgb("#FDE68A"),
+        AttendanceStatus.Excused => Color.FromArgb("#BFDBFE"),
+        AttendanceStatus.Absent => Color.FromArgb("#FECACA"),
+        _ => Color.FromArgb("#E5E7EB")
+    };
+
+    public string CheckInTimeText => Record.RecordedAtUtc.ToLocalTime().ToString("hh:mm tt");
+    public bool IsToday => Record.Date == DateOnly.FromDateTime(DateTime.Today);
+
+    public AttendanceRecordDisplayItem(AttendanceRecordDto record)
+    {
+        Record = record;
+    }
+}
+
 public partial class AdminDashboardViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
@@ -384,6 +464,63 @@ public partial class ParentDashboardViewModel : BaseViewModel
     [ObservableProperty]
     private ObservableCollection<StudentGradeDto> _recentGrades = new();
 
+    [ObservableProperty]
+    private ObservableCollection<AttendanceRecordDisplayItem> _childAttendanceHistory = new();
+
+    [ObservableProperty]
+    private AttendanceRecordDisplayItem? _todayAttendance;
+
+    [ObservableProperty]
+    private bool _hasTodayAttendance;
+
+    [ObservableProperty]
+    private string _todayStatusText = "Checking School Arrival...";
+
+    [ObservableProperty]
+    private string _todayStatusBadgeText = "Present";
+
+    [ObservableProperty]
+    private string _todayStatusDetails = "";
+
+    [ObservableProperty]
+    private Color _todayStatusColor = Color.FromArgb("#10B981");
+
+    [ObservableProperty]
+    private Color _todayStatusBgColor = Color.FromArgb("#ECFDF5");
+
+    [ObservableProperty]
+    private Color _todayStatusBorderColor = Color.FromArgb("#A7F3D0");
+
+    [ObservableProperty]
+    private string _todayStatusIcon = "✓";
+
+    // Ask Permission Modal Properties
+    [ObservableProperty]
+    private bool _isPermissionModalVisible = false;
+
+    [ObservableProperty]
+    private DateTime _permissionDate = DateTime.Today;
+
+    [ObservableProperty]
+    private string _selectedPermissionReason = "Sick Leave / Medical";
+
+    [ObservableProperty]
+    private ObservableCollection<string> _permissionReasons = new()
+    {
+        "Sick Leave / Medical",
+        "Doctor / Clinic Appointment",
+        "Family Emergency",
+        "Personal / Travel",
+        "Official Event / Competition",
+        "Other Excused Reason"
+    };
+
+    [ObservableProperty]
+    private string _permissionRemarks = string.Empty;
+
+    [ObservableProperty]
+    private LinkedStudentDto? _permissionTargetChild;
+
     public ParentDashboardViewModel(IApiService apiService)
     {
         _apiService = apiService;
@@ -406,6 +543,11 @@ public partial class ParentDashboardViewModel : BaseViewModel
                 Children = new ObservableCollection<LinkedStudentDto>(res.Data.Children);
                 SelectedChild = Children.FirstOrDefault(c => c.StudentId == res.Data.SelectedStudentId) ?? Children.FirstOrDefault();
                 RecentGrades = new ObservableCollection<StudentGradeDto>(res.Data.RecentGrades);
+
+                if (SelectedChild != null)
+                {
+                    await LoadChildAttendanceAsync(SelectedChild.StudentId);
+                }
             }
         }
         catch (Exception ex)
@@ -418,6 +560,80 @@ public partial class ParentDashboardViewModel : BaseViewModel
         }
     }
 
+    private async Task LoadChildAttendanceAsync(Guid childId)
+    {
+        try
+        {
+            var res = await _apiService.GetStudentAttendanceHistoryAsync(childId);
+            if (res.Success && res.Data != null)
+            {
+                var displayList = res.Data.Select(r => new AttendanceRecordDisplayItem(r)).ToList();
+                ChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(displayList);
+
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                var todayRec = displayList.FirstOrDefault(a => a.Date == today);
+                if (todayRec != null)
+                {
+                    TodayAttendance = todayRec;
+                    HasTodayAttendance = true;
+                    TodayStatusBadgeText = todayRec.StatusBadgeText;
+                    TodayStatusColor = todayRec.StatusColor;
+                    TodayStatusBgColor = todayRec.StatusBgColor;
+                    TodayStatusBorderColor = todayRec.StatusBorderColor;
+                    TodayStatusIcon = todayRec.StatusIcon;
+
+                    TodayStatusText = todayRec.Status switch
+                    {
+                        AttendanceStatus.Present => "Present at School (On Campus)",
+                        AttendanceStatus.Late => "Arrived Late to Class",
+                        AttendanceStatus.Excused => "Excused Absence / Leave Granted",
+                        AttendanceStatus.Absent => "Absent / Not Checked In",
+                        _ => "Attendance Recorded"
+                    };
+
+                    TodayStatusDetails = todayRec.Status switch
+                    {
+                        AttendanceStatus.Present => $"Your child arrived at school and checked in at {todayRec.CheckInTimeText}.",
+                        AttendanceStatus.Late => $"Your child arrived late today. Checked in at {todayRec.CheckInTimeText}. Note: {todayRec.Remarks ?? "Tardy"}",
+                        AttendanceStatus.Excused => $"Excused absence granted. Note: {todayRec.Remarks ?? "Permission approved by school."}",
+                        AttendanceStatus.Absent => "No check-in scan recorded today. Please contact the school office or submit permission.",
+                        _ => "Attendance recorded."
+                    };
+                }
+                else
+                {
+                    TodayAttendance = null;
+                    HasTodayAttendance = false;
+                    var day = DateTime.Today.DayOfWeek;
+                    if (day is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                    {
+                        TodayStatusBadgeText = "Weekend";
+                        TodayStatusText = "Weekend / Campus Closed";
+                        TodayStatusDetails = "Classes are not in session today. School resumes Monday morning.";
+                        TodayStatusColor = Color.FromArgb("#6B7280");
+                        TodayStatusBgColor = Color.FromArgb("#F3F4F6");
+                        TodayStatusBorderColor = Color.FromArgb("#E5E7EB");
+                        TodayStatusIcon = "📅";
+                    }
+                    else
+                    {
+                        TodayStatusBadgeText = "Awaiting";
+                        TodayStatusText = "Awaiting Morning Roll Call";
+                        TodayStatusDetails = "Daily homeroom attendance is currently being registered by faculty.";
+                        TodayStatusColor = Color.FromArgb("#3B82F6");
+                        TodayStatusBgColor = Color.FromArgb("#EFF6FF");
+                        TodayStatusBorderColor = Color.FromArgb("#BFDBFE");
+                        TodayStatusIcon = "⏱";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading child attendance: {ex.Message}");
+        }
+    }
+
     [RelayCommand]
     public async Task SelectChildAsync(LinkedStudentDto child)
     {
@@ -427,8 +643,77 @@ public partial class ParentDashboardViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    public void OpenPermissionModal(LinkedStudentDto? child = null)
+    {
+        PermissionTargetChild = child ?? SelectedChild ?? Children.FirstOrDefault();
+        PermissionDate = DateTime.Today;
+        SelectedPermissionReason = PermissionReasons.FirstOrDefault() ?? "Sick Leave / Medical";
+        PermissionRemarks = string.Empty;
+        IsPermissionModalVisible = true;
+    }
+
+    [RelayCommand]
+    public void ClosePermissionModal()
+    {
+        IsPermissionModalVisible = false;
+    }
+
+    [RelayCommand]
+    public async Task SubmitPermissionAsync()
+    {
+        if (PermissionTargetChild == null)
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please select a child to request permission for.", "OK");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedPermissionReason))
+        {
+            await Shell.Current.DisplayAlert("Validation", "Please select a reason for absence.", "OK");
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            var req = new SubmitPermissionRequest(
+                PermissionTargetChild.StudentId,
+                DateOnly.FromDateTime(PermissionDate),
+                SelectedPermissionReason,
+                PermissionRemarks
+            );
+
+            var res = await _apiService.SubmitStudentPermissionAsync(req);
+            IsPermissionModalVisible = false;
+
+            if (res.Success)
+            {
+                await Shell.Current.DisplayAlert(
+                    "Permission Submitted",
+                    $"Official leave permission has been recorded for {PermissionTargetChild.FullName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
+                    "OK");
+
+                await LoadDashboardAsync(PermissionTargetChild.StudentId);
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert("Submission Failed", res.Message, "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
     private async Task NavigateToAsync(string route)
     {
         await Shell.Current.GoToAsync($"///{route}");
     }
 }
+
