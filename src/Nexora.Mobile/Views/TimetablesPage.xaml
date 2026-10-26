@@ -261,7 +261,7 @@
               InputTransparent="False"
               Padding="24">
             <Border StrokeShape="RoundRectangle 16"
-                    BackgroundColor="{StaticResource Surface}"
+                    BackgroundColor="{StaticResource SurfaceCard}"
                     Stroke="{StaticResource SurfaceBorder}"
                     Padding="20"
                     VerticalOptions="Center"

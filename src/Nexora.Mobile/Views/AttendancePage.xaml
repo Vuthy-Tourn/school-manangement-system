@@ -42,7 +42,6 @@
                                 <Picker ItemsSource="{Binding Classes}"
                                         ItemDisplayBinding="{Binding Name}"
                                         SelectedItem="{Binding SelectedClass}"
-                                        SelectedIndexChanged="OnClassSelectionChanged"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="13"
                                         VerticalOptions="Center" />
@@ -62,7 +61,6 @@
                                     Padding="10,0"
                                     HeightRequest="42">
                                 <DatePicker Date="{Binding SelectedDate}"
-                                            DateSelected="OnDateSelected"
                                             Format="yyyy-MM-dd"
                                             TextColor="{StaticResource TextPrimary}"
                                             FontSize="13"

@@ -17,14 +17,4 @@ public partial class AttendancePage : ContentPage
         base.OnAppearing();
         await _viewModel.InitializeCommand.ExecuteAsync(null);
     }
-
-    private async void OnClassSelectionChanged(object sender, EventArgs e)
-    {
-        await _viewModel.LoadAttendanceCommand.ExecuteAsync(null);
-    }
-
-    private async void OnDateSelected(object sender, DateChangedEventArgs e)
-    {
-        await _viewModel.LoadAttendanceCommand.ExecuteAsync(null);
-    }
 }
