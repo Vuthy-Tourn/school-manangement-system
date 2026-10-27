@@ -57,7 +57,7 @@
                                     Padding="6,2"
                                     VerticalOptions="Center"
                                     IsVisible="{Binding IsMyAdvisee}">
-                                <Label Text="⭐ My Advisee"
+                                <Label Text="My Advisee"
                                        FontSize="10"
                                        FontAttributes="Bold"
                                        TextColor="#92400E" />
@@ -221,7 +221,7 @@
             <!-- 5. Academic Actions -->
             <VerticalStackLayout Spacing="10" Margin="0,6,0,0">
                 <!-- Report Card Button -->
-                <Button Text="📄 View Official Semester Report Card"
+                <Button Text="View Official Semester Report Card"
                         Command="{Binding ViewReportCardCommand}"
                         BackgroundColor="{StaticResource Primary}"
                         TextColor="{StaticResource White}"

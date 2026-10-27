@@ -181,7 +181,7 @@
                             </DataTrigger>
                         </Border.Triggers>
                         <HorizontalStackLayout Spacing="6" HorizontalOptions="Center" VerticalOptions="Center">
-                            <Label Text="★ My Teaching Only"
+                            <Label Text="My Teaching Only"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    VerticalOptions="Center">
@@ -371,7 +371,7 @@
                                        TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
                             <Button Grid.Column="1"
-                                    Text="✕"
+                                    Text="X"
                                     Command="{Binding CloseAddSlotModalCommand}"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource TextSecondary}"

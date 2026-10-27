@@ -232,7 +232,7 @@
                         HeightRequest="46" />
 
                 <!-- Timetable Button -->
-                <Button Text="📅 View Weekly Class Timetable"
+                <Button Text="View Weekly Class Timetable"
                         Command="{Binding ViewTimetableCommand}"
                         BackgroundColor="{StaticResource SurfaceLight}"
                         TextColor="{StaticResource TextPrimary}"

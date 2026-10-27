@@ -69,11 +69,11 @@ public class AttendanceRecordDisplayItem
 
     public string StatusIcon => Record.Status switch
     {
-        AttendanceStatus.Present => "✓",
-        AttendanceStatus.Late => "⏱",
-        AttendanceStatus.Excused => "📋",
-        AttendanceStatus.Absent => "✕",
-        _ => "•"
+        AttendanceStatus.Present => "P",
+        AttendanceStatus.Late => "L",
+        AttendanceStatus.Excused => "E",
+        AttendanceStatus.Absent => "A",
+        _ => "-"
     };
 
     public Color StatusColor => Record.Status switch
@@ -674,16 +674,16 @@ public partial class ParentDashboardViewModel : BaseViewModel
     private string _filterAllText = "All";
 
     [ObservableProperty]
-    private string _filterPresentText = "✓ Present";
+    private string _filterPresentText = "Present";
 
     [ObservableProperty]
-    private string _filterLateText = "⏱ Late";
+    private string _filterLateText = "Late";
 
     [ObservableProperty]
-    private string _filterExcusedText = "📋 Excused";
+    private string _filterExcusedText = "Excused";
 
     [ObservableProperty]
-    private string _filterAbsentText = "✕ Absent";
+    private string _filterAbsentText = "Absent";
 
     [ObservableProperty]
     private Color _filterAllBgColor = Color.FromArgb("#0F2042");
@@ -740,7 +740,7 @@ public partial class ParentDashboardViewModel : BaseViewModel
     private Color _todayStatusBorderColor = Color.FromArgb("#A7F3D0");
 
     [ObservableProperty]
-    private string _todayStatusIcon = "✓";
+    private string _todayStatusIcon = "P";
 
     // Ask Permission Modal Properties
     [ObservableProperty]
@@ -888,7 +888,7 @@ public partial class ParentDashboardViewModel : BaseViewModel
                         TodayStatusColor = Color.FromArgb("#6B7280");
                         TodayStatusBgColor = Color.FromArgb("#F3F4F6");
                         TodayStatusBorderColor = Color.FromArgb("#E5E7EB");
-                        TodayStatusIcon = "📅";
+                        TodayStatusIcon = "W";
                     }
                     else
                     {
@@ -898,7 +898,7 @@ public partial class ParentDashboardViewModel : BaseViewModel
                         TodayStatusColor = Color.FromArgb("#3B82F6");
                         TodayStatusBgColor = Color.FromArgb("#EFF6FF");
                         TodayStatusBorderColor = Color.FromArgb("#BFDBFE");
-                        TodayStatusIcon = "⏱";
+                        TodayStatusIcon = "A";
                     }
                 }
             }
@@ -919,10 +919,10 @@ public partial class ParentDashboardViewModel : BaseViewModel
     private void ApplyAttendanceFilter()
     {
         FilterAllText = $"All ({ChildTotalDays})";
-        FilterPresentText = $"✓ Present ({ChildPresentDays})";
-        FilterLateText = $"⏱ Late ({ChildLateDays})";
-        FilterExcusedText = $"📋 Excused ({ChildExcusedDays})";
-        FilterAbsentText = $"✕ Absent ({ChildAbsentDays})";
+        FilterPresentText = $"Present ({ChildPresentDays})";
+        FilterLateText = $"Late ({ChildLateDays})";
+        FilterExcusedText = $"Excused ({ChildExcusedDays})";
+        FilterAbsentText = $"Absent ({ChildAbsentDays})";
 
         FilterAllBgColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#0F2042") : Color.FromArgb("#F1F5F9");
         FilterAllTextColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#475569");

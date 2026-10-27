@@ -889,7 +889,7 @@ public partial class ReportCardViewModel : BaseViewModel
         sb.AppendLine("</style>");
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
-        sb.AppendLine("<div class=\"print-bar\"><button class=\"print-btn\" onclick=\"window.print()\">🖨️ Print / Save as PDF</button></div>");
+        sb.AppendLine("<div class=\"print-bar\"><button class=\"print-btn\" onclick=\"window.print()\">Print / Save as PDF</button></div>");
         sb.AppendLine("<div class=\"header\">");
         sb.AppendLine("<h1 class=\"inst-name\">Angkor International Academy</h1>");
         sb.AppendLine("<div class=\"inst-sub\">Office of Academic Affairs &amp; Institutional Registrar • Phnom Penh, Cambodia</div>");
@@ -965,9 +965,21 @@ public class ClassSectionItemViewModel : ObservableObject
     public string GradeLevelName => Section.GradeLevelName;
     public string AcademicYearName => Section.AcademicYearName;
     public string? RoomNumber => Section.RoomNumber;
+    public int Capacity => Section.Capacity > 0 ? Section.Capacity : 40;
     public int EnrolledCount => Section.EnrolledCount;
     public Guid? ClassTeacherId => Section.ClassTeacherId;
     public string? ClassTeacherName => Section.ClassTeacherName;
+
+    public double EnrollmentProgress => Capacity > 0 ? Math.Clamp((double)EnrolledCount / Capacity, 0.0, 1.0) : 0.0;
+    public string EnrollmentRatioDisplay => $"{EnrolledCount}/{Capacity} Students";
+    public string EnrollmentPercentDisplay => Capacity > 0 ? $"{(int)Math.Round((double)EnrolledCount / Capacity * 100)}%" : "0%";
+
+    public Color EnrollmentProgressColor => EnrollmentProgress switch
+    {
+        >= 1.0 => Color.FromArgb("#DC2626"),
+        >= 0.85 => Color.FromArgb("#D97706"),
+        _ => Color.FromArgb("#2563EB")
+    };
 
     public bool CanTakeAttendance { get; init; }
     public bool IsMyAdvisory { get; init; }
@@ -1388,10 +1400,10 @@ public partial class AttendanceViewModel : BaseViewModel
     // Filter controls for parent view
     [ObservableProperty] private string _selectedAttendanceFilter = "All";
     [ObservableProperty] private string _filterAllText = "All";
-    [ObservableProperty] private string _filterPresentText = "✓ Present";
-    [ObservableProperty] private string _filterLateText = "⏱ Late";
-    [ObservableProperty] private string _filterExcusedText = "📋 Excused";
-    [ObservableProperty] private string _filterAbsentText = "✕ Absent";
+    [ObservableProperty] private string _filterPresentText = "Present";
+    [ObservableProperty] private string _filterLateText = "Late";
+    [ObservableProperty] private string _filterExcusedText = "Excused";
+    [ObservableProperty] private string _filterAbsentText = "Absent";
 
     [ObservableProperty] private Color _filterAllBgColor = Color.FromArgb("#0F2042");
     [ObservableProperty] private Color _filterAllTextColor = Color.FromArgb("#FFFFFF");
@@ -1412,7 +1424,7 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private Color _todayStatusColor = Color.FromArgb("#10B981");
     [ObservableProperty] private Color _todayStatusBgColor = Color.FromArgb("#ECFDF5");
     [ObservableProperty] private Color _todayStatusBorderColor = Color.FromArgb("#A7F3D0");
-    [ObservableProperty] private string _todayStatusIcon = "✓";
+    [ObservableProperty] private string _todayStatusIcon = "P";
     [ObservableProperty] private int _childTotalDays = 0;
     [ObservableProperty] private int _childPresentDays = 0;
     [ObservableProperty] private int _childLateDays = 0;
@@ -1440,8 +1452,12 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private bool _isCurrentUserAdvisor;
     [ObservableProperty] private string _advisorRoleBadge = string.Empty;
     [ObservableProperty] private string _advisorRoleSubtitle = string.Empty;
+    [ObservableProperty] private string _advisorRoleTag = string.Empty;
     [ObservableProperty] private Color _advisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
     [ObservableProperty] private Color _advisorRoleBadgeText = Color.FromArgb("#1D4ED8");
+    [ObservableProperty] private Color _advisorRoleBadgeBorder = Color.FromArgb("#BFDBFE");
+    [ObservableProperty] private Color _advisorRolePillBg = Color.FromArgb("#DBEAFE");
+    [ObservableProperty] private Color _advisorRoleTagColor = Color.FromArgb("#2563EB");
 
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
@@ -1693,7 +1709,7 @@ public partial class AttendanceViewModel : BaseViewModel
                         TodayStatusColor = Color.FromArgb("#6B7280");
                         TodayStatusBgColor = Color.FromArgb("#F3F4F6");
                         TodayStatusBorderColor = Color.FromArgb("#E5E7EB");
-                        TodayStatusIcon = "📅";
+                        TodayStatusIcon = "W";
                     }
                     else
                     {
@@ -1703,7 +1719,7 @@ public partial class AttendanceViewModel : BaseViewModel
                         TodayStatusColor = Color.FromArgb("#3B82F6");
                         TodayStatusBgColor = Color.FromArgb("#EFF6FF");
                         TodayStatusBorderColor = Color.FromArgb("#BFDBFE");
-                        TodayStatusIcon = "⏱";
+                        TodayStatusIcon = "A";
                     }
                 }
             }
@@ -1728,10 +1744,10 @@ public partial class AttendanceViewModel : BaseViewModel
     private void ApplyAttendanceFilter()
     {
         FilterAllText = $"All ({ChildTotalDays})";
-        FilterPresentText = $"✓ Present ({ChildPresentDays})";
-        FilterLateText = $"⏱ Late ({ChildLateDays})";
-        FilterExcusedText = $"📋 Excused ({ChildExcusedDays})";
-        FilterAbsentText = $"✕ Absent ({ChildAbsentDays})";
+        FilterPresentText = $"Present ({ChildPresentDays})";
+        FilterLateText = $"Late ({ChildLateDays})";
+        FilterExcusedText = $"Excused ({ChildExcusedDays})";
+        FilterAbsentText = $"Absent ({ChildAbsentDays})";
 
         FilterAllBgColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#0F2042") : Color.FromArgb("#F1F5F9");
         FilterAllTextColor = SelectedAttendanceFilter == "All" ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#475569");
@@ -1987,14 +2003,19 @@ public partial class AttendanceViewModel : BaseViewModel
             IsCurrentUserAdvisor = false;
             if (role == UserRole.Teacher && Classes.Count == 0)
             {
-                AdvisorRoleBadge = "⚠️ No Advisory Class Assigned";
+                AdvisorRoleBadge = "No Advisory Class Assigned";
+                AdvisorRoleTag = "Action Required";
                 AdvisorRoleSubtitle = "You are not assigned as Homeroom Advisor to any class section. Please contact an Administrator.";
-                AdvisorRoleBadgeBg = Color.FromArgb("#FEF3C7");
-                AdvisorRoleBadgeText = Color.FromArgb("#B45309");
+                AdvisorRoleBadgeBg = Color.FromArgb("#FFFBEB");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#FDE68A");
+                AdvisorRolePillBg = Color.FromArgb("#FEF3C7");
+                AdvisorRoleBadgeText = Color.FromArgb("#92400E");
+                AdvisorRoleTagColor = Color.FromArgb("#B45309");
             }
             else
             {
                 AdvisorRoleBadge = string.Empty;
+                AdvisorRoleTag = string.Empty;
                 AdvisorRoleSubtitle = string.Empty;
             }
             OnPropertyChanged(nameof(CanTakeAttendanceActions));
@@ -2004,26 +2025,38 @@ public partial class AttendanceViewModel : BaseViewModel
         if (IsAdmin)
         {
             IsCurrentUserAdvisor = true;
-            AdvisorRoleBadge = "🛡️ Administrative Authority";
-            AdvisorRoleSubtitle = $"Full override permissions • Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
+            AdvisorRoleBadge = "Administrative Authority";
+            AdvisorRoleTag = "Full Access";
+            AdvisorRoleSubtitle = $"Full override permissions active • Designated Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
             AdvisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
+            AdvisorRoleBadgeBorder = Color.FromArgb("#BFDBFE");
+            AdvisorRolePillBg = Color.FromArgb("#DBEAFE");
             AdvisorRoleBadgeText = Color.FromArgb("#1D4ED8");
+            AdvisorRoleTagColor = Color.FromArgb("#2563EB");
         }
         else if (teacherId.HasValue && SelectedClass.ClassTeacherId == teacherId.Value)
         {
             IsCurrentUserAdvisor = true;
-            AdvisorRoleBadge = "👑 Homeroom Advisor (You)";
+            AdvisorRoleBadge = "Homeroom Advisor (You)";
+            AdvisorRoleTag = "Authorized";
             AdvisorRoleSubtitle = $"Authorized for morning roll call & presence verification for Class {SelectedClass.Name}";
             AdvisorRoleBadgeBg = Color.FromArgb("#ECFDF5");
+            AdvisorRoleBadgeBorder = Color.FromArgb("#A7F3D0");
+            AdvisorRolePillBg = Color.FromArgb("#D1FAE5");
             AdvisorRoleBadgeText = Color.FromArgb("#065F46");
+            AdvisorRoleTagColor = Color.FromArgb("#059669");
         }
         else
         {
             IsCurrentUserAdvisor = false;
-            AdvisorRoleBadge = $"🔒 Restricted • Assigned Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
-            AdvisorRoleSubtitle = "Attendance permissions are restricted exclusively to the assigned Homeroom Advisor.";
+            AdvisorRoleBadge = "Restricted Access";
+            AdvisorRoleTag = "View Only";
+            AdvisorRoleSubtitle = $"Viewing mode only • Attendance is managed by the designated advisor ({SelectedClass.ClassTeacherName ?? "Unassigned"})";
             AdvisorRoleBadgeBg = Color.FromArgb("#FEF2F2");
+            AdvisorRoleBadgeBorder = Color.FromArgb("#FECACA");
+            AdvisorRolePillBg = Color.FromArgb("#FEE2E2");
             AdvisorRoleBadgeText = Color.FromArgb("#991B1B");
+            AdvisorRoleTagColor = Color.FromArgb("#DC2626");
         }
         OnPropertyChanged(nameof(CanTakeAttendanceActions));
     }
@@ -3444,7 +3477,7 @@ public partial class TimetableSlotItemViewModel : ObservableObject
     [ObservableProperty] private double _cardBorderThickness = 1.0;
     [ObservableProperty] private Color _cardBackgroundColor = Color.FromArgb("#FFFFFF");
     [ObservableProperty] private bool _showMyClassBadge = false;
-    [ObservableProperty] private string _teachingBadgeText = "★ Teaching";
+    [ObservableProperty] private string _teachingBadgeText = "Teaching";
 }
 
 public partial class TimetablesViewModel : BaseViewModel
@@ -3733,7 +3766,7 @@ public partial class TimetablesViewModel : BaseViewModel
                 CardBorderThickness = isMyClass ? 2.0 : 1.0,
                 CardBackgroundColor = isMyClass ? Color.FromArgb("#F8FAFC") : Color.FromArgb("#FFFFFF"),
                 ShowMyClassBadge = isMyClass,
-                TeachingBadgeText = "★ Teaching"
+                TeachingBadgeText = "Teaching"
             };
         }).ToList();
 

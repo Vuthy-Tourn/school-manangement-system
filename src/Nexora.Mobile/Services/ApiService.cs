@@ -2925,8 +2925,8 @@ public class ApiService : IApiService
 
     private static List<ClassSectionDto> InitializeMockClasses() => new()
     {
-        new(Class10AId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-A", "Room 201", 35, TeacherDaraId, "Dara Sok", 34),
-        new(Class10BId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-B", "Room 202", 35, TeacherChendaId, "Chenda Chan", 32)
+        new(Class10AId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-A", "Room 201", 40, TeacherDaraId, "Dara Sok", 8),
+        new(Class10BId, Guid.NewGuid(), Guid.NewGuid(), "2026-2027", Guid.NewGuid(), "Grade 10", "10-B", "Room 202", 40, TeacherChendaId, "Chenda Chan", 0)
     };
 
     private static List<SubjectDto> InitializeMockSubjects() => new()

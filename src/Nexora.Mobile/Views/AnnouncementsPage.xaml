@@ -125,7 +125,6 @@
 
                                         <!-- Author Info -->
                                         <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                                            <Label Text="✍️" FontSize="11" VerticalOptions="Center" />
                                             <Label Text="{Binding PublishedByName, StringFormat='By {0}'}"
                                                    FontSize="11"
                                                    FontAttributes="Bold"
@@ -200,7 +199,7 @@
                                TextColor="{StaticResource TextPrimary}" />
 
                         <Button Grid.Column="1"
-                                Text="✕"
+                                Text="X"
                                 Command="{Binding CloseDialogCommand}"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource TextMuted}"

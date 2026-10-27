@@ -164,14 +164,11 @@
                                 Stroke="{StaticResource DangerBorder}"
                                 StrokeThickness="1"
                                 Padding="14,10">
-                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                <Label Text="⚠️" FontSize="14" VerticalOptions="Center" />
-                                <Label Text="{Binding ErrorMessage}"
-                                       TextColor="{StaticResource DangerText}"
-                                       FontSize="12"
-                                       LineBreakMode="WordWrap"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            <Label Text="{Binding ErrorMessage}"
+                                   TextColor="{StaticResource DangerText}"
+                                   FontSize="12"
+                                   LineBreakMode="WordWrap"
+                                   VerticalOptions="Center" />
                         </Border>
 
                         <!-- Sign In Button -->

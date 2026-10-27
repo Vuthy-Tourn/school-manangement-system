@@ -166,7 +166,7 @@
                                 StrokeThickness="1"
                                 Padding="12,6"
                                 HorizontalOptions="Center">
-                            <Label Text="★ OFFICIAL RECORD ★" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                            <Label Text="OFFICIAL RECORD" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
                         </Border>
 
                         <!-- Principal -->
@@ -181,7 +181,7 @@
             </Border>
 
             <!-- Export / Print Action Button -->
-            <Button Text="🖨️ Export / Print Official Transcript"
+            <Button Text="Export / Print Official Transcript"
                     Command="{Binding ExportReportCardCommand}"
                     BackgroundColor="{StaticResource Secondary}"
                     TextColor="{StaticResource White}"

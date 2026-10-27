@@ -150,18 +150,25 @@
                                             </Grid>
 
                                             <!-- Capacity & Enrollment Progress -->
-                                            <VerticalStackLayout Spacing="4">
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <Label Text="Enrollment Capacity" FontSize="11" TextColor="{StaticResource TextMuted}" />
+                                            <VerticalStackLayout Spacing="5">
+                                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                                                    <Label Text="Enrollment Capacity" FontSize="11" TextColor="{StaticResource TextMuted}" VerticalOptions="Center" />
                                                     <Label Grid.Column="1"
-                                                           Text="{Binding EnrolledCount, StringFormat='{0}/40 Students'}"
+                                                           Text="{Binding EnrollmentPercentDisplay}"
                                                            FontSize="11"
                                                            FontAttributes="Bold"
-                                                           TextColor="{StaticResource TextPrimary}" />
+                                                           TextColor="{StaticResource TextSecondary}"
+                                                           VerticalOptions="Center" />
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding EnrollmentRatioDisplay}"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource TextPrimary}"
+                                                           VerticalOptions="Center" />
                                                 </Grid>
-                                                <ProgressBar Progress="0.7"
-                                                             ProgressColor="{StaticResource Secondary}"
-                                                             BackgroundColor="{StaticResource SurfaceLight}"
+                                                <ProgressBar Progress="{Binding EnrollmentProgress}"
+                                                             ProgressColor="{Binding EnrollmentProgressColor}"
+                                                             BackgroundColor="{StaticResource SurfaceBorder}"
                                                              HeightRequest="6" />
                                             </VerticalStackLayout>
 

@@ -663,7 +663,7 @@
                                        TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
                             <Button Grid.Column="1"
-                                    Text="✕"
+                                    Text="X"
                                     Command="{Binding ClosePermissionModalCommand}"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource TextMuted}"

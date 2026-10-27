@@ -70,24 +70,40 @@
                     </Grid>
 
                     <!-- Advisory Authority & Permission Status Banner -->
-                    <Border StrokeShape="RoundRectangle 8"
+                    <Border StrokeShape="RoundRectangle 10"
                             BackgroundColor="{Binding AdvisorRoleBadgeBg}"
-                            Stroke="{StaticResource SurfaceBorder}"
+                            Stroke="{Binding AdvisorRoleBadgeBorder}"
                             StrokeThickness="1"
-                            Padding="12,8">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
-                            <Label Text="{Binding AdvisorRoleBadge}"
+                            Padding="14,10">
+                        <VerticalStackLayout Spacing="5">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                                <Border Grid.Column="0"
+                                        StrokeShape="RoundRectangle 6"
+                                        BackgroundColor="{Binding AdvisorRolePillBg}"
+                                        Stroke="{Binding AdvisorRoleBadgeBorder}"
+                                        StrokeThickness="1"
+                                        Padding="8,3"
+                                        VerticalOptions="Center">
+                                    <Label Text="{Binding AdvisorRoleBadge}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding AdvisorRoleBadgeText}"
+                                           VerticalOptions="Center" />
+                                </Border>
+
+                                <Label Grid.Column="2"
+                                       Text="{Binding AdvisorRoleTag}"
+                                       FontSize="10.5"
+                                       FontAttributes="Bold"
+                                       TextColor="{Binding AdvisorRoleTagColor}"
+                                       VerticalOptions="Center" />
+                            </Grid>
+
+                            <Label Text="{Binding AdvisorRoleSubtitle}"
                                    FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="{Binding AdvisorRoleBadgeText}"
-                                   VerticalOptions="Center" />
-                            <Label Grid.Column="1"
-                                   Text="{Binding AdvisorRoleSubtitle}"
-                                   FontSize="10.5"
                                    TextColor="{StaticResource TextSecondary}"
-                                   LineBreakMode="TailTruncation"
-                                   VerticalOptions="Center" />
-                        </Grid>
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
                     </Border>
 
                     <!-- Attendance Rate & Quick Action Bar -->
@@ -109,7 +125,7 @@
                         </HorizontalStackLayout>
 
                         <Button Grid.Column="1"
-                                Text="✓ Mark All Present"
+                                Text="Mark All Present"
                                 Command="{Binding MarkAllPresentCommand}"
                                 IsEnabled="{Binding CanTakeAttendanceActions}"
                                 BackgroundColor="{StaticResource SecondaryLight}"
@@ -626,7 +642,7 @@
                                        TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
                             <Button Grid.Column="1"
-                                    Text="✕"
+                                    Text="X"
                                     Command="{Binding ClosePermissionModalCommand}"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource TextMuted}"
