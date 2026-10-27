@@ -72,7 +72,8 @@ public record BatchGradeEntryRequest(
 public record StudentGradeItem(
     Guid StudentId,
     decimal ScoreObtained,
-    string? Remarks
+    string? Remarks = null,
+    string? AdmissionNumber = null
 );
 
 public record UpdateSingleGradeRequest(

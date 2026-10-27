@@ -228,6 +228,84 @@ public class DatabaseSeeder
                 IsActive = true
             };
 
+            var studentDaraUser = new User
+            {
+                Id = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                SchoolId = school.Id,
+                Username = "student.dara",
+                Email = "dara.meng@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Dara",
+                LastName = "Meng",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
+            var studentBophaUser = new User
+            {
+                Id = Guid.Parse("22222222-3333-4444-5555-666666666666"),
+                SchoolId = school.Id,
+                Username = "student.bopha",
+                Email = "bopha.keo@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Bopha",
+                LastName = "Keo",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
+            var studentRithyUser = new User
+            {
+                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                SchoolId = school.Id,
+                Username = "student.rithy",
+                Email = "rithy.srun@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Rithy",
+                LastName = "Srun",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
+            var studentSreypovUser = new User
+            {
+                Id = Guid.Parse("44444444-4444-4444-4444-444444444444"),
+                SchoolId = school.Id,
+                Username = "student.sreypov",
+                Email = "sreypov.lim@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Sreypov",
+                LastName = "Lim",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
+            var studentVannakUser = new User
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555555"),
+                SchoolId = school.Id,
+                Username = "student.vannak",
+                Email = "vannak.heng@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Vannak",
+                LastName = "Heng",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
+            var studentThidaUser = new User
+            {
+                Id = Guid.Parse("66666666-6666-6666-6666-666666666666"),
+                SchoolId = school.Id,
+                Username = "student.thida",
+                Email = "thida.meas@student.angkoracademy.edu.kh",
+                PasswordHash = studentPasswordHash,
+                FirstName = "Thida",
+                LastName = "Meas",
+                Role = UserRole.Student,
+                IsActive = true
+            };
+
             // Parent User
             var parentBophaUser = new User
             {
@@ -247,7 +325,9 @@ public class DatabaseSeeder
                 superAdmin, schoolAdmin,
                 teacherDaraUser, teacherChendaUser, teacherSokhaUser, teacherRathanaUser,
                 teacherJohnUser, teacherKolabUser, teacherSophalUser, teacherSamnangUser,
-                studentVisalUser, studentKanhaUser, parentBophaUser);
+                studentVisalUser, studentKanhaUser, studentDaraUser, studentBophaUser,
+                studentRithyUser, studentSreypovUser, studentVannakUser, studentThidaUser,
+                parentBophaUser);
 
             // 3. Teachers Profile
             var teacherDara = new Teacher
@@ -521,12 +601,151 @@ public class DatabaseSeeder
                 EmergencyContactPhone = "+855 97 554 332",
                 EmergencyContactRelationship = "Father"
             };
-            _context.Students.AddRange(studentVisal, studentKanha);
 
-            // Student Enrollments
+            var studentDara = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentDaraUser.Id,
+                AdmissionNumber = "ADM-2026-0003",
+                FirstName = "Dara",
+                LastName = "Meng",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 2, 10), DateTimeKind.Utc),
+                Gender = "Male",
+                BloodGroup = "B+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentDaraUser.Email,
+                PhoneNumber = "+855 98 333 444",
+                Address = "Toul Kork, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Meng Chhay",
+                EmergencyContactPhone = "+855 12 999 888",
+                EmergencyContactRelationship = "Father"
+            };
+
+            var studentBopha = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentBophaUser.Id,
+                AdmissionNumber = "ADM-2026-0004",
+                FirstName = "Bopha",
+                LastName = "Keo",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 11, 5), DateTimeKind.Utc),
+                Gender = "Female",
+                BloodGroup = "AB+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentBophaUser.Email,
+                PhoneNumber = "+855 98 777 888",
+                Address = "Chamkarmon, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Keo Sarath",
+                EmergencyContactPhone = "+855 12 777 666",
+                EmergencyContactRelationship = "Father"
+            };
+
+            var studentRithy = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentRithyUser.Id,
+                AdmissionNumber = "ADM-2026-0005",
+                FirstName = "Rithy",
+                LastName = "Srun",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 3, 11), DateTimeKind.Utc),
+                Gender = "Male",
+                BloodGroup = "O+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentRithyUser.Email,
+                PhoneNumber = "+855 98 111 222",
+                Address = "Khan Sen Sok, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Srun Meng",
+                EmergencyContactPhone = "+855 12 111 333",
+                EmergencyContactRelationship = "Father"
+            };
+
+            var studentSreypov = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentSreypovUser.Id,
+                AdmissionNumber = "ADM-2026-0006",
+                FirstName = "Sreypov",
+                LastName = "Lim",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 7, 18), DateTimeKind.Utc),
+                Gender = "Female",
+                BloodGroup = "B+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentSreypovUser.Email,
+                PhoneNumber = "+855 98 222 333",
+                Address = "Khan Daun Penh, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Lim Sovann",
+                EmergencyContactPhone = "+855 12 222 444",
+                EmergencyContactRelationship = "Mother"
+            };
+
+            var studentVannak = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentVannakUser.Id,
+                AdmissionNumber = "ADM-2026-0007",
+                FirstName = "Vannak",
+                LastName = "Heng",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 9, 25), DateTimeKind.Utc),
+                Gender = "Male",
+                BloodGroup = "A+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentVannakUser.Email,
+                PhoneNumber = "+855 98 333 444",
+                Address = "Khan Toul Kork, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Heng Rith",
+                EmergencyContactPhone = "+855 12 333 555",
+                EmergencyContactRelationship = "Father"
+            };
+
+            var studentThida = new Student
+            {
+                Id = Guid.NewGuid(),
+                SchoolId = school.Id,
+                UserId = studentThidaUser.Id,
+                AdmissionNumber = "ADM-2026-0008",
+                FirstName = "Thida",
+                LastName = "Meas",
+                DateOfBirth = DateTime.SpecifyKind(new DateTime(2010, 12, 1), DateTimeKind.Utc),
+                Gender = "Female",
+                BloodGroup = "AB+",
+                EnrollmentDate = DateTime.SpecifyKind(new DateTime(2026, 9, 1), DateTimeKind.Utc),
+                Status = StudentStatus.Active,
+                Email = studentThidaUser.Email,
+                PhoneNumber = "+855 98 444 555",
+                Address = "Khan Chamkarmon, Phnom Penh",
+                CurrentClassSectionId = class10A.Id,
+                EmergencyContactName = "Meas Chea",
+                EmergencyContactPhone = "+855 12 444 666",
+                EmergencyContactRelationship = "Mother"
+            };
+
+            _context.Students.AddRange(studentVisal, studentKanha, studentDara, studentBopha, studentRithy, studentSreypov, studentVannak, studentThida);
+
+            // Student Enrollments for all 8 Class 10-A students
             _context.StudentEnrollments.AddRange(
                 new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentVisal.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 1, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
-                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentKanha.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 2, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled }
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentKanha.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 2, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentDara.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 3, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentBopha.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 4, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentRithy.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 5, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentSreypov.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 6, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentVannak.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 7, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled },
+                new StudentEnrollment { Id = Guid.NewGuid(), SchoolId = school.Id, StudentId = studentThida.Id, ClassSectionId = class10A.Id, AcademicYearId = academicYear.Id, RollNumber = 8, EnrollmentDate = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled }
             );
 
             // 7. Parent Profile and Link
@@ -596,13 +815,15 @@ public class DatabaseSeeder
                 new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10B.Id, SubjectId = biology.Id, TeacherId = teacherKolab.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Biology Lab" }
             );
 
-            // 9. Attendance Records for past 10 days (Visal Chan: 100% Present)
+            // 9. Attendance Records for past 10 days (Visal Chan: Day 0 Excused with Parent Permission)
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             for (int i = 0; i < 10; i++)
             {
                 var date = today.AddDays(-i);
+                var visalStatus = (i == 0) ? AttendanceStatus.Excused : AttendanceStatus.Present;
+                var visalRemarks = (i == 0) ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever" : null;
                 _context.AttendanceRecords.AddRange(
-                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentVisal.Id, Date = date, Status = AttendanceStatus.Present, RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = DateTime.UtcNow },
+                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentVisal.Id, Date = date, Status = visalStatus, Remarks = visalRemarks, RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = DateTime.UtcNow },
                     new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentKanha.Id, Date = date, Status = (i == 1 ? AttendanceStatus.Late : AttendanceStatus.Present), Remarks = (i == 1 ? "Traffic delay" : null), RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = DateTime.UtcNow }
                 );
             }
@@ -767,8 +988,11 @@ public class DatabaseSeeder
         var existingStudents = await _context.Students.IgnoreQueryFilters().Where(s => s.SchoolId == school.Id).ToListAsync();
         var studentPasswordHash = _passwordHasher.HashPassword("Student@123!");
 
-        var additionalStudents = new List<(string Adm, string First, string Last, string Gender, string Email, string Phone, string Address, string EmergencyName, string EmergencyPhone, string Rel)>
+        // Ensure all 8 student user accounts exist in database so any student can log in
+        var allCohortStudents = new List<(string Adm, string First, string Last, string Gender, string Email, string Phone, string Address, string EmergencyName, string EmergencyPhone, string Rel)>
         {
+            ("ADM-2026-0001", "Visal", "Chan", "Male", "visal.chan@student.angkoracademy.edu.kh", "+855 98 123 456", "Preah Sihanouk Blvd, Phnom Penh", "Keo Bopha", "+855 92 112 233", "Mother"),
+            ("ADM-2026-0002", "Kanha", "Sok", "Female", "kanha.sok@student.angkoracademy.edu.kh", "+855 98 654 321", "Norodom Blvd, Phnom Penh", "Sok Vichea", "+855 97 554 332", "Father"),
             ("ADM-2026-0003", "Dara", "Meng", "Male", "dara.meng@student.angkoracademy.edu.kh", "+855 98 333 444", "Toul Kork, Phnom Penh", "Meng Chhay", "+855 12 999 888", "Father"),
             ("ADM-2026-0004", "Bopha", "Keo", "Female", "bopha.keo@student.angkoracademy.edu.kh", "+855 98 777 888", "Chamkarmon, Phnom Penh", "Keo Sarath", "+855 12 777 666", "Father"),
             ("ADM-2026-0005", "Rithy", "Srun", "Male", "rithy.srun@student.angkoracademy.edu.kh", "+855 98 111 222", "Khan Sen Sok, Phnom Penh", "Srun Meng", "+855 12 111 333", "Father"),
@@ -779,12 +1003,12 @@ public class DatabaseSeeder
 
         int roll = existingStudents.Count + 1;
         bool hasChanges = false;
-        foreach (var sData in additionalStudents)
+        foreach (var sData in allCohortStudents)
         {
-            if (!existingStudents.Any(s => s.AdmissionNumber == sData.Adm))
+            var user = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Username == $"student.{sData.First.ToLower()}" || u.Email == sData.Email);
+            if (user == null)
             {
-                hasChanges = true;
-                var user = new User
+                user = new User
                 {
                     Id = Guid.NewGuid(),
                     SchoolId = school.Id,
@@ -797,8 +1021,13 @@ public class DatabaseSeeder
                     IsActive = true
                 };
                 _context.Users.Add(user);
+                hasChanges = true;
+            }
 
-                var newStudent = new Student
+            var st = existingStudents.FirstOrDefault(s => s.AdmissionNumber == sData.Adm);
+            if (st == null)
+            {
+                st = new Student
                 {
                     Id = Guid.NewGuid(),
                     SchoolId = school.Id,
@@ -819,20 +1048,16 @@ public class DatabaseSeeder
                     EmergencyContactPhone = sData.EmergencyPhone,
                     EmergencyContactRelationship = sData.Rel
                 };
-                _context.Students.Add(newStudent);
-
-                _context.StudentEnrollments.Add(new StudentEnrollment
-                {
-                    Id = Guid.NewGuid(),
-                    SchoolId = school.Id,
-                    StudentId = newStudent.Id,
-                    ClassSectionId = class10A.Id,
-                    AcademicYearId = academicYear.Id,
-                    RollNumber = roll++,
-                    EnrollmentDate = DateTime.UtcNow,
-                    Status = EnrollmentStatus.Enrolled
-                });
+                _context.Students.Add(st);
+                existingStudents.Add(st);
+                hasChanges = true;
             }
+        }
+
+        if (hasChanges)
+        {
+            await _context.SaveChangesAsync();
+            hasChanges = false;
         }
 
         // Verify and ensure all Class 10-A students have active StudentEnrollment records
@@ -1009,7 +1234,7 @@ public class DatabaseSeeder
         {
             exam = new Exam
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("b0000000-0000-0000-0000-000000000001"),
                 SchoolId = school.Id,
                 AcademicYearId = academicYear.Id,
                 SemesterId = semester1.Id,
@@ -1028,7 +1253,7 @@ public class DatabaseSeeder
         {
             quizExam = new Exam
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("b0000000-0000-0000-0000-000000000002"),
                 SchoolId = school.Id,
                 AcademicYearId = academicYear.Id,
                 SemesterId = semester1.Id,
@@ -1047,7 +1272,7 @@ public class DatabaseSeeder
         {
             finalExam = new Exam
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("b0000000-0000-0000-0000-000000000003"),
                 SchoolId = school.Id,
                 AcademicYearId = academicYear.Id,
                 SemesterId = semester1.Id,
@@ -1067,7 +1292,7 @@ public class DatabaseSeeder
         {
             midterm2Exam = new Exam
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("b0000000-0000-0000-0000-000000000004"),
                 SchoolId = school.Id,
                 AcademicYearId = academicYear.Id,
                 SemesterId = semester2.Id,
@@ -1086,7 +1311,7 @@ public class DatabaseSeeder
         {
             final2Exam = new Exam
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("b0000000-0000-0000-0000-000000000005"),
                 SchoolId = school.Id,
                 AcademicYearId = academicYear.Id,
                 SemesterId = semester2.Id,
@@ -1119,13 +1344,24 @@ public class DatabaseSeeder
                 var attDate = attToday.AddDays(-dIdx);
                 foreach (var st in allClassStudents)
                 {
-                    bool attExists = await _context.AttendanceRecords.IgnoreQueryFilters().AnyAsync(a => a.StudentId == st.Id && a.Date == attDate);
-                    if (!attExists)
+                    var existingAtt = await _context.AttendanceRecords.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.StudentId == st.Id && a.Date == attDate);
+                    if (existingAtt != null)
                     {
-                        var status = (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0002") ? AttendanceStatus.Late
+                        if (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001" && existingAtt.Status != AttendanceStatus.Excused)
+                        {
+                            existingAtt.Status = AttendanceStatus.Excused;
+                            existingAtt.Remarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
+                            hasChanges = true;
+                        }
+                    }
+                    else
+                    {
+                        var status = (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001") ? AttendanceStatus.Excused
+                            : (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0002") ? AttendanceStatus.Late
                             : (dIdx == 3 && st.AdmissionNumber == "ADM-2026-0003") ? AttendanceStatus.Excused
                             : AttendanceStatus.Present;
-                        var remarks = (status == AttendanceStatus.Late) ? "Traffic delay"
+                        var remarks = (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001") ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever"
+                            : (status == AttendanceStatus.Late) ? "Traffic delay"
                             : (status == AttendanceStatus.Excused) ? "Medical appointment"
                             : null;
 
@@ -1182,13 +1418,36 @@ public class DatabaseSeeder
                     .ToListAsync();
 
                 var activeComponents = new List<AssessmentComponent>();
+                int examOffset = targetExam.Name.Contains("Monthly", StringComparison.OrdinalIgnoreCase) ? 20
+                    : targetExam.Name.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && targetExam.Name.Contains("Final", StringComparison.OrdinalIgnoreCase) ? 50
+                    : targetExam.Name.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) ? 40
+                    : targetExam.Name.Contains("Final", StringComparison.OrdinalIgnoreCase) ? 30
+                    : 0;
+
                 foreach (var spec in subjectSpecs)
                 {
                     var subj = subjects.FirstOrDefault(s => s.Code == spec.Code)
                         ?? subjects.FirstOrDefault(s => s.Name.Contains(spec.Keyword));
                     if (subj == null) continue;
 
-                    var comp = existingComponents.FirstOrDefault(c => c.SubjectId == subj.Id);
+                    int subjIndex = spec.Code switch
+                    {
+                        "KHM101" => 1,
+                        "MATH101" => 2,
+                        "PHY101" => 3,
+                        "CHM101" => 4,
+                        "ENG101" => 5,
+                        "BIO101" => 6,
+                        "HIS101" => 7,
+                        "ICT101" => 8,
+                        _ => 0
+                    };
+
+                    Guid canonicalCompId = subjIndex > 0
+                        ? Guid.Parse($"d0000000-0000-0000-0000-0000000000{examOffset + subjIndex:D2}")
+                        : Guid.NewGuid();
+
+                    var comp = existingComponents.FirstOrDefault(c => c.SubjectId == subj.Id || c.Id == canonicalCompId);
                     if (comp == null)
                     {
                         var compTitle = targetExam.Name.Contains("Monthly")
@@ -1199,7 +1458,7 @@ public class DatabaseSeeder
 
                         comp = new AssessmentComponent
                         {
-                            Id = Guid.NewGuid(),
+                            Id = canonicalCompId,
                             SchoolId = school.Id,
                             ExamId = targetExam.Id,
                             SubjectId = subj.Id,

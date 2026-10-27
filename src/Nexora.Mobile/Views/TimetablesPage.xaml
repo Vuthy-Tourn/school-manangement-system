@@ -121,6 +121,83 @@
                     </BindableLayout.ItemTemplate>
                 </HorizontalStackLayout>
             </ScrollView>
+            <!-- Teacher Schedule Filter Segment (All Classes vs My Teaching Only) -->
+            <Border StrokeShape="RoundRectangle 8"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="4"
+                    IsVisible="{Binding IsTeacherUser}">
+                <Grid ColumnDefinitions="*,*">
+                    <!-- All Classes Filter Tab -->
+                    <Border Grid.Column="0"
+                            StrokeShape="RoundRectangle 6"
+                            HeightRequest="34"
+                            StrokeThickness="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding BindingContext.SetScheduleFilterCommand, Source={x:Reference TimetablesRootPage}}"
+                                                  CommandParameter="All" />
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ShowOnlyMyTeaching}" Value="False">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding ShowOnlyMyTeaching}" Value="True">
+                                <Setter Property="BackgroundColor" Value="Transparent" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <HorizontalStackLayout Spacing="6" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="All Classes (Show All)"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding ShowOnlyMyTeaching}" Value="False">
+                                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding ShowOnlyMyTeaching}" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- My Teaching Only Filter Tab -->
+                    <Border Grid.Column="1"
+                            StrokeShape="RoundRectangle 6"
+                            HeightRequest="34"
+                            StrokeThickness="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding BindingContext.SetScheduleFilterCommand, Source={x:Reference TimetablesRootPage}}"
+                                                  CommandParameter="MyClasses" />
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ShowOnlyMyTeaching}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding ShowOnlyMyTeaching}" Value="False">
+                                <Setter Property="BackgroundColor" Value="Transparent" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <HorizontalStackLayout Spacing="6" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Label Text="★ My Teaching Only"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding ShowOnlyMyTeaching}" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource White}" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding ShowOnlyMyTeaching}" Value="False">
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Border>
         </VerticalStackLayout>
 
         <!-- Time Slots Schedule List -->
@@ -153,11 +230,11 @@
                     <!-- Slots List via BindableLayout -->
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding ScheduleSlots}" Spacing="10">
                         <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="dto:TimetableEntryDto">
+                            <DataTemplate x:DataType="vm:TimetableSlotItemViewModel">
                                 <Border StrokeShape="RoundRectangle 12"
-                                        BackgroundColor="{StaticResource SurfaceCard}"
-                                        Stroke="{StaticResource SurfaceBorder}"
-                                        StrokeThickness="1"
+                                        BackgroundColor="{Binding CardBackgroundColor}"
+                                        Stroke="{Binding CardBorderColor}"
+                                        StrokeThickness="{Binding CardBorderThickness}"
                                         Padding="16,14">
                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
 
@@ -171,19 +248,19 @@
                                                 VerticalOptions="Center">
                                             <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
                                                 <Label Text="{Binding StartTime, StringFormat='{0:hh\\:mm}'}"
-                                                       FontSize="12"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{StaticResource SecondaryDark}"
-                                                       HorizontalOptions="Center" />
+                                                        FontSize="12"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{StaticResource SecondaryDark}"
+                                                        HorizontalOptions="Center" />
                                                 <Label Text="to"
-                                                       FontSize="9"
-                                                       TextColor="{StaticResource TextMuted}"
-                                                       HorizontalOptions="Center" />
+                                                        FontSize="9"
+                                                        TextColor="{StaticResource TextMuted}"
+                                                        HorizontalOptions="Center" />
                                                 <Label Text="{Binding EndTime, StringFormat='{0:hh\\:mm}'}"
-                                                       FontSize="12"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{StaticResource SecondaryDark}"
-                                                       HorizontalOptions="Center" />
+                                                        FontSize="12"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{StaticResource SecondaryDark}"
+                                                        HorizontalOptions="Center" />
                                             </VerticalStackLayout>
                                         </Border>
 
@@ -203,6 +280,20 @@
                                                         Padding="6,1"
                                                         VerticalOptions="Center">
                                                     <Label Text="{Binding SubjectCode}"
+                                                           FontSize="10"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource Primary}" />
+                                                </Border>
+
+                                                <!-- My Teaching Class Badge -->
+                                                <Border StrokeShape="RoundRectangle 6"
+                                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                                        Stroke="{StaticResource PrimaryBorder}"
+                                                        StrokeThickness="1"
+                                                        Padding="6,1"
+                                                        VerticalOptions="Center"
+                                                        IsVisible="{Binding ShowMyClassBadge}">
+                                                    <Label Text="{Binding TeachingBadgeText}"
                                                            FontSize="10"
                                                            FontAttributes="Bold"
                                                            TextColor="{StaticResource Primary}" />

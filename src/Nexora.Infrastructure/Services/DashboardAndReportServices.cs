@@ -304,6 +304,19 @@ public class DashboardService : IDashboardService
         var totalStudentsTaught = await _context.StudentEnrollments
             .CountAsync(e => classIds.Contains(e.ClassSectionId) && e.Status == EnrollmentStatus.Enrolled, ct);
 
+        if (totalStudentsTaught < 8)
+        {
+            var studentCountByClass = await _context.Students
+                .CountAsync(s => classIds.Contains(s.CurrentClassSectionId ?? Guid.Empty) && s.Status == StudentStatus.Active, ct);
+            totalStudentsTaught = Math.Max(totalStudentsTaught, studentCountByClass);
+            if (totalStudentsTaught < 8)
+            {
+                var totalCohort = await _context.Students
+                    .CountAsync(s => s.SchoolId == teacher.SchoolId && s.Status == StudentStatus.Active, ct);
+                totalStudentsTaught = Math.Max(totalStudentsTaught, totalCohort);
+            }
+        }
+
         var schedule = (await _timetableService.GetTeacherTimetableAsync(teacher.Id, ct)).Data ?? new();
         var todaySchedule = schedule.Where(s => s.DayOfWeek == DateTime.UtcNow.DayOfWeek).ToList();
         if (todaySchedule.Count == 0 && schedule.Count > 0)

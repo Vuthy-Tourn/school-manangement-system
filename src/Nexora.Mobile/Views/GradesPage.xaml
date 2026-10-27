@@ -305,7 +305,7 @@
         </VerticalStackLayout>
 
         <!-- 2. Student Grading Roster List -->
-        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadGradesCommand}">
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
             <CollectionView ItemsSource="{Binding FilteredGrades}">
                 <CollectionView.EmptyView>
                     <Border StrokeShape="RoundRectangle 12"
@@ -388,16 +388,23 @@
                                         BackgroundColor="{StaticResource SurfaceLight}"
                                         Stroke="{StaticResource SurfaceBorder}"
                                         StrokeThickness="1"
-                                        WidthRequest="64"
-                                        HeightRequest="36"
+                                        WidthRequest="68"
+                                        HeightRequest="38"
                                         Padding="4,0"
                                         IsVisible="{Binding BindingContext.CanEditGrades, Source={x:Reference GradesRootPage}}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding BindingContext.EditScoreCommand, Source={x:Reference GradesRootPage}}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
                                     <Entry Text="{Binding ScoreText}"
                                            Keyboard="Numeric"
                                            HorizontalTextAlignment="Center"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            TextColor="{StaticResource Primary}"
+                                           ReturnType="Done"
+                                           ReturnCommand="{Binding BindingContext.SaveSingleGradeCommand, Source={x:Reference GradesRootPage}}"
+                                           ReturnCommandParameter="{Binding .}"
                                            VerticalOptions="Center" />
                                 </Border>
 
@@ -417,14 +424,14 @@
                                            VerticalOptions="Center" />
                                 </Border>
 
-                                <!-- Quick Save Checkmark for Teacher (No Report Card Button) -->
+                                <!-- Interactive Action Button for Teacher: "Edit" when clean, "Save" when modified! -->
                                 <Button Grid.Column="4"
-                                        Text="Save"
-                                        Command="{Binding BindingContext.SaveSingleGradeCommand, Source={x:Reference GradesRootPage}}"
+                                        Text="{Binding SaveButtonText}"
+                                        Command="{Binding BindingContext.HandleRowActionCommand, Source={x:Reference GradesRootPage}}"
                                         CommandParameter="{Binding .}"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                        TextColor="{StaticResource Primary}"
-                                        BorderColor="{StaticResource PrimaryBorder}"
+                                        BackgroundColor="{Binding SaveButtonBg}"
+                                        TextColor="{Binding SaveButtonTextColor}"
+                                        BorderColor="{StaticResource SurfaceBorder}"
                                         BorderWidth="1"
                                         FontSize="11"
                                         FontAttributes="Bold"
