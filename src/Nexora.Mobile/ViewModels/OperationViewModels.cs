@@ -342,6 +342,98 @@ public partial class TeachersViewModel : BaseViewModel
 // 3.1 Teacher Form ViewModel
 public partial class TeacherFormViewModel : BaseViewModel
 {
+    private static readonly string[] DefaultSpecializations = new[]
+    {
+        "Advanced Mathematics & Calculus",
+        "Advanced Mathematics",
+        "General Mathematics & Algebra",
+        "Geometry & Trigonometry",
+        "Statistics & Probability",
+        "Physics & Applied Science",
+        "Applied Physics & Mechanics",
+        "Applied Physics",
+        "Theoretical Physics",
+        "General & Organic Chemistry",
+        "General Chemistry",
+        "Chemical Sciences & Biochemistry",
+        "Cellular Biology & Genetics",
+        "Cellular Biology",
+        "Biology & Life Sciences",
+        "Ecology & Environmental Science",
+        "Computer Science & ICT",
+        "Software Engineering & Programming",
+        "Information Technology & Networking",
+        "Cybersecurity & Cloud Computing",
+        "English Communication & Academic Writing",
+        "English Communication",
+        "English Language & Literature",
+        "English as a Second Language (ESL)",
+        "Classical Khmer Literature & Poetry",
+        "Classical Literature",
+        "Khmer Language & Linguistics",
+        "Khmer History & Civilization",
+        "Khmer History",
+        "World History & Social Studies",
+        "Geography & Earth Sciences",
+        "Civics, Citizenship & Moral Education",
+        "Economics & Business Studies",
+        "Accounting & Financial Management",
+        "Visual Arts, Drawing & Painting",
+        "Graphic Design & Digital Media",
+        "Music, Melody & Performing Arts",
+        "Physical Education & Sports Coaching",
+        "Health Education & First Aid",
+        "STEM & Educational Robotics",
+        "Philosophy, Logic & Ethics",
+        "French Language & Literature",
+        "Chinese Language (Mandarin)",
+        "Japanese Language & Culture",
+        "Special Education & Inclusive Learning",
+        "Psychology & Student Guidance Counseling",
+        "School Leadership & Educational Admin"
+    };
+
+    private static readonly string[] DefaultQualifications = new[]
+    {
+        "Bachelor of Education (B.Ed.)",
+        "Bachelor of Science (B.Sc.)",
+        "Bachelor of Arts (B.A.)",
+        "Bachelor of Science in Physics",
+        "Bachelor of Science in Mathematics",
+        "Bachelor of Science in Chemistry",
+        "Bachelor of Science in Biology",
+        "Bachelor of Science in Computer Science",
+        "Bachelor of Science in Information Technology",
+        "Bachelor of Science in Software Engineering",
+        "Bachelor of Arts in English Literature",
+        "Bachelor of Arts in Khmer Literature",
+        "Bachelor of Arts in History",
+        "Bachelor of Arts in Linguistics",
+        "Bachelor of Business Administration (BBA)",
+        "Master of Education (M.Ed.)",
+        "Master of Science (M.Sc.)",
+        "Master of Arts (M.A.)",
+        "Master of Mathematics Education",
+        "Master of Physics Education",
+        "Master of Chemical Sciences",
+        "Master of Science in Biological Sciences",
+        "Master of Computer Science (M.C.S.)",
+        "Master of Khmer Literature",
+        "Master of Applied Linguistics & TESOL",
+        "Master of Educational Leadership & Management",
+        "Postgraduate Diploma in Education (PGDE)",
+        "National Institute of Education (NIE) Teaching Diploma",
+        "Doctor of Philosophy (Ph.D.) in Education",
+        "Doctor of Philosophy (Ph.D.) in Mathematics",
+        "Doctor of Philosophy (Ph.D.) in Physics",
+        "Doctor of Philosophy (Ph.D.) in Chemistry",
+        "Doctor of Philosophy (Ph.D.) in Biological Sciences",
+        "Doctor of Philosophy (Ph.D.) in Literature",
+        "Doctor of Education (Ed.D.)",
+        "Associate Degree in Education",
+        "State Certified Secondary Teacher License"
+    };
+
     private readonly IApiService _apiService;
     private readonly TeacherDto? _originalTeacher;
 
@@ -360,10 +452,23 @@ public partial class TeacherFormViewModel : BaseViewModel
     [ObservableProperty] private string _username = string.Empty;
     [ObservableProperty] private string _password = string.Empty;
 
+    [ObservableProperty] private ObservableCollection<string> _specializationOptions = new();
+    [ObservableProperty] private ObservableCollection<string> _qualificationOptions = new();
+
     public TeacherFormViewModel(IApiService apiService, TeacherDto? teacher = null)
     {
         _apiService = apiService;
         _originalTeacher = teacher;
+
+        foreach (var spec in DefaultSpecializations)
+        {
+            SpecializationOptions.Add(spec);
+        }
+
+        foreach (var qual in DefaultQualifications)
+        {
+            QualificationOptions.Add(qual);
+        }
 
         if (teacher != null)
         {
@@ -373,10 +478,20 @@ public partial class TeacherFormViewModel : BaseViewModel
             LastName = teacher.LastName;
             Email = teacher.Email ?? string.Empty;
             PhoneNumber = teacher.PhoneNumber ?? string.Empty;
-            Qualification = teacher.Qualification ?? string.Empty;
-            Specialization = teacher.Specialization ?? string.Empty;
             HireDate = teacher.HireDate;
             IsActive = teacher.IsActive;
+
+            if (!string.IsNullOrWhiteSpace(teacher.Specialization) && !SpecializationOptions.Contains(teacher.Specialization))
+            {
+                SpecializationOptions.Insert(0, teacher.Specialization);
+            }
+            Specialization = teacher.Specialization ?? SpecializationOptions.FirstOrDefault() ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(teacher.Qualification) && !QualificationOptions.Contains(teacher.Qualification))
+            {
+                QualificationOptions.Insert(0, teacher.Qualification);
+            }
+            Qualification = teacher.Qualification ?? QualificationOptions.FirstOrDefault() ?? string.Empty;
         }
         else
         {
@@ -384,6 +499,8 @@ public partial class TeacherFormViewModel : BaseViewModel
             EmployeeNumber = $"EMP-{Random.Shared.Next(10000, 99999)}";
             HireDate = DateTime.Today;
             IsActive = true;
+            Specialization = SpecializationOptions.FirstOrDefault() ?? "Advanced Mathematics & Calculus";
+            Qualification = QualificationOptions.FirstOrDefault() ?? "Bachelor of Education (B.Ed.)";
         }
     }
 

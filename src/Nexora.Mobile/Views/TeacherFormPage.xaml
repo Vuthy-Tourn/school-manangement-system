@@ -167,20 +167,21 @@
                                     Stroke="{StaticResource SurfaceBorder}"
                                     StrokeThickness="1"
                                     BackgroundColor="{StaticResource SurfaceLight}"
-                                    Padding="12,2"
+                                    Padding="10,0"
                                     HeightRequest="44">
-                                <Entry Text="{Binding Specialization}"
-                                       Placeholder="e.g. Advanced Mathematics"
-                                       PlaceholderColor="{StaticResource TextSubtle}"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       FontSize="13"
-                                       VerticalOptions="Center" />
+                                <Picker Title="Select Specialization"
+                                        ItemsSource="{Binding SpecializationOptions}"
+                                        SelectedItem="{Binding Specialization}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        TitleColor="{StaticResource TextSubtle}"
+                                        FontSize="12"
+                                        VerticalOptions="Center" />
                             </Border>
                         </VerticalStackLayout>
 
                         <!-- Qualification -->
                         <VerticalStackLayout Grid.Column="1" Spacing="6">
-                            <Label Text="Academic Qualification"
+                            <Label Text="Academic Qualification *"
                                    FontSize="12"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextSecondary}" />
@@ -188,14 +189,15 @@
                                     Stroke="{StaticResource SurfaceBorder}"
                                     StrokeThickness="1"
                                     BackgroundColor="{StaticResource SurfaceLight}"
-                                    Padding="12,2"
+                                    Padding="10,0"
                                     HeightRequest="44">
-                                <Entry Text="{Binding Qualification}"
-                                       Placeholder="e.g. Master of Education"
-                                       PlaceholderColor="{StaticResource TextSubtle}"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       FontSize="13"
-                                       VerticalOptions="Center" />
+                                <Picker Title="Select Qualification"
+                                        ItemsSource="{Binding QualificationOptions}"
+                                        SelectedItem="{Binding Qualification}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        TitleColor="{StaticResource TextSubtle}"
+                                        FontSize="12"
+                                        VerticalOptions="Center" />
                             </Border>
                         </VerticalStackLayout>
                     </Grid>
