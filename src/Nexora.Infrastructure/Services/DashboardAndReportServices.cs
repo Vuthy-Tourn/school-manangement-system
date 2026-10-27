@@ -350,7 +350,7 @@ public class DashboardService : IDashboardService
             assignedClassesCount,
             assignedSubjectsCount,
             totalStudentsTaught,
-            todaySchedule,
+            schedule.Count > 0 ? schedule : todaySchedule,
             classesList
         ));
     }

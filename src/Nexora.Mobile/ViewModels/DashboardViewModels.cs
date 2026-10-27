@@ -350,6 +350,27 @@ public partial class TeacherDashboardViewModel : BaseViewModel
                 AllSchedule = res.Data.TodaySchedule?.ToList() ?? new List<TimetableEntryDto>();
                 AssignedClasses = new ObservableCollection<ClassSectionDto>(res.Data.ClassesList);
 
+                // Complement with full teacher timetable to guarantee all 5 weekdays (Mon-Fri) are available
+                var teacherId = _apiService.CurrentUser?.LinkedProfileId ?? Guid.Empty;
+                var timetableRes = await _apiService.GetTeacherTimetableAsync(teacherId);
+                if (timetableRes.Success && timetableRes.Data != null && timetableRes.Data.Count > 0)
+                {
+                    if (AllSchedule.Count == 0 || timetableRes.Data.Count >= AllSchedule.Count)
+                    {
+                        AllSchedule = timetableRes.Data;
+                    }
+                    else
+                    {
+                        foreach (var entry in timetableRes.Data)
+                        {
+                            if (!AllSchedule.Any(e => e.Id == entry.Id || (e.DayOfWeek == entry.DayOfWeek && e.StartTime == entry.StartTime && e.SubjectCode == entry.SubjectCode)))
+                            {
+                                AllSchedule.Add(entry);
+                            }
+                        }
+                    }
+                }
+
                 // Default active day: If Monday-Friday use Today; if Weekend default to Monday
                 var today = DateTime.Today.DayOfWeek;
                 var targetDay = (today is DayOfWeek.Saturday or DayOfWeek.Sunday) ? DayOfWeek.Monday : today;

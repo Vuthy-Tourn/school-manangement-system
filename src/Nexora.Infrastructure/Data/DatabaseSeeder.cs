@@ -1171,6 +1171,35 @@ public class DatabaseSeeder
             var history = subjects.FirstOrDefault(s => s.Code == "HIS101") ?? subjects.FirstOrDefault(s => s.Name.Contains("History"));
             var ict = subjects.FirstOrDefault(s => s.Code == "ICT101") ?? subjects.FirstOrDefault(s => s.Name.Contains("Computer") || s.Name.Contains("ICT"));
 
+            if (chemistry == null)
+            {
+                chemistry = new Subject { Id = Guid.NewGuid(), SchoolId = school.Id, Name = "Chemistry", Code = "CHM101", Description = "General Chemistry and Laboratory", CreditHours = 3 };
+                _context.Subjects.Add(chemistry);
+                subjects.Add(chemistry);
+                hasChanges = true;
+            }
+            if (biology == null)
+            {
+                biology = new Subject { Id = Guid.NewGuid(), SchoolId = school.Id, Name = "Biology", Code = "BIO101", Description = "Cellular Biology and Genetics", CreditHours = 3 };
+                _context.Subjects.Add(biology);
+                subjects.Add(biology);
+                hasChanges = true;
+            }
+            if (history == null)
+            {
+                history = new Subject { Id = Guid.NewGuid(), SchoolId = school.Id, Name = "History", Code = "HIS101", Description = "Cambodian and World History", CreditHours = 2 };
+                _context.Subjects.Add(history);
+                subjects.Add(history);
+                hasChanges = true;
+            }
+            if (ict == null)
+            {
+                ict = new Subject { Id = Guid.NewGuid(), SchoolId = school.Id, Name = "Computer Science & ICT", Code = "ICT101", Description = "Programming, Algorithms & Systems", CreditHours = 2 };
+                _context.Subjects.Add(ict);
+                subjects.Add(ict);
+                hasChanges = true;
+            }
+
             var mathTeacher = existingTeachers.FirstOrDefault(t => t.FirstName == "Dara") ?? existingTeachers.FirstOrDefault();
             var physicsTeacher = existingTeachers.FirstOrDefault(t => t.FirstName == "Chenda") ?? existingTeachers.FirstOrDefault();
             var khmerTeacher = existingTeachers.FirstOrDefault(t => t.FirstName == "Sokha") ?? existingTeachers.FirstOrDefault();

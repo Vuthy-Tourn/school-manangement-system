@@ -466,10 +466,15 @@ public class ApiService : IApiService
                 {
                     data = data with { TotalStudentsTaught = _mockStudents.Count };
                 }
-                // If today is weekend or has no classes, provide Monday's classes or mock schedule for display
+                // If today is weekend or has no classes, provide teacher schedule for display
                 if (data.TodaySchedule == null || data.TodaySchedule.Count == 0)
                 {
-                    data = data with { TodaySchedule = _mockSchedule };
+                    var teacherId = CurrentUser?.LinkedProfileId ?? TeacherDaraId;
+                    var teacherName = CurrentUser?.FullName ?? "Dara Sok";
+                    var teacherSchedule = _mockSchedule
+                        .Where(s => s.TeacherId == teacherId || string.Equals(s.TeacherName, teacherName, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    data = data with { TodaySchedule = teacherSchedule.Count > 0 ? teacherSchedule : _mockSchedule };
                 }
                 return ApiResponse<TeacherDashboardStatsDto>.Ok(data);
             }
@@ -479,11 +484,17 @@ public class ApiService : IApiService
             LogException("GetTeacherDashboardAsync", ex);
         }
 
+        var fallbackTeacherId = CurrentUser?.LinkedProfileId ?? TeacherDaraId;
+        var fallbackTeacherName = CurrentUser?.FullName ?? "Dara Sok";
+        var fallbackSchedule = _mockSchedule
+            .Where(s => s.TeacherId == fallbackTeacherId || string.Equals(s.TeacherName, fallbackTeacherName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
         return ApiResponse<TeacherDashboardStatsDto>.Ok(new TeacherDashboardStatsDto(
             AssignedClassesCount: _mockClasses.Count,
             AssignedSubjectsCount: 8,
             TotalStudentsTaught: _mockStudents.Count,
-            TodaySchedule: _mockSchedule,
+            TodaySchedule: fallbackSchedule.Count > 0 ? fallbackSchedule : _mockSchedule,
             ClassesList: _mockClasses
         ));
     }
