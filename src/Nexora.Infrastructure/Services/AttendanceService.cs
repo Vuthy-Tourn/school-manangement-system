@@ -144,14 +144,22 @@ public class AttendanceService : IAttendanceService
         var studentMapById = allStudents.ToDictionary(s => s.Id);
         var studentMapByAdm = allStudents.ToDictionary(s => s.AdmissionNumber, StringComparer.OrdinalIgnoreCase);
 
-        // Teacher permission check: only the designated homeroom advisor can record attendance
+        // Teacher permission check: designated homeroom advisor or assigned teaching faculty can record attendance
         if (_currentUserService.Role == UserRole.Teacher && userId != Guid.Empty)
         {
             var classSection = await _context.ClassSections.FindAsync(new object[] { request.ClassSectionId }, ct);
             var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.UserId == userId, ct);
             if (classSection != null && teacher != null && classSection.ClassTeacherId != teacher.Id)
             {
-                return ApiResponse<bool>.Fail($"Access restricted: Only the designated Homeroom Advisor for Class {classSection.Name} is authorized to record attendance.");
+                var teachesClass = await _context.SubjectClassAssignments
+                    .AnyAsync(sa => sa.TeacherId == teacher.Id && sa.ClassSectionId == request.ClassSectionId, ct)
+                    || await _context.TimetableEntries
+                    .AnyAsync(te => te.TeacherId == teacher.Id && te.ClassSectionId == request.ClassSectionId, ct);
+
+                if (!teachesClass)
+                {
+                    return ApiResponse<bool>.Fail($"Access restricted: Only the designated Homeroom Advisor or assigned teachers for Class {classSection.Name} are authorized to record attendance.");
+                }
             }
         }
 

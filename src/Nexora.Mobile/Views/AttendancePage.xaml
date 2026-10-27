@@ -69,6 +69,42 @@
                         </VerticalStackLayout>
                     </Grid>
 
+                    <!-- Class Session / Timetable Period Selector -->
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Label Text="Class Session / Timetable Period"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border Grid.Column="1"
+                                    StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    Stroke="{StaticResource PrimaryBorder}"
+                                    StrokeThickness="1"
+                                    Padding="6,2"
+                                    VerticalOptions="Center">
+                                <Label Text="{Binding SelectedSessionTimeSlot}"
+                                       FontSize="10.5"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="10,0"
+                                HeightRequest="42">
+                            <Picker ItemsSource="{Binding Sessions}"
+                                    ItemDisplayBinding="{Binding PickerDisplay}"
+                                    SelectedItem="{Binding SelectedSession}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    FontSize="13"
+                                    VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
                     <!-- Advisory Authority & Permission Status Banner -->
                     <Border StrokeShape="RoundRectangle 10"
                             BackgroundColor="{Binding AdvisorRoleBadgeBg}"
@@ -179,6 +215,10 @@
 
                                     <!-- Student Info -->
                                     <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={x:Reference AttendanceRootPage}, Path=BindingContext.EditRemarksCommand}"
+                                                                  CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
                                         <Label Text="{Binding StudentName}"
                                                FontSize="14"
                                                FontAttributes="Bold"
@@ -196,6 +236,13 @@
                                                 </FormattedString>
                                             </Label.FormattedText>
                                         </Label>
+                                        <Label Text="{Binding RemarksDisplay}"
+                                               FontSize="10.5"
+                                               TextColor="{StaticResource SecondaryDark}"
+                                               FontAttributes="Italic"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               IsVisible="{Binding HasRemarks}" />
                                     </VerticalStackLayout>
 
                                     <!-- Status Selection Chips -->
@@ -204,6 +251,7 @@
                                         <Button Text="P"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Present"
+                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -216,6 +264,7 @@
                                         <Button Text="L"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Late"
+                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -228,6 +277,7 @@
                                         <Button Text="A"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Absent"
+                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -240,6 +290,7 @@
                                         <Button Text="E"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Excused"
+                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -259,7 +310,7 @@
 
             <!-- Save Button Footer -->
             <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0">
-                <Button Text="Save Class Attendance"
+                <Button Text="{Binding SaveButtonText}"
                         Command="{Binding SaveAttendanceCommand}"
                         IsEnabled="{Binding CanTakeAttendanceActions}"
                         BackgroundColor="{StaticResource Primary}"

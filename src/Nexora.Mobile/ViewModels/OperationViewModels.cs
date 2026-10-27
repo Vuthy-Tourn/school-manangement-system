@@ -983,17 +983,25 @@ public class ClassSectionItemViewModel : ObservableObject
 
     public bool CanTakeAttendance { get; init; }
     public bool IsMyAdvisory { get; init; }
+    public bool IsTeachingFaculty { get; init; }
     public bool CanAssignAdvisor { get; init; }
 
-    public string AdvisorDisplay => IsMyAdvisory
-        ? $"Advisor: {ClassTeacherName ?? "You"} (You)"
-        : $"Advisor: {ClassTeacherName ?? "Unassigned"}";
+    public string AdvisorDisplay
+    {
+        get
+        {
+            if (IsMyAdvisory) return $"Advisor: {ClassTeacherName ?? "You"} (You)";
+            if (IsTeachingFaculty) return $"Advisor: {ClassTeacherName ?? "Unassigned"} • Teaching Faculty (You)";
+            return $"Advisor: {ClassTeacherName ?? "Unassigned"}";
+        }
+    }
 }
 
 // 4. Classes ViewModel
 public partial class ClassesViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
+    private readonly HashSet<Guid> _teacherTeachingClassIds = new();
 
     [ObservableProperty] private int _selectedSegmentIndex = 0;
     [ObservableProperty] private string _searchTerm = string.Empty;
@@ -1067,12 +1075,14 @@ public partial class ClassesViewModel : BaseViewModel
             var allVms = Classes.Select(c =>
             {
                 var isAdvisor = isTeacher && teacherId.HasValue && c.ClassTeacherId == teacherId.Value;
-                var canTakeAttendance = isAdmin || isAdvisor;
+                var isTeachingInClass = isTeacher && _teacherTeachingClassIds.Contains(c.Id);
+                var canTakeAttendance = isAdmin || isAdvisor || isTeachingInClass;
                 return new ClassSectionItemViewModel
                 {
                     Section = c,
                     CanTakeAttendance = canTakeAttendance,
                     IsMyAdvisory = isAdvisor,
+                    IsTeachingFaculty = isTeachingInClass,
                     CanAssignAdvisor = isAdmin
                 };
             }).ToList();
@@ -1091,12 +1101,14 @@ public partial class ClassesViewModel : BaseViewModel
         ).Select(c =>
         {
             var isAdvisor = isTeacher && teacherId.HasValue && c.ClassTeacherId == teacherId.Value;
-            var canTakeAttendance = isAdmin || isAdvisor;
+            var isTeachingInClass = isTeacher && _teacherTeachingClassIds.Contains(c.Id);
+            var canTakeAttendance = isAdmin || isAdvisor || isTeachingInClass;
             return new ClassSectionItemViewModel
             {
                 Section = c,
                 CanTakeAttendance = canTakeAttendance,
                 IsMyAdvisory = isAdvisor,
+                IsTeachingFaculty = isTeachingInClass,
                 CanAssignAdvisor = isAdmin
             };
         }).ToList();
@@ -1120,6 +1132,25 @@ public partial class ClassesViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
             UpdateRoleContext();
+
+            if (IsTeacher && CurrentTeacherId.HasValue)
+            {
+                try
+                {
+                    var teachersRes = await _apiService.GetTeachersAsync();
+                    var curTeacher = teachersRes.Data?.FirstOrDefault(t => t.Id == CurrentTeacherId.Value);
+                    if (teachersRes.Success && curTeacher?.Assignments != null)
+                    {
+                        _teacherTeachingClassIds.Clear();
+                        foreach (var a in curTeacher.Assignments)
+                        {
+                            if (a.ClassSectionId != Guid.Empty)
+                                _teacherTeachingClassIds.Add(a.ClassSectionId);
+                        }
+                    }
+                }
+                catch { /* Ignore profile assignment retrieval failure */ }
+            }
 
             var classesRes = await _apiService.GetClassesAsync();
             if (classesRes.Success && classesRes.Data != null)
@@ -1287,6 +1318,12 @@ public partial class AttendanceItemViewModel : ObservableObject
     [ObservableProperty]
     private string? _remarks;
 
+    [ObservableProperty]
+    private bool _canEdit = true;
+
+    public bool HasRemarks => !string.IsNullOrWhiteSpace(Remarks);
+    public string RemarksDisplay => Remarks ?? string.Empty;
+
     public bool IsPresent => Status == AttendanceStatus.Present;
     public bool IsLate => Status == AttendanceStatus.Late;
     public bool IsAbsent => Status == AttendanceStatus.Absent;
@@ -1314,6 +1351,13 @@ public partial class AttendanceItemViewModel : ObservableObject
         _onStatusChanged = onStatusChanged;
     }
 
+    partial void OnRemarksChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasRemarks));
+        OnPropertyChanged(nameof(RemarksDisplay));
+        _onStatusChanged?.Invoke();
+    }
+
     partial void OnStatusChanged(AttendanceStatus value)
     {
         OnPropertyChanged(nameof(IsPresent));
@@ -1338,15 +1382,44 @@ public partial class AttendanceItemViewModel : ObservableObject
     [RelayCommand]
     private void SetStatus(string statusStr)
     {
+        if (!CanEdit) return;
         if (Enum.TryParse<AttendanceStatus>(statusStr, out var s))
         {
             Status = s;
-            if (s != AttendanceStatus.Excused && Remarks?.Contains("Parent Permission") == true)
+            if (s == AttendanceStatus.Excused && string.IsNullOrWhiteSpace(Remarks))
+            {
+                Remarks = "Excused absence";
+            }
+            else if (s != AttendanceStatus.Excused && Remarks?.Contains("Parent Permission") == true)
             {
                 Remarks = null;
             }
         }
     }
+}
+
+public class AttendanceSessionItemViewModel : ObservableObject
+{
+    public string SessionKey { get; init; } = string.Empty;
+    public Guid? TimetableEntryId { get; init; }
+    public Guid? SubjectId { get; init; }
+    public string SubjectName { get; init; } = "Daily Homeroom Roll Call";
+    public Guid? InstructorId { get; init; }
+    public string? InstructorName { get; init; }
+    public TimeSpan? StartTime { get; init; }
+    public TimeSpan? EndTime { get; init; }
+    public string? RoomNumber { get; init; }
+    public bool IsHomeroomSession { get; init; }
+
+    public string TimeSlotDisplay => StartTime.HasValue && EndTime.HasValue
+        ? $"{StartTime.Value:hh\\:mm} - {EndTime.Value:hh\\:mm}"
+        : "07:30 - 08:00";
+
+    public string TitleDisplay => IsHomeroomSession ? "Daily Homeroom Roll Call" : $"{SubjectName}";
+
+    public string PickerDisplay => IsHomeroomSession
+        ? $"Daily Homeroom Roll Call ({TimeSlotDisplay}) • {InstructorName ?? "Advisor"}"
+        : $"{SubjectName} ({TimeSlotDisplay}) • {InstructorName ?? "Faculty"}";
 }
 
 [QueryProperty(nameof(ClassIdParam), "classId")]
@@ -1357,7 +1430,12 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private string? _classIdParam;
     [ObservableProperty] private Guid? _targetClassId;
 
-    public bool CanTakeAttendanceActions => !IsBusy && (IsAdmin || IsCurrentUserAdvisor) && SelectedClass != null;
+    private bool _isAuthorizedForCurrentSession = false;
+    public bool CanTakeAttendanceActions => !IsBusy && _isAuthorizedForCurrentSession && SelectedClass != null;
+
+    private readonly HashSet<Guid> _currentTeacherAssignedClassIds = new();
+    private readonly Dictionary<string, (AttendanceStatus Status, string? Remarks)> _sessionAttendanceCache = new();
+    private AttendanceSessionItemViewModel? _previousSession;
 
     partial void OnClassIdParamChanged(string? value)
     {
@@ -1381,6 +1459,10 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
+    [ObservableProperty] private ObservableCollection<AttendanceSessionItemViewModel> _sessions = new();
+    [ObservableProperty] private AttendanceSessionItemViewModel? _selectedSession;
+    [ObservableProperty] private string _selectedSessionTimeSlot = "07:30 - 08:00";
+    [ObservableProperty] private string _saveButtonText = "Save Class Attendance";
     [ObservableProperty] private ObservableCollection<AttendanceItemViewModel> _studentItems = new();
     [ObservableProperty] private AttendanceSummaryDto? _summary;
     [ObservableProperty] private decimal _currentPresentRate = 100.0m;
@@ -1459,24 +1541,49 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private Color _advisorRolePillBg = Color.FromArgb("#DBEAFE");
     [ObservableProperty] private Color _advisorRoleTagColor = Color.FromArgb("#2563EB");
 
+    private string GetSessionCacheKey(Guid classId, DateTime date, string sessionKey) => $"{classId}_{date:yyyyMMdd}_{sessionKey}";
+
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
         UpdateAdvisorRoleStatus();
         OnPropertyChanged(nameof(CanTakeAttendanceActions));
+        OnPropertyChanged(nameof(SaveButtonText));
         if (_isInitializing || _isLoading) return;
         if (value != null && IsFacultyView)
         {
-            _ = LoadAttendanceAsync();
+            _ = LoadSessionsAndAttendanceAsync();
         }
     }
 
     partial void OnSelectedDateChanged(DateTime value)
     {
         if (_isInitializing || _isLoading) return;
-        if (IsFacultyView)
+        if (IsFacultyView && SelectedClass != null)
         {
-            _ = LoadAttendanceAsync();
+            _ = LoadSessionsAndAttendanceAsync();
         }
+    }
+
+    partial void OnSelectedSessionChanged(AttendanceSessionItemViewModel? value)
+    {
+        if (_previousSession != null && SelectedClass != null)
+        {
+            var prevKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, _previousSession.SessionKey);
+            foreach (var item in StudentItems)
+            {
+                _sessionAttendanceCache[$"{prevKey}_{item.StudentId}"] = (item.Status, item.Remarks);
+            }
+        }
+
+        _previousSession = value;
+        SelectedSessionTimeSlot = value?.TimeSlotDisplay ?? "07:30 - 08:00";
+        SaveButtonText = value?.IsHomeroomSession == true
+            ? "Save Homeroom Roll Call"
+            : $"Save {value?.TitleDisplay ?? "Session"} Attendance";
+
+        UpdateAdvisorRoleStatus();
+        ApplySessionAttendance();
+        RecalculatePresentRate();
     }
 
     partial void OnSelectedParentChildChanged(LinkedStudentDto? value)
@@ -1511,6 +1618,24 @@ public partial class AttendanceViewModel : BaseViewModel
             ? ((present + (late * 0.5m)) / (decimal)total) * 100m
             : 100.0m;
         CurrentPresentRate = Math.Round(Math.Clamp(rate, 0m, 100m), 1);
+    }
+
+    private void ApplySessionAttendance()
+    {
+        if (SelectedClass == null || SelectedSession == null || StudentItems.Count == 0) return;
+
+        var sessionKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey);
+
+        foreach (var item in StudentItems)
+        {
+            item.CanEdit = CanTakeAttendanceActions;
+            var cacheId = $"{sessionKey}_{item.StudentId}";
+            if (_sessionAttendanceCache.TryGetValue(cacheId, out var cached))
+            {
+                item.Status = cached.Status;
+                item.Remarks = cached.Remarks;
+            }
+        }
     }
 
     [RelayCommand]
@@ -1551,11 +1676,41 @@ public partial class AttendanceViewModel : BaseViewModel
                     var all = classesRes.Data;
                     var teacherId = _apiService.CurrentUser?.LinkedProfileId;
 
-                    if (role == UserRole.Teacher)
+                    if (role == UserRole.Teacher && teacherId.HasValue)
                     {
-                        // Specific Permission: Teachers ONLY see and take attendance for classes assigned to them as Homeroom Advisor
-                        var assignedClasses = all.Where(c => c.ClassTeacherId == teacherId).ToList();
-                        Classes = new ObservableCollection<ClassSectionDto>(assignedClasses);
+                        _currentTeacherAssignedClassIds.Clear();
+                        try
+                        {
+                            var teachersRes = await _apiService.GetTeachersAsync();
+                            var curTeacher = teachersRes.Data?.FirstOrDefault(t => t.Id == teacherId.Value);
+                            if (curTeacher?.Assignments != null)
+                            {
+                                foreach (var a in curTeacher.Assignments)
+                                {
+                                    if (a.ClassSectionId != Guid.Empty)
+                                        _currentTeacherAssignedClassIds.Add(a.ClassSectionId);
+                                }
+                            }
+
+                            var ttRes = await _apiService.GetTeacherTimetableAsync(teacherId.Value);
+                            if (ttRes.Success && ttRes.Data != null)
+                            {
+                                foreach (var entry in ttRes.Data)
+                                {
+                                    if (entry.ClassSectionId != Guid.Empty)
+                                        _currentTeacherAssignedClassIds.Add(entry.ClassSectionId);
+                                }
+                            }
+                        }
+                        catch { /* non-critical teacher assignments fetch */ }
+
+                        // Teachers see classes where they are Homeroom Advisor or assigned Subject Instructor
+                        var visibleClasses = all.Where(c => c.ClassTeacherId == teacherId.Value || _currentTeacherAssignedClassIds.Contains(c.Id)).ToList();
+                        if (visibleClasses.Count == 0)
+                        {
+                            visibleClasses = all;
+                        }
+                        Classes = new ObservableCollection<ClassSectionDto>(visibleClasses);
                     }
                     else
                     {
@@ -1572,6 +1727,7 @@ public partial class AttendanceViewModel : BaseViewModel
                         SelectedClass = Classes.FirstOrDefault();
                     }
 
+                    await LoadSessionsForClassAndDateAsync();
                     UpdateAdvisorRoleStatus();
                     if (SelectedClass != null)
                     {
@@ -1596,6 +1752,142 @@ public partial class AttendanceViewModel : BaseViewModel
         }
     }
 
+    private async Task LoadSessionsForClassAndDateAsync()
+    {
+        if (SelectedClass == null)
+        {
+            Sessions.Clear();
+            SelectedSession = null;
+            return;
+        }
+
+        var sessionsList = new List<AttendanceSessionItemViewModel>();
+
+        // 1. Always include Daily Homeroom Roll Call
+        sessionsList.Add(new AttendanceSessionItemViewModel
+        {
+            SessionKey = "homeroom",
+            SubjectName = "Daily Homeroom Roll Call",
+            IsHomeroomSession = true,
+            InstructorId = SelectedClass.ClassTeacherId,
+            InstructorName = SelectedClass.ClassTeacherName ?? "Homeroom Advisor",
+            StartTime = new TimeSpan(7, 30, 0),
+            EndTime = new TimeSpan(8, 0, 0),
+            RoomNumber = SelectedClass.RoomNumber
+        });
+
+        // 2. Fetch timetable entries for this class
+        try
+        {
+            var ttRes = await _apiService.GetClassTimetableAsync(SelectedClass.Id);
+            if (ttRes.Success && ttRes.Data != null && ttRes.Data.Count > 0)
+            {
+                var dayOfWeek = SelectedDate.DayOfWeek;
+                var entriesForDay = ttRes.Data
+                    .Where(e => e.DayOfWeek == dayOfWeek)
+                    .OrderBy(e => e.StartTime)
+                    .ToList();
+
+                if (entriesForDay.Count == 0 && dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
+                {
+                    entriesForDay = ttRes.Data
+                        .GroupBy(e => e.SubjectId)
+                        .Select(g => g.First())
+                        .OrderBy(e => e.StartTime)
+                        .ToList();
+                }
+
+                foreach (var entry in entriesForDay)
+                {
+                    sessionsList.Add(new AttendanceSessionItemViewModel
+                    {
+                        SessionKey = $"tt_{entry.Id}",
+                        TimetableEntryId = entry.Id,
+                        SubjectId = entry.SubjectId,
+                        SubjectName = entry.SubjectName,
+                        InstructorId = entry.TeacherId,
+                        InstructorName = entry.TeacherName,
+                        StartTime = entry.StartTime,
+                        EndTime = entry.EndTime,
+                        RoomNumber = entry.RoomNumber ?? SelectedClass.RoomNumber,
+                        IsHomeroomSession = false
+                    });
+                }
+            }
+        }
+        catch { /* Ignore timetable query failure */ }
+
+        // Fallback default periods if only homeroom is present
+        if (sessionsList.Count == 1)
+        {
+            sessionsList.Add(new AttendanceSessionItemViewModel
+            {
+                SessionKey = "session_period_1",
+                SubjectName = "Period 1: Morning Session",
+                IsHomeroomSession = false,
+                InstructorId = SelectedClass.ClassTeacherId,
+                InstructorName = SelectedClass.ClassTeacherName ?? "Faculty",
+                StartTime = new TimeSpan(8, 0, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+                RoomNumber = SelectedClass.RoomNumber
+            });
+            sessionsList.Add(new AttendanceSessionItemViewModel
+            {
+                SessionKey = "session_period_2",
+                SubjectName = "Period 2: Mid-Day Session",
+                IsHomeroomSession = false,
+                InstructorId = SelectedClass.ClassTeacherId,
+                InstructorName = SelectedClass.ClassTeacherName ?? "Faculty",
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(12, 0, 0),
+                RoomNumber = SelectedClass.RoomNumber
+            });
+            sessionsList.Add(new AttendanceSessionItemViewModel
+            {
+                SessionKey = "session_period_3",
+                SubjectName = "Period 3: Afternoon Session",
+                IsHomeroomSession = false,
+                InstructorId = SelectedClass.ClassTeacherId,
+                InstructorName = SelectedClass.ClassTeacherName ?? "Faculty",
+                StartTime = new TimeSpan(13, 0, 0),
+                EndTime = new TimeSpan(15, 0, 0),
+                RoomNumber = SelectedClass.RoomNumber
+            });
+        }
+
+        Sessions = new ObservableCollection<AttendanceSessionItemViewModel>(sessionsList);
+
+        // Auto-select session: if current teacher is a session instructor (and not class advisor), select their session
+        var currentTeacherId = _apiService.CurrentUser?.LinkedProfileId;
+        AttendanceSessionItemViewModel? defaultSession = null;
+        if (currentTeacherId.HasValue && SelectedClass.ClassTeacherId != currentTeacherId.Value)
+        {
+            defaultSession = sessionsList.FirstOrDefault(s => !s.IsHomeroomSession && s.InstructorId == currentTeacherId.Value);
+        }
+
+        SelectedSession = defaultSession ?? sessionsList.FirstOrDefault();
+        _previousSession = SelectedSession;
+        SelectedSessionTimeSlot = SelectedSession?.TimeSlotDisplay ?? "07:30 - 08:00";
+        SaveButtonText = SelectedSession?.IsHomeroomSession == true
+            ? "Save Homeroom Roll Call"
+            : $"Save {SelectedSession?.TitleDisplay ?? "Session"} Attendance";
+    }
+
+    private async Task LoadSessionsAndAttendanceAsync()
+    {
+        if (_isLoading || _isInitializing) return;
+        try
+        {
+            IsBusy = true;
+            await LoadSessionsForClassAndDateAsync();
+            await LoadAttendanceInternalAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     [RelayCommand]
     public async Task RefreshAsync()
     {
@@ -1609,6 +1901,7 @@ public partial class AttendanceViewModel : BaseViewModel
             }
             else if (IsFacultyView && SelectedClass != null)
             {
+                await LoadSessionsForClassAndDateAsync();
                 await LoadAttendanceInternalAsync();
             }
         }
@@ -1937,9 +2230,72 @@ public partial class AttendanceViewModel : BaseViewModel
 
             var recordMap = records.GroupBy(r => r.StudentId).ToDictionary(g => g.Key, g => g.First());
             var recordAdmMap = records.Where(r => !string.IsNullOrEmpty(r.AdmissionNumber)).GroupBy(r => r.AdmissionNumber).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-            var itemsList = new List<AttendanceItemViewModel>();
 
-            var isToday = date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow);
+            // Parse session-specific statuses from saved remarks for each record
+            foreach (var r in records)
+            {
+                if (!string.IsNullOrWhiteSpace(r.Remarks) && r.Remarks.Contains('[') && r.Remarks.Contains(']'))
+                {
+                    var matches = System.Text.RegularExpressions.Regex.Matches(r.Remarks, @"\[([^:\]]+):\s*([^-\]\s]+)(?:\s*-\s*([^\]]*))?\]");
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        var title = m.Groups[1].Value.Trim();
+                        var statusStr = m.Groups[2].Value.Trim();
+                        var note = m.Groups[3].Success ? m.Groups[3].Value.Trim() : null;
+
+                        if (Enum.TryParse<AttendanceStatus>(statusStr, out var parsedStatus))
+                        {
+                            var matchedSession = Sessions.FirstOrDefault(s =>
+                                s.TitleDisplay.Equals(title, StringComparison.OrdinalIgnoreCase) ||
+                                s.SubjectName.Equals(title, StringComparison.OrdinalIgnoreCase) ||
+                                (s.IsHomeroomSession && title.Contains("Homeroom", StringComparison.OrdinalIgnoreCase)));
+
+                            if (matchedSession != null)
+                            {
+                                var sKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, matchedSession.SessionKey);
+                                _sessionAttendanceCache[$"{sKey}_{r.StudentId}"] = (parsedStatus, note);
+                            }
+                        }
+                    }
+                }
+
+                // Homeroom cache fallback
+                var hrSession = Sessions.FirstOrDefault(s => s.IsHomeroomSession);
+                if (hrSession != null)
+                {
+                    var hrKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, hrSession.SessionKey);
+                    if (!_sessionAttendanceCache.ContainsKey($"{hrKey}_{r.StudentId}"))
+                    {
+                        _sessionAttendanceCache[$"{hrKey}_{r.StudentId}"] = (r.Status, r.Remarks);
+                    }
+                }
+
+                // Other sessions cache fallback
+                foreach (var s in Sessions.Where(x => !x.IsHomeroomSession))
+                {
+                    var sKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, s.SessionKey);
+                    if (!_sessionAttendanceCache.ContainsKey($"{sKey}_{r.StudentId}"))
+                    {
+                        if (r.Status == AttendanceStatus.Absent)
+                        {
+                            _sessionAttendanceCache[$"{sKey}_{r.StudentId}"] = (AttendanceStatus.Absent, "Absent from school");
+                        }
+                        else if (r.Status == AttendanceStatus.Excused && r.Remarks?.Contains("Permission") == true)
+                        {
+                            _sessionAttendanceCache[$"{sKey}_{r.StudentId}"] = (AttendanceStatus.Excused, r.Remarks);
+                        }
+                        else
+                        {
+                            _sessionAttendanceCache[$"{sKey}_{r.StudentId}"] = (AttendanceStatus.Present, null);
+                        }
+                    }
+                }
+            }
+
+            var itemsList = new List<AttendanceItemViewModel>();
+            var currentSessionKey = SelectedSession != null
+                ? GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey)
+                : null;
 
             foreach (var st in roster.Values.OrderBy(s => s.AdmissionNumber))
             {
@@ -1947,17 +2303,45 @@ public partial class AttendanceViewModel : BaseViewModel
                 if (recordAdmMap.TryGetValue(st.AdmissionNumber, out var rAdm)) r = rAdm;
                 else if (recordMap.TryGetValue(st.Id, out var rId)) r = rId;
 
-                var status = r?.Status ?? AttendanceStatus.Present;
-                var remarks = r?.Remarks;
+                var initialStatus = AttendanceStatus.Present;
+                string? initialRemarks = null;
 
-                itemsList.Add(new AttendanceItemViewModel(() => RecalculatePresentRate())
+                if (currentSessionKey != null && _sessionAttendanceCache.TryGetValue($"{currentSessionKey}_{st.Id}", out var cached))
+                {
+                    initialStatus = cached.Status;
+                    initialRemarks = cached.Remarks;
+                }
+                else if (r != null)
+                {
+                    initialStatus = r.Status;
+                    initialRemarks = r.Remarks;
+                }
+
+                AttendanceItemViewModel itemVm = null!;
+                itemVm = new AttendanceItemViewModel(() =>
+                {
+                    RecalculatePresentRate();
+                    if (SelectedSession != null && SelectedClass != null)
+                    {
+                        var sKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey);
+                        _sessionAttendanceCache[$"{sKey}_{itemVm.StudentId}"] = (itemVm.Status, itemVm.Remarks);
+                    }
+                })
                 {
                     StudentId = r?.StudentId ?? st.Id,
                     StudentName = r?.StudentName ?? st.FullName,
                     AdmissionNumber = r?.AdmissionNumber ?? st.AdmissionNumber,
-                    Status = status,
-                    Remarks = remarks
-                });
+                    Status = initialStatus,
+                    Remarks = initialRemarks,
+                    CanEdit = CanTakeAttendanceActions
+                };
+
+                if (currentSessionKey != null)
+                {
+                    _sessionAttendanceCache[$"{currentSessionKey}_{itemVm.StudentId}"] = (itemVm.Status, itemVm.Remarks);
+                }
+
+                itemsList.Add(itemVm);
             }
 
             StudentItems = new ObservableCollection<AttendanceItemViewModel>(itemsList);
@@ -1979,7 +2363,7 @@ public partial class AttendanceViewModel : BaseViewModel
     [RelayCommand]
     private void MarkAllPresent()
     {
-        if (!IsAdmin && !IsCurrentUserAdvisor) return;
+        if (!CanTakeAttendanceActions) return;
 
         foreach (var item in StudentItems)
         {
@@ -1988,8 +2372,35 @@ public partial class AttendanceViewModel : BaseViewModel
             {
                 item.Remarks = null;
             }
+            if (SelectedSession != null && SelectedClass != null)
+            {
+                var sKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey);
+                _sessionAttendanceCache[$"{sKey}_{item.StudentId}"] = (AttendanceStatus.Present, item.Remarks);
+            }
         }
         RecalculatePresentRate();
+    }
+
+    [RelayCommand]
+    public async Task EditRemarksAsync(AttendanceItemViewModel item)
+    {
+        if (item == null || !CanTakeAttendanceActions) return;
+        string current = item.Remarks ?? "";
+        string? result = await Shell.Current.DisplayPromptAsync(
+            "Attendance Note",
+            $"Enter note / reason for {item.StudentName}:",
+            initialValue: current,
+            placeholder: "e.g., Left sick at 10:30 AM, Medical leave");
+
+        if (result != null)
+        {
+            item.Remarks = string.IsNullOrWhiteSpace(result) ? null : result.Trim();
+            if (SelectedSession != null && SelectedClass != null)
+            {
+                var curSessionKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey);
+                _sessionAttendanceCache[$"{curSessionKey}_{item.StudentId}"] = (item.Status, item.Remarks);
+            }
+        }
     }
 
     private void UpdateAdvisorRoleStatus()
@@ -2000,12 +2411,13 @@ public partial class AttendanceViewModel : BaseViewModel
 
         if (SelectedClass == null)
         {
+            _isAuthorizedForCurrentSession = false;
             IsCurrentUserAdvisor = false;
             if (role == UserRole.Teacher && Classes.Count == 0)
             {
-                AdvisorRoleBadge = "No Advisory Class Assigned";
+                AdvisorRoleBadge = "No Classes Assigned";
                 AdvisorRoleTag = "Action Required";
-                AdvisorRoleSubtitle = "You are not assigned as Homeroom Advisor to any class section. Please contact an Administrator.";
+                AdvisorRoleSubtitle = "You are not assigned as Homeroom Advisor or Subject Instructor for any class section.";
                 AdvisorRoleBadgeBg = Color.FromArgb("#FFFBEB");
                 AdvisorRoleBadgeBorder = Color.FromArgb("#FDE68A");
                 AdvisorRolePillBg = Color.FromArgb("#FEF3C7");
@@ -2019,46 +2431,103 @@ public partial class AttendanceViewModel : BaseViewModel
                 AdvisorRoleSubtitle = string.Empty;
             }
             OnPropertyChanged(nameof(CanTakeAttendanceActions));
+            OnPropertyChanged(nameof(SaveButtonText));
             return;
         }
 
+        bool isClassAdvisor = teacherId.HasValue && SelectedClass.ClassTeacherId == teacherId.Value;
+        bool isSessionInstructor = teacherId.HasValue && SelectedSession != null &&
+            (SelectedSession.InstructorId == teacherId.Value ||
+             (!SelectedSession.IsHomeroomSession && _currentTeacherAssignedClassIds.Contains(SelectedClass.Id)));
+
+        IsCurrentUserAdvisor = isClassAdvisor;
+
         if (IsAdmin)
         {
-            IsCurrentUserAdvisor = true;
+            _isAuthorizedForCurrentSession = true;
             AdvisorRoleBadge = "Administrative Authority";
             AdvisorRoleTag = "Full Access";
-            AdvisorRoleSubtitle = $"Full override permissions active • Designated Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
+            AdvisorRoleSubtitle = $"Full override permissions active • Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
             AdvisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
             AdvisorRoleBadgeBorder = Color.FromArgb("#BFDBFE");
             AdvisorRolePillBg = Color.FromArgb("#DBEAFE");
             AdvisorRoleBadgeText = Color.FromArgb("#1D4ED8");
             AdvisorRoleTagColor = Color.FromArgb("#2563EB");
         }
-        else if (teacherId.HasValue && SelectedClass.ClassTeacherId == teacherId.Value)
+        else if (SelectedSession?.IsHomeroomSession == true)
         {
-            IsCurrentUserAdvisor = true;
-            AdvisorRoleBadge = "Homeroom Advisor (You)";
-            AdvisorRoleTag = "Authorized";
-            AdvisorRoleSubtitle = $"Authorized for morning roll call & presence verification for Class {SelectedClass.Name}";
-            AdvisorRoleBadgeBg = Color.FromArgb("#ECFDF5");
-            AdvisorRoleBadgeBorder = Color.FromArgb("#A7F3D0");
-            AdvisorRolePillBg = Color.FromArgb("#D1FAE5");
-            AdvisorRoleBadgeText = Color.FromArgb("#065F46");
-            AdvisorRoleTagColor = Color.FromArgb("#059669");
+            if (isClassAdvisor)
+            {
+                _isAuthorizedForCurrentSession = true;
+                AdvisorRoleBadge = "Homeroom Advisor (You)";
+                AdvisorRoleTag = "Authorized";
+                AdvisorRoleSubtitle = $"Authorized for morning roll call & presence verification for Class {SelectedClass.Name}";
+                AdvisorRoleBadgeBg = Color.FromArgb("#ECFDF5");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#A7F3D0");
+                AdvisorRolePillBg = Color.FromArgb("#D1FAE5");
+                AdvisorRoleBadgeText = Color.FromArgb("#065F46");
+                AdvisorRoleTagColor = Color.FromArgb("#059669");
+            }
+            else
+            {
+                _isAuthorizedForCurrentSession = false;
+                AdvisorRoleBadge = "Restricted Access";
+                AdvisorRoleTag = "View Only";
+                AdvisorRoleSubtitle = $"Daily homeroom roll call is strictly managed by {SelectedClass.ClassTeacherName ?? "the designated Homeroom Advisor"}";
+                AdvisorRoleBadgeBg = Color.FromArgb("#FEF2F2");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#FECACA");
+                AdvisorRolePillBg = Color.FromArgb("#FEE2E2");
+                AdvisorRoleBadgeText = Color.FromArgb("#991B1B");
+                AdvisorRoleTagColor = Color.FromArgb("#DC2626");
+            }
         }
-        else
+        else // Specific Timetable Period / Session
         {
-            IsCurrentUserAdvisor = false;
-            AdvisorRoleBadge = "Restricted Access";
-            AdvisorRoleTag = "View Only";
-            AdvisorRoleSubtitle = $"Viewing mode only • Attendance is managed by the designated advisor ({SelectedClass.ClassTeacherName ?? "Unassigned"})";
-            AdvisorRoleBadgeBg = Color.FromArgb("#FEF2F2");
-            AdvisorRoleBadgeBorder = Color.FromArgb("#FECACA");
-            AdvisorRolePillBg = Color.FromArgb("#FEE2E2");
-            AdvisorRoleBadgeText = Color.FromArgb("#991B1B");
-            AdvisorRoleTagColor = Color.FromArgb("#DC2626");
+            if (isSessionInstructor)
+            {
+                _isAuthorizedForCurrentSession = true;
+                AdvisorRoleBadge = "Session Instructor (You)";
+                AdvisorRoleTag = "Authorized";
+                AdvisorRoleSubtitle = $"Authorized to record attendance for {SelectedSession?.TitleDisplay} ({SelectedSession?.TimeSlotDisplay})";
+                AdvisorRoleBadgeBg = Color.FromArgb("#ECFDF5");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#A7F3D0");
+                AdvisorRolePillBg = Color.FromArgb("#D1FAE5");
+                AdvisorRoleBadgeText = Color.FromArgb("#065F46");
+                AdvisorRoleTagColor = Color.FromArgb("#059669");
+            }
+            else if (isClassAdvisor)
+            {
+                _isAuthorizedForCurrentSession = true;
+                AdvisorRoleBadge = "Homeroom Advisor Oversight";
+                AdvisorRoleTag = "Authorized";
+                AdvisorRoleSubtitle = $"Advisory oversight active • Session instructor: {SelectedSession?.InstructorName ?? "Unassigned"}";
+                AdvisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#BFDBFE");
+                AdvisorRolePillBg = Color.FromArgb("#DBEAFE");
+                AdvisorRoleBadgeText = Color.FromArgb("#1D4ED8");
+                AdvisorRoleTagColor = Color.FromArgb("#2563EB");
+            }
+            else
+            {
+                _isAuthorizedForCurrentSession = false;
+                AdvisorRoleBadge = "Restricted Access";
+                AdvisorRoleTag = "View Only";
+                AdvisorRoleSubtitle = $"Period taught by {SelectedSession?.InstructorName ?? "faculty"} • Viewing mode only";
+                AdvisorRoleBadgeBg = Color.FromArgb("#FEF2F2");
+                AdvisorRoleBadgeBorder = Color.FromArgb("#FECACA");
+                AdvisorRolePillBg = Color.FromArgb("#FEE2E2");
+                AdvisorRoleBadgeText = Color.FromArgb("#991B1B");
+                AdvisorRoleTagColor = Color.FromArgb("#DC2626");
+            }
         }
+
+        foreach (var item in StudentItems)
+        {
+            item.CanEdit = _isAuthorizedForCurrentSession;
+        }
+
         OnPropertyChanged(nameof(CanTakeAttendanceActions));
+        OnPropertyChanged(nameof(SaveButtonText));
     }
 
     [RelayCommand]
@@ -2066,12 +2535,11 @@ public partial class AttendanceViewModel : BaseViewModel
     {
         if (SelectedClass == null || StudentItems.Count == 0) return;
 
-        if (!IsAdmin && !IsCurrentUserAdvisor)
+        if (!CanTakeAttendanceActions)
         {
-            var advisorName = SelectedClass.ClassTeacherName ?? "the designated Homeroom Advisor";
             await Shell.Current.DisplayAlert(
                 "Access Restricted",
-                $"You do not have permission to record attendance for Class {SelectedClass.Name}.\n\nOfficial attendance roll call is strictly managed by {advisorName} or a School Administrator.",
+                $"You do not have permission to record attendance for {SelectedSession?.TitleDisplay ?? "this session"} in Class {SelectedClass.Name}.\n\nOfficial attendance is managed by the assigned instructor or Homeroom Advisor.",
                 "OK");
             return;
         }
@@ -2081,21 +2549,86 @@ public partial class AttendanceViewModel : BaseViewModel
             IsBusy = true;
             ClearError();
 
+            // 1. Cache current UI state for the selected session
+            if (SelectedSession != null)
+            {
+                var curSessionKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, SelectedSession.SessionKey);
+                foreach (var item in StudentItems)
+                {
+                    _sessionAttendanceCache[$"{curSessionKey}_{item.StudentId}"] = (item.Status, item.Remarks);
+                }
+            }
+
+            // 2. Build consolidated records
+            var recordsToSubmit = new List<StudentAttendanceItem>();
+
+            foreach (var item in StudentItems)
+            {
+                // Gather all session statuses recorded today for this student
+                var studentSessionStatuses = new List<(string SessionTitle, AttendanceStatus Status, string? Note)>();
+                foreach (var s in Sessions)
+                {
+                    var sKey = GetSessionCacheKey(SelectedClass.Id, SelectedDate, s.SessionKey);
+                    if (_sessionAttendanceCache.TryGetValue($"{sKey}_{item.StudentId}", out var cached))
+                    {
+                        studentSessionStatuses.Add((s.TitleDisplay, cached.Status, cached.Remarks));
+                    }
+                }
+
+                // Format consolidated remarks preserving all session tags
+                string consolidatedRemarks;
+                if (studentSessionStatuses.Count > 0)
+                {
+                    var tags = studentSessionStatuses.Select(ss =>
+                        $"[{ss.SessionTitle}: {ss.Status}{(string.IsNullOrWhiteSpace(ss.Note) ? "" : " - " + ss.Note)}]");
+                    consolidatedRemarks = string.Join(" ", tags);
+                }
+                else
+                {
+                    consolidatedRemarks = !string.IsNullOrWhiteSpace(item.Remarks) ? item.Remarks : string.Empty;
+                }
+
+                // Determine overall daily status
+                AttendanceStatus consolidatedStatus;
+                if (studentSessionStatuses.Any(ss => ss.Status == AttendanceStatus.Absent))
+                {
+                    consolidatedStatus = AttendanceStatus.Absent;
+                }
+                else if (studentSessionStatuses.Any(ss => ss.Status == AttendanceStatus.Excused))
+                {
+                    consolidatedStatus = AttendanceStatus.Excused;
+                }
+                else if (studentSessionStatuses.Any(ss => ss.Status == AttendanceStatus.Late))
+                {
+                    consolidatedStatus = AttendanceStatus.Late;
+                }
+                else
+                {
+                    consolidatedStatus = item.Status;
+                }
+
+                recordsToSubmit.Add(new StudentAttendanceItem(item.StudentId, consolidatedStatus, consolidatedRemarks));
+            }
+
             var req = new BatchAttendanceRequest(
                 SelectedClass.Id,
                 DateOnly.FromDateTime(SelectedDate),
-                StudentItems.Select(s => new StudentAttendanceItem(s.StudentId, s.Status, s.Remarks)).ToList()
+                recordsToSubmit
             );
 
             var res = await _apiService.RecordBatchAttendanceAsync(req);
             if (res.Success)
             {
-                var title = IsCurrentUserAdvisor ? "Homeroom Attendance Recorded" : "Relief Attendance Logged";
-                var msg = IsCurrentUserAdvisor
-                    ? $"Official roll call for your advisory class ({SelectedClass.Name}) has been recorded."
-                    : $"Substitute roll call for Class {SelectedClass.Name} has been recorded.";
+                var title = SelectedSession?.IsHomeroomSession == true
+                    ? "Homeroom Roll Call Saved"
+                    : "Session Attendance Saved";
+                var msg = SelectedSession?.IsHomeroomSession == true
+                    ? $"Daily homeroom roll call for Class {SelectedClass.Name} has been recorded."
+                    : $"Attendance for {SelectedSession?.TitleDisplay} ({SelectedSession?.TimeSlotDisplay}) has been recorded.";
                 await Shell.Current.DisplayAlert(title, msg, "OK");
-                await LoadAttendanceAsync();
+
+                // Refresh attendance data while keeping current session
+                await LoadAttendanceInternalAsync();
             }
             else
             {
