@@ -341,7 +341,10 @@ public partial class AdminDashboardViewModel : BaseViewModel
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.GoToAsync($"//{route}");
+                var target = (route == "classes" || route == "audit-logs" || route.Contains('-'))
+                    ? route
+                    : $"//{route}";
+                await Shell.Current.GoToAsync(target);
             }
         }
         catch (Exception ex)

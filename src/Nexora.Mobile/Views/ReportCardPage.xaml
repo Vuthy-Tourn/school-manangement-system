@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             x:Class="Nexora.Mobile.Views.ReportCardPage"
+             x:DataType="vm:ReportCardViewModel"
+             Title="Official Report Card"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20,16,20,32" MaximumWidthRequest="720">
+
+            <!-- Official Transcript Document Container -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource White}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="24,20">
+                <VerticalStackLayout Spacing="18">
+
+                    <!-- Institutional Header -->
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16" VerticalOptions="Center">
+                        <Border Grid.Column="0"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                Stroke="{StaticResource PrimaryBorder}"
+                                HeightRequest="56" WidthRequest="56"
+                                VerticalOptions="Center">
+                            <Image Source="icon_grades.png"
+                                   WidthRequest="28" HeightRequest="28"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="ANGKOR INTERNATIONAL ACADEMY"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}" />
+                            <Label Text="OFFICIAL ACADEMIC TRANSCRIPT &amp; SEMESTER REPORT"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource SecondaryDark}" />
+                            <Label Text="Academic Year 2026-2027 • Semester 1 Examination Session"
+                                   FontSize="10"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <BoxView HeightRequest="1" Color="{StaticResource SurfaceBorder}" />
+
+                    <!-- Student Identification Box -->
+                    <Border StrokeShape="RoundRectangle 10"
+                            BackgroundColor="{StaticResource SurfaceLight}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="16,12">
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+                            <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6">
+                                <Label Text="Student Name:" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding StudentName}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="6">
+                                <Label Text="Admission ID:" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding AdmissionNumber}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="6">
+                                <Label Text="Class Section:" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding ClassName, StringFormat='Grade {0}'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                                <Label Text="Date of Issue:" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding IssueDateFormatted}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <!-- Academic Grade Transcript Table Header -->
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="2*,*,*,*,*" BackgroundColor="{StaticResource PrimaryLight}" Padding="10,8">
+                            <Label Grid.Column="0" Text="SUBJECT" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                            <Label Grid.Column="1" Text="QUIZ" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            <Label Grid.Column="2" Text="MIDTERM" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            <Label Grid.Column="3" Text="FINAL" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            <Label Grid.Column="4" Text="GRADE" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                        </Grid>
+
+                        <!-- Subject Grade Rows -->
+                        <CollectionView ItemsSource="{Binding SubjectGrades}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SubjectGradeItem">
+                                    <Border StrokeShape="RoundRectangle 6"
+                                            BackgroundColor="{StaticResource White}"
+                                            Stroke="{StaticResource SurfaceBorder}"
+                                            Padding="10,8"
+                                            Margin="0,0,0,4">
+                                        <Grid ColumnDefinitions="2*,*,*,*,*" VerticalOptions="Center">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                                <Label Text="{Binding SubjectName}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                                <Label Text="{Binding SubjectCode}" FontSize="9.5" TextColor="{StaticResource TextMuted}" />
+                                            </VerticalStackLayout>
+
+                                            <Label Grid.Column="1" Text="{Binding QuizScore}" FontSize="12" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" VerticalOptions="Center" />
+                                            <Label Grid.Column="2" Text="{Binding MidtermScore}" FontSize="12" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" VerticalOptions="Center" />
+                                            <Label Grid.Column="3" Text="{Binding FinalScore}" FontSize="12" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" VerticalOptions="Center" />
+
+                                            <!-- Letter Grade Badge -->
+                                            <Border Grid.Column="4"
+                                                    StrokeShape="RoundRectangle 4"
+                                                    BackgroundColor="{Binding GradeColorLight}"
+                                                    Padding="6,2"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center">
+                                                <Label Text="{Binding LetterGrade}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{Binding GradeColorText}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+
+                    <!-- Academic Cumulative Summary Footer -->
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SecondaryLight}"
+                            Stroke="{StaticResource SecondaryBorder}"
+                            StrokeThickness="1"
+                            Padding="16,14">
+                        <Grid ColumnDefinitions="*,*,*" VerticalOptions="Center">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2" HorizontalOptions="Center">
+                                <Label Text="CUMULATIVE GPA" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                                <Label Text="{Binding CumulativeGpaFormatted}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="Center">
+                                <Label Text="CREDITS EARNED" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                                <Label Text="{Binding TotalCreditsEarned, StringFormat='{0} Credits'}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="Center">
+                                <Label Text="ACADEMIC STANDING" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                                <Label Text="First Class Honors" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <!-- Institutional Seal & Signature Lines -->
+                    <Grid ColumnDefinitions="*,Auto,*" Margin="0,10,0,0" VerticalOptions="Center">
+                        <!-- Head of Faculty -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="4" HorizontalOptions="Center">
+                            <Label Text="Mr. Dara Sok" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                            <BoxView HeightRequest="1" WidthRequest="120" Color="{StaticResource TextMuted}" />
+                            <Label Text="Homeroom Academic Advisor" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                        <!-- Verified Stamp -->
+                        <Border Grid.Column="1"
+                                StrokeShape="RoundRectangle 24"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                Stroke="{StaticResource Primary}"
+                                StrokeThickness="1"
+                                Padding="12,6"
+                                HorizontalOptions="Center">
+                            <Label Text="★ OFFICIAL RECORD ★" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                        </Border>
+
+                        <!-- Principal -->
+                        <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="Center">
+                            <Label Text="Dr. Sophal Tep" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                            <BoxView HeightRequest="1" WidthRequest="120" Color="{StaticResource TextMuted}" />
+                            <Label Text="Academic Principal &amp; Dean" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Export / Print Action Button -->
+            <Button Text="🖨️ Export / Print Official Transcript"
+                    Command="{Binding ExportReportCardCommand}"
+                    BackgroundColor="{StaticResource Secondary}"
+                    TextColor="{StaticResource White}"
+                    FontAttributes="Bold"
+                    FontSize="14"
+                    CornerRadius="8"
+                    HeightRequest="48" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

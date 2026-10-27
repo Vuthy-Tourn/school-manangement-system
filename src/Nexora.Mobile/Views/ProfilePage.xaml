@@ -189,6 +189,56 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- 4. Institutional Operations & Governance (Admins only) -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18"
+                    IsVisible="{Binding IsAdmin}">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Institutional Operations &amp; Administration"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+
+                    <!-- Classes & Sections Directory -->
+                    <Border StrokeShape="RoundRectangle 10"
+                            BackgroundColor="{StaticResource SurfaceLight}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="14,12">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="classes" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                            <Image Source="icon_classes.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Classes &amp; Sections Directory" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="Manage grade sections, room allocations &amp; homeroom advisors" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="→" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Secondary}" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Security & Audit Trail -->
+                    <Border StrokeShape="RoundRectangle 10"
+                            BackgroundColor="{StaticResource SurfaceLight}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="14,12">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="audit-logs" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                            <Image Source="icon_check.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Security &amp; Audit Trail" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="Monitor institutional security events, edits &amp; access logs" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="→" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Secondary}" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </Border>
 
             <!-- 5. Sign Out Action -->
             <Button Text="Sign Out of Nexora"

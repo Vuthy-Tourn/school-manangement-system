@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             x:Class="Nexora.Mobile.Views.StudentDetailPage"
+             x:DataType="vm:StudentDetailViewModel"
+             Title="Student Profile"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20,16,20,32" MaximumWidthRequest="700">
+
+            <!-- 1. Header Profile Banner -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" VerticalOptions="Center">
+
+                    <!-- Avatar -->
+                    <Border Grid.Column="0"
+                            StrokeShape="RoundRectangle 30"
+                            BackgroundColor="{StaticResource SecondaryLight}"
+                            Stroke="{StaticResource SecondaryBorder}"
+                            StrokeThickness="1"
+                            HeightRequest="60" WidthRequest="60"
+                            VerticalOptions="Center">
+                        <Image Source="icon_students.png"
+                               WidthRequest="32" HeightRequest="32"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+
+                    <!-- Name and Basic Identification -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding Student.FullName}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <Border StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    Stroke="{StaticResource PrimaryBorder}"
+                                    Padding="6,2"
+                                    VerticalOptions="Center">
+                                <Label Text="{Binding Student.CurrentClassName, StringFormat='Class {0}'}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}" />
+                            </Border>
+                        </HorizontalStackLayout>
+
+                        <Label LineBreakMode="TailTruncation" FontSize="12">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding Student.AdmissionNumber}" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                                    <Span Text=" • " TextColor="{StaticResource TextSubtle}" />
+                                    <Span Text="{Binding Student.Gender}" TextColor="{StaticResource TextSecondary}" />
+                                    <Span Text=" • Blood " TextColor="{StaticResource TextSubtle}" />
+                                    <Span Text="{Binding Student.BloodGroup, TargetNullValue='O+'}" TextColor="{StaticResource TextSecondary}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+
+                    <!-- Status Pill -->
+                    <Border Grid.Column="2"
+                            StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SuccessLight}"
+                            Stroke="{StaticResource SuccessBorder}"
+                            StrokeThickness="1"
+                            Padding="12,4"
+                            VerticalOptions="Start">
+                        <Label Text="{Binding Student.Status}"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource SuccessText}" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 2. Academic Performance & Overview Metrics -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <!-- GPA Card -->
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="ESTIMATED GPA" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="{Binding GpaFormatted}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                        <Label Text="Scale 4.0" FontSize="9.5" TextColor="{StaticResource SuccessText}" FontAttributes="Bold" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Attendance Rate Card -->
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="ATTENDANCE" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="{Binding AttendanceFormatted}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                        <Label Text="Present Rate" FontSize="9.5" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Fee Status Card -->
+                <Border Grid.Column="2"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="TUITION FEE" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="{Binding BalanceStatus}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                        <Label Text="Semester 1" FontSize="9.5" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- 3. Personal & Contact Information -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="18,16">
+                <VerticalStackLayout Spacing="14">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_profile.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Personal Profile &amp; Contact Details"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="16">
+                        <!-- Date of Birth -->
+                        <Label Grid.Row="0" Grid.Column="0" Text="Date of Birth:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding Student.DateOfBirth, StringFormat='{0:yyyy-MM-dd}'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+
+                        <!-- Email -->
+                        <Label Grid.Row="1" Grid.Column="0" Text="Student Email:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding Student.Email, TargetNullValue='N/A'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+
+                        <!-- Phone -->
+                        <Label Grid.Row="2" Grid.Column="0" Text="Phone Number:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding Student.PhoneNumber, TargetNullValue='N/A'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+
+                        <!-- Address -->
+                        <Label Grid.Row="3" Grid.Column="0" Text="Residential Address:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding Student.Address, TargetNullValue='Phnom Penh, Cambodia'}" FontSize="12" TextColor="{StaticResource TextPrimary}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 4. Emergency & Guardian Contact -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="18,16">
+                <VerticalStackLayout Spacing="14">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Guardian &amp; Emergency Contact"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="0" Spacing="3">
+                            <Label Text="{Binding Student.EmergencyContactName, TargetNullValue='Guardian'}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="{Binding Student.EmergencyContactRelationship, TargetNullValue='Parent / Guardian', StringFormat='Relationship: {0}'}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding Student.EmergencyContactPhone, TargetNullValue='+855 12 345 678'}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource SecondaryDark}" />
+                        </VerticalStackLayout>
+
+                        <!-- Action Buttons -->
+                        <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                            <Button Text="Call Guardian"
+                                    Command="{Binding CallGuardianCommand}"
+                                    BackgroundColor="{StaticResource SecondaryLight}"
+                                    TextColor="{StaticResource SecondaryDark}"
+                                    BorderColor="{StaticResource SecondaryBorder}"
+                                    BorderWidth="1"
+                                    CornerRadius="6"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    HeightRequest="32"
+                                    Padding="12,0" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 5. Academic Actions -->
+            <VerticalStackLayout Spacing="10" Margin="0,6,0,0">
+                <!-- Report Card Button -->
+                <Button Text="📄 View Official Semester Report Card"
+                        Command="{Binding ViewReportCardCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        FontAttributes="Bold"
+                        FontSize="13"
+                        CornerRadius="8"
+                        HeightRequest="46" />
+
+                <!-- Edit Button -->
+                <Button Text="Edit Student Information"
+                        Command="{Binding EditStudentCommand}"
+                        BackgroundColor="{StaticResource SurfaceLight}"
+                        TextColor="{StaticResource TextPrimary}"
+                        BorderColor="{StaticResource SurfaceBorder}"
+                        BorderWidth="1"
+                        CornerRadius="8"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        HeightRequest="42" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

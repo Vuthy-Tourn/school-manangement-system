@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
+             x:Class="Nexora.Mobile.Views.TeacherDetailPage"
+             x:DataType="vm:TeacherDetailViewModel"
+             Title="Faculty Profile"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20,16,20,32" MaximumWidthRequest="700">
+
+            <!-- 1. Header Profile Banner -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" VerticalOptions="Center">
+
+                    <!-- Avatar -->
+                    <Border Grid.Column="0"
+                            StrokeShape="RoundRectangle 30"
+                            BackgroundColor="{StaticResource SecondaryLight}"
+                            Stroke="{StaticResource SecondaryBorder}"
+                            StrokeThickness="1"
+                            HeightRequest="60" WidthRequest="60"
+                            VerticalOptions="Center">
+                        <Image Source="icon_faculty.png"
+                               WidthRequest="32" HeightRequest="32"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+
+                    <!-- Name and Faculty Details -->
+                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                        <Label Text="{Binding Teacher.FullName}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <!-- Specialization Badge -->
+                        <Border StrokeShape="RoundRectangle 6"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                Stroke="{StaticResource PrimaryBorder}"
+                                Padding="8,2"
+                                HorizontalOptions="Start">
+                            <Label Text="{Binding Teacher.Specialization, TargetNullValue='Advanced Faculty'}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}" />
+                        </Border>
+
+                        <Label LineBreakMode="TailTruncation" FontSize="12">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding Teacher.EmployeeNumber}" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                                    <Span Text=" • Hired " TextColor="{StaticResource TextSubtle}" />
+                                    <Span Text="{Binding Teacher.HireDate, StringFormat='{0:MMM yyyy}'}" TextColor="{StaticResource TextSecondary}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+
+                    <!-- Status Pill -->
+                    <Border Grid.Column="2"
+                            StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SuccessLight}"
+                            Stroke="{StaticResource SuccessBorder}"
+                            StrokeThickness="1"
+                            Padding="12,4"
+                            VerticalOptions="Start">
+                        <Label Text="Active"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource SuccessText}">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding Teacher.IsActive}" Value="False">
+                                    <Setter Property="Text" Value="Inactive" />
+                                    <Setter Property="TextColor" Value="{StaticResource DangerText}" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 2. Academic Workload & Overview Metrics -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <!-- Teaching Load -->
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="TEACHING LOAD" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="12" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" HorizontalOptions="Center" />
+                        <Label Text="Periods / Wk" FontSize="9.5" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Assigned Classes -->
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="ASSIGNED CLASSES" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="10-A, 10-B" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                        <Label Text="Grade 10" FontSize="9.5" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Department / Tenure -->
+                <Border Grid.Column="2"
+                        StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="14,12">
+                    <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                        <Label Text="FACULTY TENURE" FontSize="9.5" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                        <Label Text="Senior" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                        <Label Text="Active Faculty" FontSize="9.5" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- 3. Qualifications & Institutional Contact -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="18,16">
+                <VerticalStackLayout Spacing="14">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_profile.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Professional Credentials &amp; Communication"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="16">
+                        <!-- Qualification -->
+                        <Label Grid.Row="0" Grid.Column="0" Text="Academic Degree:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding Teacher.Qualification, TargetNullValue='Master of Education'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+
+                        <!-- Specialization -->
+                        <Label Grid.Row="1" Grid.Column="0" Text="Discipline:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding Teacher.Specialization, TargetNullValue='Mathematics'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+
+                        <!-- Email -->
+                        <Label Grid.Row="2" Grid.Column="0" Text="Official Email:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding Teacher.Email, TargetNullValue='N/A'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+
+                        <!-- Phone -->
+                        <Label Grid.Row="3" Grid.Column="0" Text="Contact Number:" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding Teacher.PhoneNumber, TargetNullValue='+855 12 345 678'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 4. Assigned Subject Offerings & Classrooms -->
+            <Border StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="18,16">
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_timetable.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Current Semester Subject Allocations"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <CollectionView ItemsSource="{Binding Teacher.Assignments}">
+                        <CollectionView.EmptyView>
+                            <Label Text="Assigned to core subject curriculum for Classes 10-A and 10-B."
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   Margin="0,4" />
+                        </CollectionView.EmptyView>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="dto:TeacherSubjectAssignmentDto">
+                                <Border StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource SurfaceLight}"
+                                        Stroke="{StaticResource SurfaceBorder}"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                        <Border Grid.Column="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{StaticResource PrimaryLight}"
+                                                Padding="6,2"
+                                                VerticalOptions="Center">
+                                            <Label Text="{Binding SubjectCode}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" />
+                                        </Border>
+
+                                        <Label Grid.Column="1" Text="{Binding SubjectName}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+
+                                        <Border Grid.Column="2"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                Padding="6,2"
+                                                VerticalOptions="Center">
+                                            <Label Text="{Binding ClassName, StringFormat='Class {0}'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource SecondaryDark}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- 5. Faculty Management Actions -->
+            <VerticalStackLayout Spacing="10" Margin="0,6,0,0">
+                <!-- Edit Button -->
+                <Button Text="Edit Faculty Information"
+                        Command="{Binding EditTeacherCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        FontAttributes="Bold"
+                        FontSize="13"
+                        CornerRadius="8"
+                        HeightRequest="46" />
+
+                <!-- Timetable Button -->
+                <Button Text="📅 View Weekly Class Timetable"
+                        Command="{Binding ViewTimetableCommand}"
+                        BackgroundColor="{StaticResource SurfaceLight}"
+                        TextColor="{StaticResource TextPrimary}"
+                        BorderColor="{StaticResource SurfaceBorder}"
+                        BorderWidth="1"
+                        CornerRadius="8"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        HeightRequest="42" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

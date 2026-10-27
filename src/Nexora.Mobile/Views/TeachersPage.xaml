@@ -75,7 +75,7 @@
                                 Padding="16,14"
                                 Margin="0,0,0,12">
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding BindingContext.EditTeacherCommand, Source={x:Reference TeachersRootPage}}"
+                                <TapGestureRecognizer Command="{Binding BindingContext.ViewTeacherDetailCommand, Source={x:Reference TeachersRootPage}}"
                                                       CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
 

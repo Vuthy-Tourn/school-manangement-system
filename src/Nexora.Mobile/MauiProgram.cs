@@ -49,6 +49,9 @@ public static class MauiProgram
         builder.Services.AddTransient<AnnouncementsViewModel>();
         builder.Services.AddTransient<AuditLogsViewModel>();
         builder.Services.AddTransient<ProfileViewModel>();
+        builder.Services.AddTransient<StudentDetailViewModel>();
+        builder.Services.AddTransient<TeacherDetailViewModel>();
+        builder.Services.AddTransient<ReportCardViewModel>();
 
         // 3. Pages
         builder.Services.AddTransient<AppShell>();
@@ -59,8 +62,13 @@ public static class MauiProgram
         builder.Services.AddTransient<ParentDashboardPage>();
         builder.Services.AddTransient<StudentsPage>();
         builder.Services.AddTransient<StudentFormPage>();
+        builder.Services.AddTransient<StudentDetailPage>();
         builder.Services.AddTransient<TeachersPage>();
         builder.Services.AddTransient<TeacherFormPage>();
+        builder.Services.AddTransient<TeacherDetailPage>();
+        builder.Services.AddTransient<ClassesPage>();
+        builder.Services.AddTransient<ReportCardPage>();
+        builder.Services.AddTransient<AuditLogsPage>();
         builder.Services.AddTransient<AttendancePage>();
         builder.Services.AddTransient<GradesPage>();
         builder.Services.AddTransient<FeesPage>();

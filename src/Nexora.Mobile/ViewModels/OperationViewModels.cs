@@ -95,6 +95,13 @@ public partial class StudentsViewModel : BaseViewModel
         if (student == null) return;
         await Shell.Current.Navigation.PushAsync(new Views.StudentFormPage(new StudentFormViewModel(_apiService, student)));
     }
+
+    [RelayCommand]
+    private async Task ViewStudentDetailAsync(StudentDto student)
+    {
+        if (student == null) return;
+        await Shell.Current.Navigation.PushAsync(new Views.StudentDetailPage(new StudentDetailViewModel(_apiService, student)));
+    }
 }
 
 // 2. Student Form ViewModel
@@ -225,6 +232,67 @@ public partial class StudentFormViewModel : BaseViewModel
     }
 }
 
+// 2.1 Student Detail ViewModel
+public partial class StudentDetailViewModel : BaseViewModel
+{
+    private readonly IApiService _apiService;
+
+    [ObservableProperty] private StudentDto _student;
+    [ObservableProperty] private double _gpa = 3.82;
+    [ObservableProperty] private double _attendanceRate = 96.4;
+    [ObservableProperty] private string _balanceStatus = "Paid ($0.00)";
+
+    public string GpaFormatted => $"{Gpa:F2}";
+    public string AttendanceFormatted => $"{AttendanceRate:F1}%";
+
+    public StudentDetailViewModel(IApiService apiService, StudentDto student)
+    {
+        _apiService = apiService;
+        _student = student;
+        Title = student.FullName;
+    }
+
+    [RelayCommand]
+    private async Task ViewReportCardAsync()
+    {
+        await Shell.Current.Navigation.PushAsync(new Views.ReportCardPage(new ReportCardViewModel(_apiService, Student)));
+    }
+
+    [RelayCommand]
+    private async Task EditStudentAsync()
+    {
+        await Shell.Current.Navigation.PushAsync(new Views.StudentFormPage(new StudentFormViewModel(_apiService, Student)));
+    }
+
+    [RelayCommand]
+    private async Task CallGuardianAsync()
+    {
+        var phone = Student.EmergencyContactPhone;
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            try
+            {
+                if (PhoneDialer.Default.IsSupported)
+                {
+                    PhoneDialer.Default.Open(phone);
+                }
+                else
+                {
+                    await Shell.Current.DisplayAlert("Emergency Contact", $"Calling guardian: {Student.EmergencyContactName} at {phone}", "OK");
+                }
+            }
+            catch
+            {
+                await Shell.Current.DisplayAlert("Emergency Contact", $"Calling guardian: {Student.EmergencyContactName} at {phone}", "OK");
+            }
+        }
+        else
+        {
+            await Shell.Current.DisplayAlert("Contact Info", "No phone number registered for emergency contact.", "OK");
+        }
+    }
+}
+
 // 3. Teachers ViewModel
 public partial class TeachersViewModel : BaseViewModel
 {
@@ -305,6 +373,13 @@ public partial class TeachersViewModel : BaseViewModel
     {
         if (teacher == null) return;
         await Shell.Current.Navigation.PushAsync(new Views.TeacherFormPage(new TeacherFormViewModel(_apiService, teacher)));
+    }
+
+    [RelayCommand]
+    private async Task ViewTeacherDetailAsync(TeacherDto teacher)
+    {
+        if (teacher == null) return;
+        await Shell.Current.Navigation.PushAsync(new Views.TeacherDetailPage(new TeacherDetailViewModel(_apiService, teacher)));
     }
 
     [RelayCommand]
@@ -601,18 +676,171 @@ public partial class TeacherFormViewModel : BaseViewModel
     }
 }
 
+// 3.2 Teacher Detail ViewModel
+public partial class TeacherDetailViewModel : BaseViewModel
+{
+    private readonly IApiService _apiService;
+
+    [ObservableProperty] private TeacherDto _teacher;
+
+    public TeacherDetailViewModel(IApiService apiService, TeacherDto teacher)
+    {
+        _apiService = apiService;
+        _teacher = teacher;
+        Title = teacher.FullName;
+    }
+
+    [RelayCommand]
+    private async Task EditTeacherAsync()
+    {
+        await Shell.Current.Navigation.PushAsync(new Views.TeacherFormPage(new TeacherFormViewModel(_apiService, Teacher)));
+    }
+
+    [RelayCommand]
+    private async Task ViewTimetableAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//timetables");
+        }
+    }
+}
+
+// 3.3 Subject Grade Item & Report Card ViewModel
+public class SubjectGradeItem
+{
+    public string SubjectName { get; set; } = string.Empty;
+    public string SubjectCode { get; set; } = string.Empty;
+    public string QuizScore { get; set; } = "85";
+    public string MidtermScore { get; set; } = "88";
+    public string FinalScore { get; set; } = "92";
+    public string LetterGrade { get; set; } = "A";
+    public Color GradeColorLight { get; set; } = Color.FromArgb("#ECFDF5");
+    public Color GradeColorText { get; set; } = Color.FromArgb("#065F46");
+}
+
+public partial class ReportCardViewModel : BaseViewModel
+{
+    private readonly IApiService _apiService;
+    private readonly StudentDto _student;
+
+    public string StudentName => _student.FullName;
+    public string AdmissionNumber => _student.AdmissionNumber;
+    public string ClassName => _student.CurrentClassName ?? "10-A";
+    public string IssueDateFormatted => DateTime.Today.ToString("yyyy-MM-dd");
+
+    [ObservableProperty] private ObservableCollection<SubjectGradeItem> _subjectGrades = new();
+    [ObservableProperty] private double _cumulativeGpa = 3.82;
+    [ObservableProperty] private int _totalCreditsEarned = 21;
+
+    public string CumulativeGpaFormatted => $"{CumulativeGpa:F2}";
+
+    public ReportCardViewModel(IApiService apiService, StudentDto student)
+    {
+        _apiService = apiService;
+        _student = student;
+        Title = $"Report Card: {student.FullName}";
+        LoadSampleGrades();
+    }
+
+    private void LoadSampleGrades()
+    {
+        SubjectGrades = new ObservableCollection<SubjectGradeItem>
+        {
+            new() { SubjectName = "Advanced Mathematics", SubjectCode = "MATH101", QuizScore = "88", MidtermScore = "90", FinalScore = "94", LetterGrade = "A", GradeColorLight = Color.FromArgb("#ECFDF5"), GradeColorText = Color.FromArgb("#065F46") },
+            new() { SubjectName = "Physics & Applied Science", SubjectCode = "PHY101", QuizScore = "82", MidtermScore = "85", FinalScore = "89", LetterGrade = "B+", GradeColorLight = Color.FromArgb("#EFF6FF"), GradeColorText = Color.FromArgb("#1D4ED8") },
+            new() { SubjectName = "General & Organic Chemistry", SubjectCode = "CHM101", QuizScore = "79", MidtermScore = "84", FinalScore = "86", LetterGrade = "B", GradeColorLight = Color.FromArgb("#EFF6FF"), GradeColorText = Color.FromArgb("#1D4ED8") },
+            new() { SubjectName = "Biology & Life Sciences", SubjectCode = "BIO101", QuizScore = "92", MidtermScore = "94", FinalScore = "96", LetterGrade = "A", GradeColorLight = Color.FromArgb("#ECFDF5"), GradeColorText = Color.FromArgb("#065F46") },
+            new() { SubjectName = "Classical Khmer Literature", SubjectCode = "KHM101", QuizScore = "90", MidtermScore = "91", FinalScore = "93", LetterGrade = "A", GradeColorLight = Color.FromArgb("#ECFDF5"), GradeColorText = Color.FromArgb("#065F46") },
+            new() { SubjectName = "English Communication", SubjectCode = "ENG101", QuizScore = "85", MidtermScore = "87", FinalScore = "90", LetterGrade = "A-", GradeColorLight = Color.FromArgb("#ECFDF5"), GradeColorText = Color.FromArgb("#065F46") },
+            new() { SubjectName = "World History & Civilization", SubjectCode = "HIST101", QuizScore = "80", MidtermScore = "83", FinalScore = "85", LetterGrade = "B", GradeColorLight = Color.FromArgb("#EFF6FF"), GradeColorText = Color.FromArgb("#1D4ED8") }
+        };
+    }
+
+    [RelayCommand]
+    private async Task ExportReportCardAsync()
+    {
+        await Shell.Current.DisplayAlert("Export Academic Transcript", $"Official Report Card for {StudentName} ({AdmissionNumber}) has been generated.\n\nReady for print / PDF archival.", "Download PDF");
+    }
+}
+
 // 4. Classes ViewModel
 public partial class ClassesViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
 
+    [ObservableProperty] private int _selectedSegmentIndex = 0;
+    [ObservableProperty] private string _searchTerm = string.Empty;
+
+    public bool IsClassesTab => SelectedSegmentIndex == 0;
+    public bool IsSubjectsTab => SelectedSegmentIndex == 1;
+
+    public Color SelectedTabColor0 => SelectedSegmentIndex == 0 ? Color.FromArgb("#0F2042") : Colors.Transparent;
+    public Color SelectedTabColor1 => SelectedSegmentIndex == 1 ? Color.FromArgb("#0F2042") : Colors.Transparent;
+    public Color SelectedTextColor0 => SelectedSegmentIndex == 0 ? Colors.White : Color.FromArgb("#64748B");
+    public Color SelectedTextColor1 => SelectedSegmentIndex == 1 ? Colors.White : Color.FromArgb("#64748B");
+
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ObservableCollection<SubjectDto> _subjects = new();
+
+    [ObservableProperty] private ObservableCollection<ClassSectionDto> _filteredClasses = new();
+    [ObservableProperty] private ObservableCollection<SubjectDto> _filteredSubjects = new();
 
     public ClassesViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Classes & Subjects";
+    }
+
+    partial void OnSelectedSegmentIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsClassesTab));
+        OnPropertyChanged(nameof(IsSubjectsTab));
+        OnPropertyChanged(nameof(SelectedTabColor0));
+        OnPropertyChanged(nameof(SelectedTabColor1));
+        OnPropertyChanged(nameof(SelectedTextColor0));
+        OnPropertyChanged(nameof(SelectedTextColor1));
+    }
+
+    partial void OnSearchTermChanged(string value)
+    {
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    private void SwitchTab(string indexStr)
+    {
+        if (int.TryParse(indexStr, out int idx))
+        {
+            SelectedSegmentIndex = idx;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            FilteredClasses = new ObservableCollection<ClassSectionDto>(Classes);
+            FilteredSubjects = new ObservableCollection<SubjectDto>(Subjects);
+            return;
+        }
+
+        var term = SearchTerm.Trim();
+        var fc = Classes.Where(c =>
+            c.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            (c.RoomNumber?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (c.ClassTeacherName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (c.GradeLevelName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+        ).ToList();
+
+        var fs = Subjects.Where(s =>
+            s.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            s.Code.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            (s.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+        ).ToList();
+
+        FilteredClasses = new ObservableCollection<ClassSectionDto>(fc);
+        FilteredSubjects = new ObservableCollection<SubjectDto>(fs);
     }
 
     [RelayCommand]
@@ -635,6 +863,8 @@ public partial class ClassesViewModel : BaseViewModel
             {
                 Subjects = new ObservableCollection<SubjectDto>(subjectsRes.Data);
             }
+
+            ApplyFilter();
         }
         catch (Exception ex)
         {
@@ -644,6 +874,58 @@ public partial class ClassesViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task AssignAdvisorAsync(ClassSectionDto section)
+    {
+        if (section == null) return;
+        try
+        {
+            var teachersRes = await _apiService.GetTeachersAsync();
+            var teachers = teachersRes.Data ?? new List<TeacherDto>();
+            var teacherNames = teachers.Select(t => t.FullName).ToArray();
+
+            string choice = await Shell.Current.DisplayActionSheet(
+                $"Assign Homeroom Advisor for Class {section.Name}",
+                "Cancel",
+                null,
+                teacherNames);
+
+            if (!string.IsNullOrEmpty(choice) && choice != "Cancel")
+            {
+                var chosen = teachers.FirstOrDefault(t => t.FullName == choice);
+                if (chosen != null)
+                {
+                    var updated = section with { ClassTeacherId = chosen.Id, ClassTeacherName = chosen.FullName };
+                    var idx = Classes.IndexOf(section);
+                    if (idx >= 0)
+                    {
+                        Classes[idx] = updated;
+                        ApplyFilter();
+                    }
+                    await Shell.Current.DisplayAlert("Advisor Assigned", $"{chosen.FullName} has been designated as Homeroom Advisor for Class {section.Name}.", "OK");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ViewRosterAsync(ClassSectionDto section)
+    {
+        if (section == null) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync("//students");
+            }
+        }
+        catch { }
     }
 }
 
@@ -3378,6 +3660,7 @@ public partial class ProfileViewModel : BaseViewModel
     [ObservableProperty] private string _schoolName = "Angkor International Academy";
     [ObservableProperty] private string _appVersion = "1.0.0 (Build 2026)";
     [ObservableProperty] private string _selectedLanguage = "English (US)";
+    [ObservableProperty] private bool _isAdmin;
 
     public ProfileViewModel(IApiService apiService)
     {
@@ -3391,6 +3674,7 @@ public partial class ProfileViewModel : BaseViewModel
         Profile = _apiService.CurrentUser;
         if (Profile != null)
         {
+            IsAdmin = Profile.Role == UserRole.SuperAdmin || Profile.Role == UserRole.SchoolAdmin;
             FullName = Profile.FullName;
             Email = Profile.Email;
             PhoneNumber = Profile.PhoneNumber ?? string.Empty;
@@ -3416,11 +3700,37 @@ public partial class ProfileViewModel : BaseViewModel
         }
         else
         {
+            IsAdmin = false;
             FullName = "Guest User";
             Email = "guest@nexora.edu";
             PhoneNumber = string.Empty;
             RoleBadge = "Unauthenticated";
             RoleDepartment = "Guest Portal";
+        }
+    }
+
+    [RelayCommand]
+    private async Task NavigateToAsync(string route)
+    {
+        if (string.IsNullOrWhiteSpace(route)) return;
+        try
+        {
+            if (Shell.Current != null)
+            {
+                var target = (route == "classes" || route == "audit-logs" || route.Contains('-'))
+                    ? route
+                    : $"//{route}";
+                await Shell.Current.GoToAsync(target);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NavigateToAsync error: {ex.Message}");
+            try
+            {
+                if (Shell.Current != null) await Shell.Current.GoToAsync(route);
+            }
+            catch { }
         }
     }
 

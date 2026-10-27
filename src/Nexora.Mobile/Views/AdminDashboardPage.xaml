@@ -247,6 +247,9 @@
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
                                 Padding="16,14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="classes" />
+                            </Border.GestureRecognizers>
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="ACTIVE SECTIONS" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
@@ -634,10 +637,21 @@
 
                 <!-- 5. Live Audit Trail -->
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Live Institutional Audit Trail"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Live Institutional Audit Trail"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Grid.Column="1"
+                               Text="View All →"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Secondary}">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="audit-logs" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </Grid>
 
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentAudits}" Spacing="8">
                         <BindableLayout.ItemTemplate>

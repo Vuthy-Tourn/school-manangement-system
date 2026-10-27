@@ -16,6 +16,11 @@ public partial class AppShell : Shell
         // Register auxiliary / sub-routes
         Routing.RegisterRoute("student-form", typeof(StudentFormPage));
         Routing.RegisterRoute("teacher-form", typeof(TeacherFormPage));
+        Routing.RegisterRoute("student-detail", typeof(StudentDetailPage));
+        Routing.RegisterRoute("teacher-detail", typeof(TeacherDetailPage));
+        Routing.RegisterRoute("report-card", typeof(ReportCardPage));
+        Routing.RegisterRoute("classes", typeof(ClassesPage));
+        Routing.RegisterRoute("audit-logs", typeof(AuditLogsPage));
         Routing.RegisterRoute("dashboard", typeof(ParentDashboardPage));
         Routing.RegisterRoute("attendance", typeof(AttendancePage));
         Routing.RegisterRoute("grades", typeof(GradesPage));

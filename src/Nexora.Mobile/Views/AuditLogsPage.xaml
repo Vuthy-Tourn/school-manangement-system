@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             xmlns:dto="clr-namespace:Nexora.Application.DTOs;assembly=Nexora.Application"
+             x:Class="Nexora.Mobile.Views.AuditLogsPage"
+             x:DataType="vm:AuditLogsViewModel"
+             Title="Security Audit Trail"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <Grid RowDefinitions="Auto,*" Padding="20,16,20,20">
+
+        <!-- Header Information -->
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+            <Label Text="System Operational Audit Trail"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Immutable record of security events, grade modifications, and institutional transactions."
+                   FontSize="12"
+                   TextColor="{StaticResource TextSecondary}" />
+        </VerticalStackLayout>
+
+        <!-- Audit Logs Collection View -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadLogsCommand}">
+            <CollectionView ItemsSource="{Binding Logs}">
+                <CollectionView.EmptyView>
+                    <Border StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            Padding="32"
+                            Margin="0,20"
+                            HorizontalOptions="Center">
+                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                            <Image Source="icon_dashboard.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
+                            <Label Text="No Audit Records Available"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalOptions="Center" />
+                            <Label Text="System operations will be logged here in real time."
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dto:AuditLogDto">
+                        <Border StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="16,14"
+                                Margin="0,0,0,10">
+                            <VerticalStackLayout Spacing="8">
+
+                                <!-- Top Row: Action Badge, Entity Name, Timestamp -->
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <!-- Action Badge -->
+                                    <Border Grid.Column="0"
+                                            StrokeShape="RoundRectangle 6"
+                                            BackgroundColor="{StaticResource SecondaryLight}"
+                                            Stroke="{StaticResource SecondaryBorder}"
+                                            Padding="8,2"
+                                            VerticalOptions="Center">
+                                        <Label Text="{Binding Action}"
+                                               FontSize="10"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource SecondaryDark}" />
+                                    </Border>
+
+                                    <!-- Entity Name -->
+                                    <Label Grid.Column="1"
+                                           Text="{Binding EntityName, StringFormat='Entity: {0}'}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="Center" />
+
+                                    <!-- Timestamp -->
+                                    <Label Grid.Column="2"
+                                           Text="{Binding TimestampUtc, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                           FontSize="10.5"
+                                           TextColor="{StaticResource TextMuted}"
+                                           VerticalOptions="Center" />
+                                </Grid>
+
+                                <!-- Details Body -->
+                                <Label Text="{Binding Details, TargetNullValue='Operational modification recorded by system.'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       LineBreakMode="WordWrap" />
+
+                                <!-- Footer Row: Actor and IP Address -->
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0" VerticalOptions="Center">
+                                    <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                                        <Image Source="icon_profile.png" WidthRequest="14" HeightRequest="14" VerticalOptions="Center" />
+                                        <Label Text="{Binding UserName, TargetNullValue='admin', StringFormat='Actor: {0}'}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Primary}"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+
+                                    <Label Grid.Column="1"
+                                           Text="{Binding IpAddress, TargetNullValue='127.0.0.1', StringFormat='IP: {0}'}"
+                                           FontSize="10"
+                                           TextColor="{StaticResource TextMuted}"
+                                           VerticalOptions="Center" />
+                                </Grid>
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+    </Grid>
+
+</ContentPage>
