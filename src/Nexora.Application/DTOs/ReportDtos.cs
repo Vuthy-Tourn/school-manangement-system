@@ -2,6 +2,18 @@ namespace Nexora.Application.DTOs;
 
 public record AttendanceTrendItemDto(string Day, decimal Percentage);
 
+public record GradeDistributionDto(
+    decimal GradeAPercentage,
+    int GradeACount,
+    decimal GradeBPercentage,
+    int GradeBCount,
+    decimal GradeCPercentage,
+    int GradeCCount,
+    decimal GradeDFPercentage,
+    int GradeDFCount,
+    int TotalEvaluated
+);
+
 public record AdminDashboardStatsDto(
     int TotalStudents,
     int TotalTeachers,
@@ -11,7 +23,8 @@ public record AdminDashboardStatsDto(
     decimal TotalFeesOutstanding,
     List<AnnouncementDto> RecentAnnouncements,
     List<AuditLogDto> RecentAudits,
-    List<AttendanceTrendItemDto>? WeeklyAttendanceTrend = null
+    List<AttendanceTrendItemDto>? WeeklyAttendanceTrend = null,
+    GradeDistributionDto? GradeDistribution = null
 );
 
 public record TeacherDashboardStatsDto(

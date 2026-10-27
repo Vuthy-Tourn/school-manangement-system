@@ -265,14 +265,67 @@ public class DashboardService : IDashboardService
             ))
             .ToListAsync(ct);
 
-        var weeklyTrend = new List<AttendanceTrendItemDto>
+        // Compute Real Weekly Attendance Trend for the 5 school days (Mon - Fri)
+        var weeklyTrend = new List<AttendanceTrendItemDto>();
+        var dayOfWeek = today.DayOfWeek;
+        int diffToMonday = dayOfWeek == DayOfWeek.Sunday ? -6 : (int)DayOfWeek.Monday - (int)dayOfWeek;
+        var mondayDate = today.AddDays(diffToMonday);
+
+        var daysOfWeekNames = new[] { ("Mon", DayOfWeek.Monday), ("Tue", DayOfWeek.Tuesday), ("Wed", DayOfWeek.Wednesday), ("Thu", DayOfWeek.Thursday), ("Fri", DayOfWeek.Friday) };
+        for (int i = 0; i < 5; i++)
         {
-            new("Mon", 98.0m),
-            new("Tue", 96.5m),
-            new("Wed", 100.0m),
-            new("Thu", 97.5m),
-            new("Fri", 99.0m)
-        };
+            var dayDate = mondayDate.AddDays(i);
+            var (dayLabel, _) = daysOfWeekNames[i];
+
+            var records = await _context.AttendanceRecords.Where(a => a.Date == dayDate).ToListAsync(ct);
+            if (records.Count > 0)
+            {
+                var present = records.Count(a => a.Status == AttendanceStatus.Present);
+                var late = records.Count(a => a.Status == AttendanceStatus.Late);
+                var rate = Math.Round(((present + (late * 0.5m)) / (decimal)records.Count) * 100m, 1);
+                weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, rate));
+            }
+            else
+            {
+                // Fallback to previous week's corresponding weekday record if available
+                var prevWeekDate = dayDate.AddDays(-7);
+                var prevRecords = await _context.AttendanceRecords.Where(a => a.Date == prevWeekDate).ToListAsync(ct);
+                if (prevRecords.Count > 0)
+                {
+                    var present = prevRecords.Count(a => a.Status == AttendanceStatus.Present);
+                    var late = prevRecords.Count(a => a.Status == AttendanceStatus.Late);
+                    var rate = Math.Round(((present + (late * 0.5m)) / (decimal)prevRecords.Count) * 100m, 1);
+                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, rate));
+                }
+                else
+                {
+                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, 100.0m));
+                }
+            }
+        }
+
+        // Calculate Real Grade Distribution across all active student scores in the database
+        var allGrades = await _context.StudentGrades.AsNoTracking().ToListAsync(ct);
+        GradeDistributionDto gradeDist;
+        if (allGrades.Count > 0)
+        {
+            var totalGrades = allGrades.Count;
+            var aCount = allGrades.Count(g => g.ScoreObtained >= 90.0m);
+            var bCount = allGrades.Count(g => g.ScoreObtained >= 80.0m && g.ScoreObtained < 90.0m);
+            var cCount = allGrades.Count(g => g.ScoreObtained >= 70.0m && g.ScoreObtained < 80.0m);
+            var dfCount = allGrades.Count(g => g.ScoreObtained < 70.0m);
+
+            var aPct = Math.Round((aCount / (decimal)totalGrades) * 100m, 1);
+            var bPct = Math.Round((bCount / (decimal)totalGrades) * 100m, 1);
+            var cPct = Math.Round((cCount / (decimal)totalGrades) * 100m, 1);
+            var dfPct = Math.Round((dfCount / (decimal)totalGrades) * 100m, 1);
+
+            gradeDist = new GradeDistributionDto(aPct, aCount, bPct, bCount, cPct, cCount, dfPct, dfCount, totalGrades);
+        }
+        else
+        {
+            gradeDist = new GradeDistributionDto(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
 
         return ApiResponse<AdminDashboardStatsDto>.Ok(new AdminDashboardStatsDto(
             totalStudents,
@@ -283,7 +336,8 @@ public class DashboardService : IDashboardService
             totalOutstanding,
             recentAnnouncements,
             recentAudits,
-            weeklyTrend
+            weeklyTrend,
+            gradeDist
         ));
     }
 

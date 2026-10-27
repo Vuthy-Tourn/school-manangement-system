@@ -313,50 +313,78 @@
                             <!-- 5-Day Bar Visualizer -->
                             <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="8" HeightRequest="150" Margin="0,8,0,0">
                                 <!-- Monday -->
-                                <VerticalStackLayout Grid.Column="0" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
-                                    <Label Text="98.0%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
-                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
-                                        <Border HeightRequest="98" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                <VerticalStackLayout Grid.Column="0" Spacing="6" HorizontalOptions="Center" VerticalOptions="End"
+                                                     BindingContext="{Binding WeeklyAttendance[0]}">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{Binding TrackColor}" Padding="4,1"
+                                            IsVisible="{Binding PeakBadgeVisible}">
+                                        <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center" />
                                     </Border>
-                                    <Label Text="Mon" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                    <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center"
+                                           IsVisible="{Binding NormalLabelVisible}" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding TrackColor}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="{Binding BarHeight}" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding BarColor}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="{Binding Day}" FontSize="11" FontAttributes="Bold" TextColor="{Binding DayTextColor}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
 
                                 <!-- Tuesday -->
-                                <VerticalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
-                                    <Label Text="96.5%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
-                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
-                                        <Border HeightRequest="96" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="Center" VerticalOptions="End"
+                                                     BindingContext="{Binding WeeklyAttendance[1]}">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{Binding TrackColor}" Padding="4,1"
+                                            IsVisible="{Binding PeakBadgeVisible}">
+                                        <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center" />
                                     </Border>
-                                    <Label Text="Tue" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                    <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center"
+                                           IsVisible="{Binding NormalLabelVisible}" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding TrackColor}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="{Binding BarHeight}" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding BarColor}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="{Binding Day}" FontSize="11" FontAttributes="Bold" TextColor="{Binding DayTextColor}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
 
-                                <!-- Wednesday (Peak) -->
-                                <VerticalStackLayout Grid.Column="2" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
-                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{StaticResource SuccessLight}" Padding="4,1">
-                                        <Label Text="100%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                                <!-- Wednesday -->
+                                <VerticalStackLayout Grid.Column="2" Spacing="6" HorizontalOptions="Center" VerticalOptions="End"
+                                                     BindingContext="{Binding WeeklyAttendance[2]}">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{Binding TrackColor}" Padding="4,1"
+                                            IsVisible="{Binding PeakBadgeVisible}">
+                                        <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center" />
                                     </Border>
-                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource SuccessLight}" StrokeThickness="0" VerticalOptions="End">
-                                        <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Success}" StrokeThickness="0" VerticalOptions="End" />
+                                    <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center"
+                                           IsVisible="{Binding NormalLabelVisible}" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding TrackColor}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="{Binding BarHeight}" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding BarColor}" StrokeThickness="0" VerticalOptions="End" />
                                     </Border>
-                                    <Label Text="Wed" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" HorizontalOptions="Center" />
+                                    <Label Text="{Binding Day}" FontSize="11" FontAttributes="Bold" TextColor="{Binding DayTextColor}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
 
                                 <!-- Thursday -->
-                                <VerticalStackLayout Grid.Column="3" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
-                                    <Label Text="97.5%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
-                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
-                                        <Border HeightRequest="97" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                <VerticalStackLayout Grid.Column="3" Spacing="6" HorizontalOptions="Center" VerticalOptions="End"
+                                                     BindingContext="{Binding WeeklyAttendance[3]}">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{Binding TrackColor}" Padding="4,1"
+                                            IsVisible="{Binding PeakBadgeVisible}">
+                                        <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center" />
                                     </Border>
-                                    <Label Text="Thu" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                    <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center"
+                                           IsVisible="{Binding NormalLabelVisible}" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding TrackColor}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="{Binding BarHeight}" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding BarColor}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="{Binding Day}" FontSize="11" FontAttributes="Bold" TextColor="{Binding DayTextColor}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
 
                                 <!-- Friday -->
-                                <VerticalStackLayout Grid.Column="4" Spacing="6" HorizontalOptions="Center" VerticalOptions="End">
-                                    <Label Text="99.0%" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
-                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" VerticalOptions="End">
-                                        <Border HeightRequest="99" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Primary}" StrokeThickness="0" VerticalOptions="End" />
+                                <VerticalStackLayout Grid.Column="4" Spacing="6" HorizontalOptions="Center" VerticalOptions="End"
+                                                     BindingContext="{Binding WeeklyAttendance[4]}">
+                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{Binding TrackColor}" Padding="4,1"
+                                            IsVisible="{Binding PeakBadgeVisible}">
+                                        <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center" />
                                     </Border>
-                                    <Label Text="Fri" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                    <Label Text="{Binding FormattedPercentage}" FontSize="10" FontAttributes="Bold" TextColor="{Binding BadgeColor}" HorizontalOptions="Center"
+                                           IsVisible="{Binding NormalLabelVisible}" />
+                                    <Border HeightRequest="100" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding TrackColor}" StrokeThickness="0" VerticalOptions="End">
+                                        <Border HeightRequest="{Binding BarHeight}" WidthRequest="24" StrokeShape="RoundRectangle 12" BackgroundColor="{Binding BarColor}" StrokeThickness="0" VerticalOptions="End" />
+                                    </Border>
+                                    <Label Text="{Binding Day}" FontSize="11" FontAttributes="Bold" TextColor="{Binding DayTextColor}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                             </Grid>
                         </VerticalStackLayout>
@@ -397,7 +425,7 @@
                                     HeightRequest="14"
                                     StrokeThickness="0"
                                     Padding="0">
-                                <Grid ColumnDefinitions="88*,12*">
+                                <Grid ColumnDefinitions="{Binding TuitionColumnDefinitions}">
                                     <!-- Collected Segment -->
                                     <BoxView Grid.Column="0" Color="{StaticResource Success}" HorizontalOptions="Fill" />
                                     <!-- Remaining Segment -->
@@ -462,7 +490,7 @@
                                     HeightRequest="12"
                                     StrokeThickness="0"
                                     Padding="0">
-                                <Grid ColumnDefinitions="48*,34*,14*,4*">
+                                <Grid ColumnDefinitions="{Binding GradeBarColumnDefinitions}">
                                     <BoxView Grid.Column="0" Color="#15803D" HorizontalOptions="Fill" />
                                     <BoxView Grid.Column="1" Color="#2563EB" HorizontalOptions="Fill" />
                                     <BoxView Grid.Column="2" Color="#D97706" HorizontalOptions="Fill" />
@@ -473,19 +501,19 @@
                             <!-- Grade Legend Pills -->
                             <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="Grade A (48%)" FontSize="10" FontAttributes="Bold" TextColor="#15803D" HorizontalOptions="Center" />
+                                    <Label Text="{Binding GradeALabel}" FontSize="10" FontAttributes="Bold" TextColor="#15803D" HorizontalOptions="Center" />
                                     <Label Text="Distinction" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="Grade B (34%)" FontSize="10" FontAttributes="Bold" TextColor="#2563EB" HorizontalOptions="Center" />
+                                    <Label Text="{Binding GradeBLabel}" FontSize="10" FontAttributes="Bold" TextColor="#2563EB" HorizontalOptions="Center" />
                                     <Label Text="Merit" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="Grade C (14%)" FontSize="10" FontAttributes="Bold" TextColor="#D97706" HorizontalOptions="Center" />
+                                    <Label Text="{Binding GradeCLabel}" FontSize="10" FontAttributes="Bold" TextColor="#D97706" HorizontalOptions="Center" />
                                     <Label Text="Passing" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="Grade D/F (4%)" FontSize="10" FontAttributes="Bold" TextColor="#DC2626" HorizontalOptions="Center" />
+                                    <Label Text="{Binding GradeDFLabel}" FontSize="10" FontAttributes="Bold" TextColor="#DC2626" HorizontalOptions="Center" />
                                     <Label Text="Review" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                             </Grid>

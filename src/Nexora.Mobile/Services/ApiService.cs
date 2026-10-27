@@ -441,6 +441,8 @@ public class ApiService : IApiService
             new("Fri", 99.0m)
         };
 
+        var mockDist = new GradeDistributionDto(49.1m, 157, 50.6m, 162, 0.3m, 1, 0.0m, 0, 320);
+
         return ApiResponse<AdminDashboardStatsDto>.Ok(new AdminDashboardStatsDto(
             TotalStudents: activeStudents,
             TotalTeachers: _mockTeachers.Count,
@@ -450,7 +452,8 @@ public class ApiService : IApiService
             TotalFeesOutstanding: totalDue > 0 ? totalDue : 8900.0m,
             RecentAnnouncements: _mockAnnouncements.Take(3).ToList(),
             RecentAudits: _mockAudits.Take(4).ToList(),
-            WeeklyAttendanceTrend: weeklyTrend
+            WeeklyAttendanceTrend: weeklyTrend,
+            GradeDistribution: mockDist
         ));
     }
 

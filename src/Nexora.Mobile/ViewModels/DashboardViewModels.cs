@@ -12,11 +12,14 @@ public class AttendanceChartColumn
     public string Day { get; set; } = string.Empty;
     public decimal Percentage { get; set; }
     public string FormattedPercentage => $"{Percentage:F1}%";
-    public double BarHeight => (double)Math.Clamp(Percentage * 1.15m, 20m, 120m);
+    public double BarHeight => (double)Math.Clamp(Percentage * 1.0m, 15m, 100m);
     public bool IsPeak { get; set; }
-    public Color BarColor => IsPeak ? Color.FromArgb("#16A34A") : Color.FromArgb("#1E40AF");
-    public Color TrackColor => IsPeak ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#DBEAFE");
-    public Color BadgeColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#1E40AF");
+    public bool PeakBadgeVisible => IsPeak;
+    public bool NormalLabelVisible => !IsPeak;
+    public Color BarColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#0F172A");
+    public Color TrackColor => IsPeak ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#E2E8F0");
+    public Color BadgeColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#0F172A");
+    public Color DayTextColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#64748B");
 }
 
 public class GradeDistributionSegment
@@ -172,6 +175,24 @@ public partial class AdminDashboardViewModel : BaseViewModel
     private GridLength _outstandingWidth = new(12, GridUnitType.Star);
 
     [ObservableProperty]
+    private string _tuitionColumnDefinitions = "68*,32*";
+
+    [ObservableProperty]
+    private string _gradeBarColumnDefinitions = "49.1*,50.6*,0.3*,0.01*";
+
+    [ObservableProperty]
+    private string _gradeALabel = "Grade A (49.1%)";
+
+    [ObservableProperty]
+    private string _gradeBLabel = "Grade B (50.6%)";
+
+    [ObservableProperty]
+    private string _gradeCLabel = "Grade C (0.3%)";
+
+    [ObservableProperty]
+    private string _gradeDFLabel = "Grade D/F (0.0%)";
+
+    [ObservableProperty]
     private ObservableCollection<GradeDistributionSegment> _gradeDistribution = new();
 
     public AdminDashboardViewModel(IApiService apiService)
@@ -194,10 +215,10 @@ public partial class AdminDashboardViewModel : BaseViewModel
 
         GradeDistribution = new ObservableCollection<GradeDistributionSegment>
         {
-            new() { Grade = "Grade A", Description = "Distinction (90-100%)", Percentage = 48, SegmentColor = Color.FromArgb("#15803D") },
-            new() { Grade = "Grade B", Description = "Merit (80-89%)", Percentage = 34, SegmentColor = Color.FromArgb("#2563EB") },
-            new() { Grade = "Grade C", Description = "Satisfactory (70-79%)", Percentage = 14, SegmentColor = Color.FromArgb("#D97706") },
-            new() { Grade = "Grade D/F", Description = "Review Needed (<70%)", Percentage = 4, SegmentColor = Color.FromArgb("#DC2626") }
+            new() { Grade = "Grade A", Description = "Distinction (90-100%)", Percentage = 49, SegmentColor = Color.FromArgb("#15803D") },
+            new() { Grade = "Grade B", Description = "Merit (80-89%)", Percentage = 51, SegmentColor = Color.FromArgb("#2563EB") },
+            new() { Grade = "Grade C", Description = "Passing (70-79%)", Percentage = 0, SegmentColor = Color.FromArgb("#D97706") },
+            new() { Grade = "Grade D/F", Description = "Review (<70%)", Percentage = 0, SegmentColor = Color.FromArgb("#DC2626") }
         };
     }
 
@@ -227,7 +248,7 @@ public partial class AdminDashboardViewModel : BaseViewModel
                     new("Fri", 99.0m)
                 };
 
-                var maxVal = trends.Max(t => t.Percentage);
+                var maxVal = trends.Count > 0 ? trends.Max(t => t.Percentage) : 100m;
                 WeeklyAttendance = new ObservableCollection<AttendanceChartColumn>(
                     trends.Select(t => new AttendanceChartColumn
                     {
@@ -248,8 +269,34 @@ public partial class AdminDashboardViewModel : BaseViewModel
                 {
                     FeeCollectionPercentage = Math.Round((res.Data.TotalFeesCollected / totalFees) * 100m, 1);
                     var collectedRatio = Math.Clamp((int)FeeCollectionPercentage, 1, 99);
+                    var outstandingRatio = 100 - collectedRatio;
                     CollectedWidth = new GridLength(collectedRatio, GridUnitType.Star);
-                    OutstandingWidth = new GridLength(100 - collectedRatio, GridUnitType.Star);
+                    OutstandingWidth = new GridLength(outstandingRatio, GridUnitType.Star);
+                    TuitionColumnDefinitions = $"{collectedRatio}*,{outstandingRatio}*";
+                }
+
+                // Update Real Grade Distribution from Database
+                if (res.Data.GradeDistribution != null)
+                {
+                    var gd = res.Data.GradeDistribution;
+                    GradeALabel = $"Grade A ({gd.GradeAPercentage:F1}%)";
+                    GradeBLabel = $"Grade B ({gd.GradeBPercentage:F1}%)";
+                    GradeCLabel = $"Grade C ({gd.GradeCPercentage:F1}%)";
+                    GradeDFLabel = $"Grade D/F ({gd.GradeDFPercentage:F1}%)";
+
+                    var aStar = Math.Max(0.01m, gd.GradeAPercentage);
+                    var bStar = Math.Max(0.01m, gd.GradeBPercentage);
+                    var cStar = Math.Max(0.01m, gd.GradeCPercentage);
+                    var dfStar = Math.Max(0.01m, gd.GradeDFPercentage);
+                    GradeBarColumnDefinitions = $"{aStar:F1}*,{bStar:F1}*,{cStar:F1}*,{dfStar:F1}*";
+
+                    GradeDistribution = new ObservableCollection<GradeDistributionSegment>
+                    {
+                        new() { Grade = "Grade A", Description = "Distinction (90-100%)", Percentage = (int)Math.Round(gd.GradeAPercentage), SegmentColor = Color.FromArgb("#15803D") },
+                        new() { Grade = "Grade B", Description = "Merit (80-89%)", Percentage = (int)Math.Round(gd.GradeBPercentage), SegmentColor = Color.FromArgb("#2563EB") },
+                        new() { Grade = "Grade C", Description = "Passing (70-79%)", Percentage = (int)Math.Round(gd.GradeCPercentage), SegmentColor = Color.FromArgb("#D97706") },
+                        new() { Grade = "Grade D/F", Description = "Review (<70%)", Percentage = (int)Math.Round(gd.GradeDFPercentage), SegmentColor = Color.FromArgb("#DC2626") }
+                    };
                 }
             }
             else

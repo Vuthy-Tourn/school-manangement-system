@@ -1541,6 +1541,32 @@ public class DatabaseSeeder
                     activeComponents.Add(comp);
                 }
 
+                var examSampleScores = targetExam.Name.Contains("Monthly", StringComparison.OrdinalIgnoreCase)
+                    ? new Dictionary<string, (decimal Score, string Remarks)>
+                    {
+                        { "ADM-2026-0001", (80.0m, "Solid quiz performance and timely submission") },
+                        { "ADM-2026-0002", (95.0m, "Top quiz accuracy and comprehensive answers") },
+                        { "ADM-2026-0003", (85.0m, "Good quiz understanding") },
+                        { "ADM-2026-0004", (88.0m, "Very good work on weekly questions") },
+                        { "ADM-2026-0005", (90.0m, "Consistent quiz scores") },
+                        { "ADM-2026-0006", (87.0m, "Neat quiz worksheet") },
+                        { "ADM-2026-0007", (88.0m, "Good comprehension") },
+                        { "ADM-2026-0008", (86.0m, "Well prepared for assessment") },
+                    }
+                    : targetExam.Name.Contains("Semester 2 Midterm", StringComparison.OrdinalIgnoreCase)
+                    ? new Dictionary<string, (decimal Score, string Remarks)>
+                    {
+                        { "ADM-2026-0001", (91.0m, "Solid midterm performance in Semester 2") },
+                        { "ADM-2026-0002", (93.0m, "High analytical accuracy on Semester 2 midterm") },
+                        { "ADM-2026-0003", (86.0m, "Very good progress on new semester topics") },
+                        { "ADM-2026-0004", (87.0m, "Consistent midterm exam preparation") },
+                        { "ADM-2026-0005", (94.0m, "Exemplary understanding of advanced coursework") },
+                        { "ADM-2026-0006", (89.0m, "Thorough answers and well-structured solutions") },
+                        { "ADM-2026-0007", (90.0m, "Strong conceptual reasoning in midterm") },
+                        { "ADM-2026-0008", (88.0m, "Good academic performance on semester 2 test") },
+                    }
+                    : sampleScores;
+
                 foreach (var comp in activeComponents)
                 {
                     foreach (var st in allClassStudents)
@@ -1548,7 +1574,7 @@ public class DatabaseSeeder
                         bool gradeExists = existingGrades.Any(g => g.AssessmentComponentId == comp.Id && g.StudentId == st.Id);
                         if (!gradeExists)
                         {
-                            var (baseScore, remarks) = sampleScores.TryGetValue(st.AdmissionNumber, out var sc)
+                            var (baseScore, remarks) = examSampleScores.TryGetValue(st.AdmissionNumber, out var sc)
                                 ? sc
                                 : (88.0m, "Good academic performance");
 
