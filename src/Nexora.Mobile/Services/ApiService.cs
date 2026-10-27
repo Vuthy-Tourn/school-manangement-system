@@ -1462,6 +1462,357 @@ public class ApiService : IApiService
         return new Guid(bytes);
     }
 
+    public static (decimal Score, string Remarks) GetDifferentiatedScore(string? examName, string? admissionNumber, string? subjectNameOrCode)
+    {
+        var ex = examName ?? string.Empty;
+        var adm = admissionNumber?.Trim() ?? string.Empty;
+        var subj = subjectNameOrCode?.Trim() ?? string.Empty;
+
+        string examKey = ex.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || ex.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || ex.Contains("October", StringComparison.OrdinalIgnoreCase) ? "Monthly"
+            : ex.Contains("Final Annual", StringComparison.OrdinalIgnoreCase) || (ex.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && ex.Contains("Final", StringComparison.OrdinalIgnoreCase)) ? "FinalAnnual"
+            : ex.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) ? "S2Midterm"
+            : ex.Contains("Final", StringComparison.OrdinalIgnoreCase) ? "S1Final"
+            : "S1Midterm";
+
+        string subjCode = subj switch
+        {
+            _ when subj.Contains("Math", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "MATH101", StringComparison.OrdinalIgnoreCase) => "MATH101",
+            _ when subj.Contains("Khmer", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "KHM101", StringComparison.OrdinalIgnoreCase) => "KHM101",
+            _ when subj.Contains("Phys", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "PHY101", StringComparison.OrdinalIgnoreCase) => "PHY101",
+            _ when subj.Contains("Chem", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "CHM101", StringComparison.OrdinalIgnoreCase) => "CHM101",
+            _ when subj.Contains("Eng", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "ENG101", StringComparison.OrdinalIgnoreCase) => "ENG101",
+            _ when subj.Contains("Bio", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "BIO101", StringComparison.OrdinalIgnoreCase) => "BIO101",
+            _ when subj.Contains("His", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "HIS101", StringComparison.OrdinalIgnoreCase) => "HIS101",
+            _ when subj.Contains("ICT", StringComparison.OrdinalIgnoreCase) || subj.Contains("Comp", StringComparison.OrdinalIgnoreCase) || string.Equals(subj, "ICT101", StringComparison.OrdinalIgnoreCase) => "ICT101",
+            _ => "MATH101"
+        };
+
+        return (examKey, adm, subjCode) switch
+        {
+            ("Monthly", "ADM-2026-0001", "KHM101") => (88.0m, "Good comprehension in Khmer quiz"),
+            ("Monthly", "ADM-2026-0001", "MATH101") => (95.0m, "Flawless score on polynomials quiz"),
+            ("Monthly", "ADM-2026-0001", "PHY101") => (85.0m, "Good practical mechanics quiz"),
+            ("Monthly", "ADM-2026-0001", "CHM101") => (82.0m, "Solid quiz, review chemical equations"),
+            ("Monthly", "ADM-2026-0001", "ENG101") => (92.0m, "Accurate grammar and vocabulary quiz"),
+            ("Monthly", "ADM-2026-0001", "BIO101") => (87.0m, "Clear answers on cellular biology"),
+            ("Monthly", "ADM-2026-0001", "HIS101") => (89.0m, "Active recall of historical events"),
+            ("Monthly", "ADM-2026-0001", "ICT101") => (96.0m, "Top score in practical lab test"),
+            ("S1Midterm", "ADM-2026-0001", "KHM101") => (92.0m, "Mastery of Khmer grammar and rhetoric"),
+            ("S1Midterm", "ADM-2026-0001", "MATH101") => (96.0m, "Outstanding analytical and algebraic skills"),
+            ("S1Midterm", "ADM-2026-0001", "PHY101") => (89.0m, "Strong grasp of mechanics and kinematics"),
+            ("S1Midterm", "ADM-2026-0001", "CHM101") => (86.5m, "Solid chemical reaction understanding"),
+            ("S1Midterm", "ADM-2026-0001", "ENG101") => (94.0m, "Fluent expression and essay writing"),
+            ("S1Midterm", "ADM-2026-0001", "BIO101") => (90.0m, "Great grasp of genetics and ecology"),
+            ("S1Midterm", "ADM-2026-0001", "HIS101") => (91.5m, "Thorough knowledge of history"),
+            ("S1Midterm", "ADM-2026-0001", "ICT101") => (98.0m, "Exceptional algorithm design and coding"),
+            ("S1Final", "ADM-2026-0001", "KHM101") => (93.0m, "Comprehensive essay well argued"),
+            ("S1Final", "ADM-2026-0001", "MATH101") => (97.0m, "Near-perfect calculus problem solving"),
+            ("S1Final", "ADM-2026-0001", "PHY101") => (91.0m, "Excellent lab writeup and theory"),
+            ("S1Final", "ADM-2026-0001", "CHM101") => (88.0m, "Thorough understanding of organic chemistry"),
+            ("S1Final", "ADM-2026-0001", "ENG101") => (95.0m, "Sophisticated stylistic prose"),
+            ("S1Final", "ADM-2026-0001", "BIO101") => (92.0m, "Detailed cellular respiration diagrams"),
+            ("S1Final", "ADM-2026-0001", "HIS101") => (90.0m, "Broad thematic synthesis"),
+            ("S1Final", "ADM-2026-0001", "ICT101") => (99.0m, "Outstanding capstone software project"),
+            ("S2Midterm", "ADM-2026-0001", "KHM101") => (91.0m, "Insightful literary commentary"),
+            ("S2Midterm", "ADM-2026-0001", "MATH101") => (95.5m, "Strong differential equations solutions"),
+            ("S2Midterm", "ADM-2026-0001", "PHY101") => (88.5m, "Good electromagnetism analysis"),
+            ("S2Midterm", "ADM-2026-0001", "CHM101") => (85.0m, "Good acid-base titration lab"),
+            ("S2Midterm", "ADM-2026-0001", "ENG101") => (93.5m, "Compelling persuasive speech draft"),
+            ("S2Midterm", "ADM-2026-0001", "BIO101") => (89.0m, "Accurate human physiology writeup"),
+            ("S2Midterm", "ADM-2026-0001", "HIS101") => (88.0m, "Good historiographical critique"),
+            ("S2Midterm", "ADM-2026-0001", "ICT101") => (97.5m, "Advanced database schema and query design"),
+            ("FinalAnnual", "ADM-2026-0001", "KHM101") => (94.0m, "Exemplary mastery of classical literature"),
+            ("FinalAnnual", "ADM-2026-0001", "MATH101") => (98.0m, "Top class mathematician"),
+            ("FinalAnnual", "ADM-2026-0001", "PHY101") => (92.5m, "Outstanding optics and quantum principles"),
+            ("FinalAnnual", "ADM-2026-0001", "CHM101") => (89.5m, "High marks in thermodynamics and kinetics"),
+            ("FinalAnnual", "ADM-2026-0001", "ENG101") => (96.0m, "Superior rhetorical delivery and writing"),
+            ("FinalAnnual", "ADM-2026-0001", "BIO101") => (93.0m, "In-depth ecological field research"),
+            ("FinalAnnual", "ADM-2026-0001", "HIS101") => (92.0m, "Distinguished historical argumentation"),
+            ("FinalAnnual", "ADM-2026-0001", "ICT101") => (100.0m, "Perfect score in full-stack project"),
+            ("Monthly", "ADM-2026-0002", "KHM101") => (98.0m, "Highest score in class quiz"),
+            ("Monthly", "ADM-2026-0002", "MATH101") => (84.0m, "Satisfactory quadratic equations quiz"),
+            ("Monthly", "ADM-2026-0002", "PHY101") => (80.0m, "Review momentum principles"),
+            ("Monthly", "ADM-2026-0002", "CHM101") => (88.0m, "Very good periodic trends knowledge"),
+            ("Monthly", "ADM-2026-0002", "ENG101") => (99.0m, "Outstanding vocabulary and reading quiz"),
+            ("Monthly", "ADM-2026-0002", "BIO101") => (91.0m, "Quick and accurate terminology"),
+            ("Monthly", "ADM-2026-0002", "HIS101") => (95.0m, "Exceptional recall of ancient civilizations"),
+            ("Monthly", "ADM-2026-0002", "ICT101") => (89.0m, "Clean HTML/CSS layout"),
+            ("S1Midterm", "ADM-2026-0002", "KHM101") => (96.0m, "Top class essay, brilliant phrasing"),
+            ("S1Midterm", "ADM-2026-0002", "MATH101") => (88.0m, "Strong geometric proofs"),
+            ("S1Midterm", "ADM-2026-0002", "PHY101") => (84.0m, "Good lab work and scientific writeup"),
+            ("S1Midterm", "ADM-2026-0002", "CHM101") => (91.0m, "Excellent laboratory procedure compliance"),
+            ("S1Midterm", "ADM-2026-0002", "ENG101") => (98.0m, "Native-level fluency and analytical depth"),
+            ("S1Midterm", "ADM-2026-0002", "BIO101") => (89.0m, "Solid grasp of evolutionary biology"),
+            ("S1Midterm", "ADM-2026-0002", "HIS101") => (94.0m, "Active historical analysis and source evaluation"),
+            ("S1Midterm", "ADM-2026-0002", "ICT101") => (92.0m, "Well executed interactive website project"),
+            ("S1Final", "ADM-2026-0002", "KHM101") => (97.0m, "Exemplary analysis of Khmer poetry"),
+            ("S1Final", "ADM-2026-0002", "MATH101") => (89.0m, "Diligently prepared calculus solutions"),
+            ("S1Final", "ADM-2026-0002", "PHY101") => (86.0m, "Clear wave optics diagrams"),
+            ("S1Final", "ADM-2026-0002", "CHM101") => (93.0m, "Top performance in chemical equilibrium"),
+            ("S1Final", "ADM-2026-0002", "ENG101") => (98.5m, "Stunning literary critique"),
+            ("S1Final", "ADM-2026-0002", "BIO101") => (92.0m, "Precise taxonomy and genetics problem sets"),
+            ("S1Final", "ADM-2026-0002", "HIS101") => (96.0m, "Brilliant comparative historical essay"),
+            ("S1Final", "ADM-2026-0002", "ICT101") => (93.0m, "User-friendly application UI"),
+            ("S2Midterm", "ADM-2026-0002", "KHM101") => (95.0m, "Rich vocabulary and cultural context"),
+            ("S2Midterm", "ADM-2026-0002", "MATH101") => (86.0m, "Good trigonometry applications"),
+            ("S2Midterm", "ADM-2026-0002", "PHY101") => (83.0m, "Satisfactory circuits lab report"),
+            ("S2Midterm", "ADM-2026-0002", "CHM101") => (90.0m, "Strong organic chemistry synthesis"),
+            ("S2Midterm", "ADM-2026-0002", "ENG101") => (97.0m, "Eloquent debate and presentation"),
+            ("S2Midterm", "ADM-2026-0002", "BIO101") => (88.0m, "Good ecosystem dynamics model"),
+            ("S2Midterm", "ADM-2026-0002", "HIS101") => (93.0m, "Thoughtful analysis of modern history"),
+            ("S2Midterm", "ADM-2026-0002", "ICT101") => (91.0m, "Good responsive design implementation"),
+            ("FinalAnnual", "ADM-2026-0002", "KHM101") => (98.5m, "Class valedictorian literature submission"),
+            ("FinalAnnual", "ADM-2026-0002", "MATH101") => (90.0m, "Achieved distinction in annual exam"),
+            ("FinalAnnual", "ADM-2026-0002", "PHY101") => (87.0m, "Sound physics experimental analysis"),
+            ("FinalAnnual", "ADM-2026-0002", "CHM101") => (94.0m, "Exceptional precision in final lab"),
+            ("FinalAnnual", "ADM-2026-0002", "ENG101") => (99.0m, "Top English student of the year"),
+            ("FinalAnnual", "ADM-2026-0002", "BIO101") => (94.0m, "Distinction in molecular biology"),
+            ("FinalAnnual", "ADM-2026-0002", "HIS101") => (97.0m, "Masterful thesis on global treaties"),
+            ("FinalAnnual", "ADM-2026-0002", "ICT101") => (95.0m, "Well architected final web project"),
+            ("Monthly", "ADM-2026-0003", "KHM101") => (71.0m, "Passing quiz, study Khmer vocabulary"),
+            ("Monthly", "ADM-2026-0003", "MATH101") => (90.0m, "Quick mental calculations on algebra"),
+            ("Monthly", "ADM-2026-0003", "PHY101") => (93.0m, "High score on projectile motion quiz"),
+            ("Monthly", "ADM-2026-0003", "CHM101") => (78.0m, "Review balancing redox equations"),
+            ("Monthly", "ADM-2026-0003", "ENG101") => (70.0m, "Passing grade in listening quiz"),
+            ("Monthly", "ADM-2026-0003", "BIO101") => (76.0m, "Review enzyme catalysts"),
+            ("Monthly", "ADM-2026-0003", "HIS101") => (68.0m, "Needs review on medieval chronology"),
+            ("Monthly", "ADM-2026-0003", "ICT101") => (85.0m, "Good pseudo-code structure"),
+            ("S1Midterm", "ADM-2026-0003", "KHM101") => (76.0m, "Needs to expand descriptive vocabulary"),
+            ("S1Midterm", "ADM-2026-0003", "MATH101") => (92.0m, "Strong spatial reasoning and equations"),
+            ("S1Midterm", "ADM-2026-0003", "PHY101") => (94.0m, "Top lab performance in kinematics"),
+            ("S1Midterm", "ADM-2026-0003", "CHM101") => (83.0m, "Good work on molecular bonding"),
+            ("S1Midterm", "ADM-2026-0003", "ENG101") => (74.0m, "Work on essay structure and grammar"),
+            ("S1Midterm", "ADM-2026-0003", "BIO101") => (80.0m, "Adequate cellular biology understanding"),
+            ("S1Midterm", "ADM-2026-0003", "HIS101") => (72.0m, "Chronology and dates need improvement"),
+            ("S1Midterm", "ADM-2026-0003", "ICT101") => (88.0m, "Good logic in programming loops"),
+            ("S1Final", "ADM-2026-0003", "KHM101") => (78.0m, "Improved clarity in essay conclusion"),
+            ("S1Final", "ADM-2026-0003", "MATH101") => (93.0m, "Impressive vector calculus proofs"),
+            ("S1Final", "ADM-2026-0003", "PHY101") => (95.0m, "Distinction in physics final"),
+            ("S1Final", "ADM-2026-0003", "CHM101") => (85.0m, "Sound chemistry lab execution"),
+            ("S1Final", "ADM-2026-0003", "ENG101") => (76.0m, "Clear progress in paragraph transitions"),
+            ("S1Final", "ADM-2026-0003", "BIO101") => (82.0m, "Solid final exam review"),
+            ("S1Final", "ADM-2026-0003", "HIS101") => (74.0m, "Adequate comprehension of world events"),
+            ("S1Final", "ADM-2026-0003", "ICT101") => (90.0m, "Well-commented C# algorithms"),
+            ("S2Midterm", "ADM-2026-0003", "KHM101") => (75.0m, "Steady effort in essay drafting"),
+            ("S2Midterm", "ADM-2026-0003", "MATH101") => (91.0m, "Solid complex numbers solutions"),
+            ("S2Midterm", "ADM-2026-0003", "PHY101") => (92.0m, "Accurate electromagnetic field calculations"),
+            ("S2Midterm", "ADM-2026-0003", "CHM101") => (81.0m, "Satisfactory electrochemistry report"),
+            ("S2Midterm", "ADM-2026-0003", "ENG101") => (73.0m, "Focus on reading comprehension details"),
+            ("S2Midterm", "ADM-2026-0003", "BIO101") => (79.0m, "Passing review of genetics"),
+            ("S2Midterm", "ADM-2026-0003", "HIS101") => (71.0m, "Review primary vs secondary sources"),
+            ("S2Midterm", "ADM-2026-0003", "ICT101") => (87.0m, "Good network protocols understanding"),
+            ("FinalAnnual", "ADM-2026-0003", "KHM101") => (79.0m, "Good improvement in writing style"),
+            ("FinalAnnual", "ADM-2026-0003", "MATH101") => (94.0m, "Exceptional performance on calculus"),
+            ("FinalAnnual", "ADM-2026-0003", "PHY101") => (96.0m, "Highest Physics score in grade 10"),
+            ("FinalAnnual", "ADM-2026-0003", "CHM101") => (84.0m, "Good overall chemistry practical"),
+            ("FinalAnnual", "ADM-2026-0003", "ENG101") => (77.0m, "Satisfactory annual English completion"),
+            ("FinalAnnual", "ADM-2026-0003", "BIO101") => (83.0m, "Solid biological systems synthesis"),
+            ("FinalAnnual", "ADM-2026-0003", "HIS101") => (75.0m, "Passing grade in modern world history"),
+            ("FinalAnnual", "ADM-2026-0003", "ICT101") => (91.0m, "Excellent robotics microcontroller code"),
+            ("Monthly", "ADM-2026-0004", "KHM101") => (86.0m, "Good literary quiz score"),
+            ("Monthly", "ADM-2026-0004", "MATH101") => (77.0m, "Review factoring polynomials"),
+            ("Monthly", "ADM-2026-0004", "PHY101") => (75.0m, "Study heat transfer concepts"),
+            ("Monthly", "ADM-2026-0004", "CHM101") => (89.0m, "Fast and accurate molar mass quiz"),
+            ("Monthly", "ADM-2026-0004", "ENG101") => (88.0m, "Good spelling and idiom quiz"),
+            ("Monthly", "ADM-2026-0004", "BIO101") => (94.0m, "Top quiz score on photosynthesis"),
+            ("Monthly", "ADM-2026-0004", "HIS101") => (84.0m, "Good understanding of Angkor era"),
+            ("Monthly", "ADM-2026-0004", "ICT101") => (80.0m, "Passing quiz on database basics"),
+            ("S1Midterm", "ADM-2026-0004", "KHM101") => (89.0m, "Expressive poetic commentary"),
+            ("S1Midterm", "ADM-2026-0004", "MATH101") => (81.0m, "Good effort on quadratic formulas"),
+            ("S1Midterm", "ADM-2026-0004", "PHY101") => (79.0m, "Passing grade in thermodynamics"),
+            ("S1Midterm", "ADM-2026-0004", "CHM101") => (92.0m, "Outstanding titration and lab safety"),
+            ("S1Midterm", "ADM-2026-0004", "ENG101") => (91.0m, "Fluent reading comprehension"),
+            ("S1Midterm", "ADM-2026-0004", "BIO101") => (95.0m, "Brilliant cytology diagrams and notes"),
+            ("S1Midterm", "ADM-2026-0004", "HIS101") => (87.0m, "Engaging discussion of cultural heritage"),
+            ("S1Midterm", "ADM-2026-0004", "ICT101") => (82.0m, "Satisfactory spreadsheets and presentations"),
+            ("S1Final", "ADM-2026-0004", "KHM101") => (90.0m, "Distinction in Khmer prose"),
+            ("S1Final", "ADM-2026-0004", "MATH101") => (83.0m, "Neat step-by-step math working"),
+            ("S1Final", "ADM-2026-0004", "PHY101") => (81.0m, "Solid grasp of light and sound waves"),
+            ("S1Final", "ADM-2026-0004", "CHM101") => (93.0m, "Superior understanding of reaction rates"),
+            ("S1Final", "ADM-2026-0004", "ENG101") => (92.0m, "Excellent persuasive book review"),
+            ("S1Final", "ADM-2026-0004", "BIO101") => (96.0m, "Top student in biology final"),
+            ("S1Final", "ADM-2026-0004", "HIS101") => (88.0m, "Well-researched essay on trade routes"),
+            ("S1Final", "ADM-2026-0004", "ICT101") => (84.0m, "Complete web page project"),
+            ("S2Midterm", "ADM-2026-0004", "KHM101") => (88.0m, "Good storytelling and grammar"),
+            ("S2Midterm", "ADM-2026-0004", "MATH101") => (80.0m, "Solid trigonometry foundations"),
+            ("S2Midterm", "ADM-2026-0004", "PHY101") => (78.0m, "Passing review in mechanics"),
+            ("S2Midterm", "ADM-2026-0004", "CHM101") => (91.0m, "Excellent organic functional groups"),
+            ("S2Midterm", "ADM-2026-0004", "ENG101") => (89.0m, "Good oral speech delivery"),
+            ("S2Midterm", "ADM-2026-0004", "BIO101") => (94.0m, "Detailed human anatomy chart"),
+            ("S2Midterm", "ADM-2026-0004", "HIS101") => (86.0m, "Solid comparative government essay"),
+            ("S2Midterm", "ADM-2026-0004", "ICT101") => (83.0m, "Good work on relational databases"),
+            ("FinalAnnual", "ADM-2026-0004", "KHM101") => (91.0m, "Distinction level Khmer composition"),
+            ("FinalAnnual", "ADM-2026-0004", "MATH101") => (84.0m, "Good overall progress in math"),
+            ("FinalAnnual", "ADM-2026-0004", "PHY101") => (82.0m, "Sound understanding of electrical circuits"),
+            ("FinalAnnual", "ADM-2026-0004", "CHM101") => (94.0m, "Exemplary chemistry final exam"),
+            ("FinalAnnual", "ADM-2026-0004", "ENG101") => (93.0m, "Polished academic research writing"),
+            ("FinalAnnual", "ADM-2026-0004", "BIO101") => (97.0m, "Phenomenal performance in biology"),
+            ("FinalAnnual", "ADM-2026-0004", "HIS101") => (89.0m, "Very good synthesis of world history"),
+            ("FinalAnnual", "ADM-2026-0004", "ICT101") => (85.0m, "Good application design project"),
+            ("Monthly", "ADM-2026-0005", "KHM101") => (84.0m, "Good spelling and grammar quiz"),
+            ("Monthly", "ADM-2026-0005", "MATH101") => (87.0m, "Quick quiz solutions"),
+            ("Monthly", "ADM-2026-0005", "PHY101") => (83.0m, "Passing quiz on vectors"),
+            ("Monthly", "ADM-2026-0005", "CHM101") => (72.0m, "Review atomic orbital configuration"),
+            ("Monthly", "ADM-2026-0005", "ENG101") => (85.0m, "Good reading quiz"),
+            ("Monthly", "ADM-2026-0005", "BIO101") => (82.0m, "Good knowledge of plant biology"),
+            ("Monthly", "ADM-2026-0005", "HIS101") => (91.0m, "High score on Southeast Asia quiz"),
+            ("Monthly", "ADM-2026-0005", "ICT101") => (92.0m, "Fast and clean code submission"),
+            ("S1Midterm", "ADM-2026-0005", "KHM101") => (87.0m, "Clear essay logic and good grammar"),
+            ("S1Midterm", "ADM-2026-0005", "MATH101") => (89.0m, "Accurate algebra problem solving"),
+            ("S1Midterm", "ADM-2026-0005", "PHY101") => (86.0m, "Good analysis of Newton laws"),
+            ("S1Midterm", "ADM-2026-0005", "CHM101") => (76.0m, "Needs practice on ionic equations"),
+            ("S1Midterm", "ADM-2026-0005", "ENG101") => (88.0m, "Good vocabulary and text analysis"),
+            ("S1Midterm", "ADM-2026-0005", "BIO101") => (85.0m, "Reliable understanding of ecology"),
+            ("S1Midterm", "ADM-2026-0005", "HIS101") => (93.0m, "Exceptional interest in history"),
+            ("S1Midterm", "ADM-2026-0005", "ICT101") => (94.0m, "Great programming intuition and code hygiene"),
+            ("S1Final", "ADM-2026-0005", "KHM101") => (88.0m, "Solid structure in final composition"),
+            ("S1Final", "ADM-2026-0005", "MATH101") => (90.0m, "Distinction in final mathematics"),
+            ("S1Final", "ADM-2026-0005", "PHY101") => (87.0m, "Very good lab experiment execution"),
+            ("S1Final", "ADM-2026-0005", "CHM101") => (79.0m, "Good improvement on chemical bonding"),
+            ("S1Final", "ADM-2026-0005", "ENG101") => (89.0m, "Well-developed essay arguments"),
+            ("S1Final", "ADM-2026-0005", "BIO101") => (86.0m, "Sound final biology score"),
+            ("S1Final", "ADM-2026-0005", "HIS101") => (94.0m, "Outstanding analytical depth in history"),
+            ("S1Final", "ADM-2026-0005", "ICT101") => (95.0m, "Distinction in ICT software build"),
+            ("S2Midterm", "ADM-2026-0005", "KHM101") => (86.0m, "Consistent and neat handwriting"),
+            ("S2Midterm", "ADM-2026-0005", "MATH101") => (88.0m, "Good application of probability"),
+            ("S2Midterm", "ADM-2026-0005", "PHY101") => (85.0m, "Solid energy conservation models"),
+            ("S2Midterm", "ADM-2026-0005", "CHM101") => (77.0m, "Passing work on solution concentrations"),
+            ("S2Midterm", "ADM-2026-0005", "ENG101") => (87.0m, "Active participation in group seminar"),
+            ("S2Midterm", "ADM-2026-0005", "BIO101") => (84.0m, "Satisfactory genetics problem sets"),
+            ("S2Midterm", "ADM-2026-0005", "HIS101") => (92.0m, "Strong engagement with historical debates"),
+            ("S2Midterm", "ADM-2026-0005", "ICT101") => (93.0m, "Good object-oriented design patterns"),
+            ("FinalAnnual", "ADM-2026-0005", "KHM101") => (89.0m, "Polished literary dissertation"),
+            ("FinalAnnual", "ADM-2026-0005", "MATH101") => (91.0m, "Distinction in advanced mathematics"),
+            ("FinalAnnual", "ADM-2026-0005", "PHY101") => (88.0m, "Very good final physics score"),
+            ("FinalAnnual", "ADM-2026-0005", "CHM101") => (81.0m, "Attained Merit level in chemistry"),
+            ("FinalAnnual", "ADM-2026-0005", "ENG101") => (90.0m, "Distinction in English comprehensive"),
+            ("FinalAnnual", "ADM-2026-0005", "BIO101") => (87.0m, "Reliable and consistent score"),
+            ("FinalAnnual", "ADM-2026-0005", "HIS101") => (95.0m, "One of the best historians in class"),
+            ("FinalAnnual", "ADM-2026-0005", "ICT101") => (96.0m, "Superb final programming project"),
+            ("Monthly", "ADM-2026-0006", "KHM101") => (90.0m, "Distinction in poetry quiz"),
+            ("Monthly", "ADM-2026-0006", "MATH101") => (75.0m, "Passing quiz on functions"),
+            ("Monthly", "ADM-2026-0006", "PHY101") => (64.0m, "Needs review on force diagrams"),
+            ("Monthly", "ADM-2026-0006", "CHM101") => (71.0m, "Passing quiz on the periodic table"),
+            ("Monthly", "ADM-2026-0006", "ENG101") => (89.0m, "High score on reading quiz"),
+            ("Monthly", "ADM-2026-0006", "BIO101") => (81.0m, "Good understanding of cell division"),
+            ("Monthly", "ADM-2026-0006", "HIS101") => (87.0m, "Quick historical timeline recall"),
+            ("Monthly", "ADM-2026-0006", "ICT101") => (78.0m, "Passing quiz on web development"),
+            ("S1Midterm", "ADM-2026-0006", "KHM101") => (92.0m, "Elegant writing style and deep empathy"),
+            ("S1Midterm", "ADM-2026-0006", "MATH101") => (78.0m, "Needs practice on trigonometric graphs"),
+            ("S1Midterm", "ADM-2026-0006", "PHY101") => (67.0m, "Struggling with rotational mechanics"),
+            ("S1Midterm", "ADM-2026-0006", "CHM101") => (74.0m, "Passing score, review stoichiometry"),
+            ("S1Midterm", "ADM-2026-0006", "ENG101") => (91.0m, "Outstanding essay writing and prose"),
+            ("S1Midterm", "ADM-2026-0006", "BIO101") => (83.0m, "Good understanding of human systems"),
+            ("S1Midterm", "ADM-2026-0006", "HIS101") => (89.0m, "Thoughtful cultural analysis"),
+            ("S1Midterm", "ADM-2026-0006", "ICT101") => (80.0m, "Good effort on web page styling"),
+            ("S1Final", "ADM-2026-0006", "KHM101") => (93.0m, "Distinction in Khmer literature"),
+            ("S1Final", "ADM-2026-0006", "MATH101") => (80.0m, "Attained merit through extra tutoring"),
+            ("S1Final", "ADM-2026-0006", "PHY101") => (69.5m, "Close to passing, continued tutoring recommended"),
+            ("S1Final", "ADM-2026-0006", "CHM101") => (76.0m, "Clear progress in chemistry lab"),
+            ("S1Final", "ADM-2026-0006", "ENG101") => (92.0m, "Rich narrative and analytical skills"),
+            ("S1Final", "ADM-2026-0006", "BIO101") => (85.0m, "Good final score in biology"),
+            ("S1Final", "ADM-2026-0006", "HIS101") => (90.0m, "Distinction in final history paper"),
+            ("S1Final", "ADM-2026-0006", "ICT101") => (82.0m, "Solid presentation of graphic design project"),
+            ("S2Midterm", "ADM-2026-0006", "KHM101") => (91.0m, "Exceptional creative composition"),
+            ("S2Midterm", "ADM-2026-0006", "MATH101") => (79.0m, "Passing grade in statistics"),
+            ("S2Midterm", "ADM-2026-0006", "PHY101") => (68.0m, "Extra help needed with magnetic flux"),
+            ("S2Midterm", "ADM-2026-0006", "CHM101") => (75.0m, "Passing lab writeup"),
+            ("S2Midterm", "ADM-2026-0006", "ENG101") => (90.0m, "Distinction in literary analysis"),
+            ("S2Midterm", "ADM-2026-0006", "BIO101") => (84.0m, "Good ecosystem project"),
+            ("S2Midterm", "ADM-2026-0006", "HIS101") => (88.0m, "Strong historical inquiry"),
+            ("S2Midterm", "ADM-2026-0006", "ICT101") => (81.0m, "Good design and interface work"),
+            ("FinalAnnual", "ADM-2026-0006", "KHM101") => (94.0m, "Top tier writer and literary talent"),
+            ("FinalAnnual", "ADM-2026-0006", "MATH101") => (82.0m, "Solid merit grade achieved"),
+            ("FinalAnnual", "ADM-2026-0006", "PHY101") => (72.0m, "Achieved passing Grade C through hard work"),
+            ("FinalAnnual", "ADM-2026-0006", "CHM101") => (78.0m, "Good understanding of environmental chemistry"),
+            ("FinalAnnual", "ADM-2026-0006", "ENG101") => (93.0m, "Distinction in English final"),
+            ("FinalAnnual", "ADM-2026-0006", "BIO101") => (86.0m, "Solid overall biology mark"),
+            ("FinalAnnual", "ADM-2026-0006", "HIS101") => (91.0m, "Distinction in annual history examination"),
+            ("FinalAnnual", "ADM-2026-0006", "ICT101") => (84.0m, "Creative digital media project"),
+            ("Monthly", "ADM-2026-0007", "KHM101") => (75.0m, "Passing quiz score on grammar"),
+            ("Monthly", "ADM-2026-0007", "MATH101") => (84.0m, "Good quiz on linear inequalities"),
+            ("Monthly", "ADM-2026-0007", "PHY101") => (80.0m, "Passing quiz on simple machines"),
+            ("Monthly", "ADM-2026-0007", "CHM101") => (62.0m, "Needs review on balancing reactions"),
+            ("Monthly", "ADM-2026-0007", "ENG101") => (74.0m, "Passing vocabulary quiz"),
+            ("Monthly", "ADM-2026-0007", "BIO101") => (78.0m, "Passing quiz on cell organelles"),
+            ("Monthly", "ADM-2026-0007", "HIS101") => (79.0m, "Good effort on historical events quiz"),
+            ("Monthly", "ADM-2026-0007", "ICT101") => (94.0m, "Fastest student to solve programming challenge"),
+            ("S1Midterm", "ADM-2026-0007", "KHM101") => (78.0m, "Focus on sentence structure"),
+            ("S1Midterm", "ADM-2026-0007", "MATH101") => (86.0m, "Good grasp of coordinate geometry"),
+            ("S1Midterm", "ADM-2026-0007", "PHY101") => (82.0m, "Solid lab report on acceleration"),
+            ("S1Midterm", "ADM-2026-0007", "CHM101") => (65.0m, "Challenged by chemical equations"),
+            ("S1Midterm", "ADM-2026-0007", "ENG101") => (77.0m, "Passing mark, work on essay flow"),
+            ("S1Midterm", "ADM-2026-0007", "BIO101") => (80.0m, "Satisfactory understanding of food webs"),
+            ("S1Midterm", "ADM-2026-0007", "HIS101") => (81.0m, "Good knowledge of local history"),
+            ("S1Midterm", "ADM-2026-0007", "ICT101") => (95.0m, "Outstanding coding logic and debugging"),
+            ("S1Final", "ADM-2026-0007", "KHM101") => (80.0m, "Achieved merit through consistent reading"),
+            ("S1Final", "ADM-2026-0007", "MATH101") => (88.0m, "High score on geometry and trigonometry"),
+            ("S1Final", "ADM-2026-0007", "PHY101") => (85.0m, "Very good final physics exam"),
+            ("S1Final", "ADM-2026-0007", "CHM101") => (70.0m, "Passed final exam through remedial sessions"),
+            ("S1Final", "ADM-2026-0007", "ENG101") => (79.0m, "Good progress in English speech and essay"),
+            ("S1Final", "ADM-2026-0007", "BIO101") => (82.0m, "Solid understanding of genetics"),
+            ("S1Final", "ADM-2026-0007", "HIS101") => (83.0m, "Good understanding of 20th century history"),
+            ("S1Final", "ADM-2026-0007", "ICT101") => (97.0m, "Distinction capstone coding project"),
+            ("S2Midterm", "ADM-2026-0007", "KHM101") => (79.0m, "Passing grade, good effort"),
+            ("S2Midterm", "ADM-2026-0007", "MATH101") => (87.0m, "Solid work on vectors and matrices"),
+            ("S2Midterm", "ADM-2026-0007", "PHY101") => (83.0m, "Good work on thermal physics"),
+            ("S2Midterm", "ADM-2026-0007", "CHM101") => (68.0m, "Needs review on organic nomenclature"),
+            ("S2Midterm", "ADM-2026-0007", "ENG101") => (78.0m, "Good conversational English"),
+            ("S2Midterm", "ADM-2026-0007", "BIO101") => (81.0m, "Good effort on ecosystems"),
+            ("S2Midterm", "ADM-2026-0007", "HIS101") => (82.0m, "Good class participation"),
+            ("S2Midterm", "ADM-2026-0007", "ICT101") => (96.0m, "Superior web backend implementation"),
+            ("FinalAnnual", "ADM-2026-0007", "KHM101") => (81.0m, "Merit grade achieved in Khmer"),
+            ("FinalAnnual", "ADM-2026-0007", "MATH101") => (89.0m, "Strong final math performance"),
+            ("FinalAnnual", "ADM-2026-0007", "PHY101") => (86.0m, "Good practical and theory score"),
+            ("FinalAnnual", "ADM-2026-0007", "CHM101") => (73.0m, "Passing grade achieved in chemistry"),
+            ("FinalAnnual", "ADM-2026-0007", "ENG101") => (80.0m, "Reached merit benchmark in English"),
+            ("FinalAnnual", "ADM-2026-0007", "BIO101") => (83.0m, "Good overall biology performance"),
+            ("FinalAnnual", "ADM-2026-0007", "HIS101") => (84.0m, "Solid annual history score"),
+            ("FinalAnnual", "ADM-2026-0007", "ICT101") => (98.0m, "Top computer science student"),
+            ("Monthly", "ADM-2026-0008", "KHM101") => (89.0m, "Good score in literature quiz"),
+            ("Monthly", "ADM-2026-0008", "MATH101") => (92.0m, "Near-perfect quiz on quadratic graphs"),
+            ("Monthly", "ADM-2026-0008", "PHY101") => (86.0m, "Good quiz on friction and work"),
+            ("Monthly", "ADM-2026-0008", "CHM101") => (87.0m, "Very good quiz on atomic structure"),
+            ("Monthly", "ADM-2026-0008", "ENG101") => (90.0m, "Distinction on grammar and idioms"),
+            ("Monthly", "ADM-2026-0008", "BIO101") => (93.0m, "High score on plant respiration"),
+            ("Monthly", "ADM-2026-0008", "HIS101") => (88.0m, "Good historical overview quiz"),
+            ("Monthly", "ADM-2026-0008", "ICT101") => (87.0m, "Clean coding worksheet"),
+            ("S1Midterm", "ADM-2026-0008", "KHM101") => (91.0m, "Neat and comprehensive Khmer analysis"),
+            ("S1Midterm", "ADM-2026-0008", "MATH101") => (93.0m, "Excellent logic and numerical accuracy"),
+            ("S1Midterm", "ADM-2026-0008", "PHY101") => (88.0m, "Sound physics experimental procedure"),
+            ("S1Midterm", "ADM-2026-0008", "CHM101") => (89.0m, "High accuracy in acid-base calculations"),
+            ("S1Midterm", "ADM-2026-0008", "ENG101") => (92.0m, "Fluent reading and precise answers"),
+            ("S1Midterm", "ADM-2026-0008", "BIO101") => (94.0m, "Top score in microscopy and cellular study"),
+            ("S1Midterm", "ADM-2026-0008", "HIS101") => (90.0m, "Distinction in historical document analysis"),
+            ("S1Midterm", "ADM-2026-0008", "ICT101") => (89.0m, "Well-organized database schema"),
+            ("S1Final", "ADM-2026-0008", "KHM101") => (93.0m, "Distinction in Khmer literature"),
+            ("S1Final", "ADM-2026-0008", "MATH101") => (95.0m, "Distinction in advanced mathematics"),
+            ("S1Final", "ADM-2026-0008", "PHY101") => (90.0m, "Distinction in physics theory"),
+            ("S1Final", "ADM-2026-0008", "CHM101") => (91.0m, "Distinction in chemistry final"),
+            ("S1Final", "ADM-2026-0008", "ENG101") => (94.0m, "Distinction in English comprehensive"),
+            ("S1Final", "ADM-2026-0008", "BIO101") => (95.0m, "Distinction in biology final"),
+            ("S1Final", "ADM-2026-0008", "HIS101") => (92.0m, "Distinction in history final"),
+            ("S1Final", "ADM-2026-0008", "ICT101") => (91.0m, "Distinction in ICT practical project"),
+            ("S2Midterm", "ADM-2026-0008", "KHM101") => (90.0m, "Clear and insightful prose"),
+            ("S2Midterm", "ADM-2026-0008", "MATH101") => (92.0m, "Strong analytical math capability"),
+            ("S2Midterm", "ADM-2026-0008", "PHY101") => (87.0m, "Good lab performance"),
+            ("S2Midterm", "ADM-2026-0008", "CHM101") => (88.0m, "Solid work on periodic trends"),
+            ("S2Midterm", "ADM-2026-0008", "ENG101") => (91.0m, "Active leadership in debate"),
+            ("S2Midterm", "ADM-2026-0008", "BIO101") => (93.0m, "Accurate genetics diagrams"),
+            ("S2Midterm", "ADM-2026-0008", "HIS101") => (89.0m, "Very good historical paper"),
+            ("S2Midterm", "ADM-2026-0008", "ICT101") => (88.0m, "Good programming implementation"),
+            ("FinalAnnual", "ADM-2026-0008", "KHM101") => (94.0m, "Exemplary Khmer annual exam"),
+            ("FinalAnnual", "ADM-2026-0008", "MATH101") => (96.0m, "Superb calculus final score"),
+            ("FinalAnnual", "ADM-2026-0008", "PHY101") => (91.0m, "Distinction in physics annual"),
+            ("FinalAnnual", "ADM-2026-0008", "CHM101") => (92.0m, "Distinction in chemistry annual"),
+            ("FinalAnnual", "ADM-2026-0008", "ENG101") => (95.0m, "Distinction in English annual"),
+            ("FinalAnnual", "ADM-2026-0008", "BIO101") => (96.0m, "Distinction in biology annual"),
+            ("FinalAnnual", "ADM-2026-0008", "HIS101") => (93.0m, "Distinction in history annual"),
+            ("FinalAnnual", "ADM-2026-0008", "ICT101") => (92.0m, "Distinction in ICT annual"),
+            _ => (85.0m, "Good performance")
+        };
+    }
+
     public async Task<ApiResponse<List<AssessmentComponentDto>>> GetAssessmentComponentsAsync(Guid examId, Guid classId)
     {
         var targetClassId = classId != Guid.Empty ? classId : Class10AId;
@@ -1543,106 +1894,6 @@ public class ApiService : IApiService
 
         var examId = comp?.ExamId ?? Guid.Empty;
         var exName = comp?.ExamName ?? (_examNameCache.TryGetValue(examId, out var en) ? en : string.Empty);
-        bool isMonthlyComp = examId == ExamQuiz1Id || examId == DbExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || exName.Contains("October", StringComparison.OrdinalIgnoreCase);
-        bool isFinal1Comp = examId == ExamFinal1Id || examId == DbExamFinal1Id || (exName.Contains("Semester 1", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
-        bool isMidterm2Comp = examId == ExamMidterm2Id || examId == DbExamMidterm2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Midterm", StringComparison.OrdinalIgnoreCase));
-        bool isFinal2Comp = examId == ExamFinal2Id || examId == DbExamFinal2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
-
-        var sampleScores = isMonthlyComp
-            ? new Dictionary<string, (decimal Score, string Remarks)>
-            {
-                { "ADM-2026-0001", (80.0m, "Solid quiz performance and timely submission") },
-                { "ADM-2026-0002", (95.0m, "Top quiz accuracy and comprehensive answers") },
-                { "ADM-2026-0003", (85.0m, "Good quiz understanding") },
-                { "ADM-2026-0004", (88.0m, "Very good work on weekly questions") },
-                { "ADM-2026-0005", (90.0m, "Consistent quiz scores") },
-                { "ADM-2026-0006", (87.0m, "Neat quiz worksheet") },
-                { "ADM-2026-0007", (89.0m, "Good comprehension") },
-                { "ADM-2026-0008", (86.0m, "Well prepared for assessment") },
-            }
-            : isFinal1Comp
-            ? new Dictionary<string, (decimal Score, string Remarks)>
-            {
-                { "ADM-2026-0001", (96.0m, "Exceptional final examination score") },
-                { "ADM-2026-0002", (94.0m, "Outstanding mastery across the entire syllabus") },
-                { "ADM-2026-0003", (88.0m, "Great final essay and analytical work") },
-                { "ADM-2026-0004", (85.0m, "Solid comprehensive examination performance") },
-                { "ADM-2026-0005", (92.0m, "High final scores in advanced topics") },
-                { "ADM-2026-0006", (91.0m, "Excellent retention and accurate responses") },
-                { "ADM-2026-0007", (93.0m, "Strong critical and analytical thinking") },
-                { "ADM-2026-0008", (90.0m, "Great academic achievement in final exam") },
-            }
-            : isMidterm2Comp
-            ? new Dictionary<string, (decimal Score, string Remarks)>
-            {
-                { "ADM-2026-0001", (91.0m, "Solid midterm performance in Semester 2") },
-                { "ADM-2026-0002", (93.0m, "High analytical accuracy on Semester 2 midterm") },
-                { "ADM-2026-0003", (86.0m, "Very good progress on new semester topics") },
-                { "ADM-2026-0004", (87.0m, "Consistent midterm exam preparation") },
-                { "ADM-2026-0005", (94.0m, "Exemplary understanding of advanced coursework") },
-                { "ADM-2026-0006", (89.0m, "Thorough answers and well-structured solutions") },
-                { "ADM-2026-0007", (90.0m, "Strong conceptual reasoning in midterm") },
-                { "ADM-2026-0008", (88.0m, "Good academic performance on semester 2 test") },
-            }
-            : isFinal2Comp
-            ? new Dictionary<string, (decimal Score, string Remarks)>
-            {
-                { "ADM-2026-0001", (94.0m, "Outstanding annual cumulative final exam score") },
-                { "ADM-2026-0002", (96.0m, "Superior mastery of full academic year curriculum") },
-                { "ADM-2026-0003", (89.0m, "Excellent annual examination achievements") },
-                { "ADM-2026-0004", (88.0m, "Solid performance across all annual modules") },
-                { "ADM-2026-0005", (95.0m, "Top-tier annual examination performance") },
-                { "ADM-2026-0006", (92.0m, "Great analytical synthesis and critical thinking") },
-                { "ADM-2026-0007", (93.0m, "Impressive final defense and comprehensive exam") },
-                { "ADM-2026-0008", (91.0m, "Distinguished academic completion of Grade 10") },
-            }
-            : (resolvedSubjName.Contains("Bio", StringComparison.OrdinalIgnoreCase)
-                ? new Dictionary<string, (decimal Score, string Remarks)>
-                {
-                    { "ADM-2026-0001", (90.0m, "Great understanding of genetics and cellular structures") },
-                    { "ADM-2026-0002", (88.0m, "Solid grasp of evolutionary biology") },
-                    { "ADM-2026-0003", (89.0m, "Clear botanical classifications") },
-                    { "ADM-2026-0004", (92.0m, "Great physiology dissection work") },
-                    { "ADM-2026-0005", (91.0m, "Thorough understanding of biological systems") },
-                    { "ADM-2026-0006", (88.0m, "Consistent lab reports and cellular diagrams") },
-                    { "ADM-2026-0007", (89.0m, "Good grasp of genetics and ecology") },
-                    { "ADM-2026-0008", (90.0m, "Strong comprehension of anatomy and physiology") },
-                }
-                : resolvedSubjName.Contains("Math", StringComparison.OrdinalIgnoreCase)
-                ? new Dictionary<string, (decimal Score, string Remarks)>
-                {
-                    { "ADM-2026-0001", (95.0m, "Outstanding algebraic and calculus problem solving") },
-                    { "ADM-2026-0002", (89.0m, "Very good geometric reasoning") },
-                    { "ADM-2026-0003", (91.0m, "Proficient trigonometric solutions") },
-                    { "ADM-2026-0004", (84.0m, "Solid algebraic expressions") },
-                    { "ADM-2026-0005", (94.0m, "Excellent algebra and calculus") },
-                    { "ADM-2026-0006", (87.0m, "Consistent performance and problem solving") },
-                    { "ADM-2026-0007", (92.0m, "Great calculation and critical thinking") },
-                    { "ADM-2026-0008", (89.0m, "High exam score and good reasoning") },
-                }
-                : resolvedSubjName.Contains("Physic", StringComparison.OrdinalIgnoreCase)
-                ? new Dictionary<string, (decimal Score, string Remarks)>
-                {
-                    { "ADM-2026-0001", (88.0m, "Very good experimental accuracy and wave physics") },
-                    { "ADM-2026-0002", (84.0m, "Good lab work and scientific writeup") },
-                    { "ADM-2026-0003", (87.0m, "Accurate mechanics experiments") },
-                    { "ADM-2026-0004", (82.0m, "Good physics coursework") },
-                    { "ADM-2026-0005", (89.0m, "Solid mechanics calculations") },
-                    { "ADM-2026-0006", (86.0m, "Accurate optics laboratory report") },
-                    { "ADM-2026-0007", (88.0m, "Strong physics problem analysis") },
-                    { "ADM-2026-0008", (85.0m, "Consistent coursework and tests") },
-                }
-                : new Dictionary<string, (decimal Score, string Remarks)>
-                {
-                    { "ADM-2026-0001", (92.0m, "Excellent composition and rhetoric") },
-                    { "ADM-2026-0002", (90.0m, "Top scores in classical literature analysis") },
-                    { "ADM-2026-0003", (85.0m, "Strong analysis of Khmer poetry") },
-                    { "ADM-2026-0004", (84.0m, "Good critical reflections on folklore") },
-                    { "ADM-2026-0005", (94.0m, "Excellent grammar and writing") },
-                    { "ADM-2026-0006", (87.0m, "Consistent performance and neat assignments") },
-                    { "ADM-2026-0007", (91.0m, "Great reading and critical thinking") },
-                    { "ADM-2026-0008", (89.0m, "High exam score and good reasoning") },
-                });
 
         var allClassStudents = _mockStudents
             .Where(x => x.Status == StudentStatus.Active && (x.CurrentClassSectionId == classId || x.CurrentClassSectionId == Class10AId || classId == Class10AId))
@@ -1695,7 +1946,7 @@ public class ApiService : IApiService
                     }
                     else
                     {
-                        var (sc, remarks) = sampleScores.TryGetValue(s.AdmissionNumber, out var pair) ? pair : (88.0m, "Good performance");
+                        var (sc, remarks) = GetDifferentiatedScore(exName, s.AdmissionNumber, resolvedSubjName);
                         var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
                         var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
                         merged.Add(new StudentGradeDto(
@@ -1734,9 +1985,7 @@ public class ApiService : IApiService
             }
             else
             {
-                var (sc, remarks) = sampleScores.TryGetValue(s.AdmissionNumber, out var pair)
-                    ? pair
-                    : (88.0m, "Good performance");
+                var (sc, remarks) = GetDifferentiatedScore(exName, s.AdmissionNumber, resolvedSubjName);
                 var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
                 var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
                 var g = new StudentGradeDto(
@@ -1873,34 +2122,17 @@ public class ApiService : IApiService
             var studentObj = _mockStudents.FirstOrDefault(s => s.Id == studentId || (!string.IsNullOrEmpty(adm) && string.Equals(s.AdmissionNumber, adm, StringComparison.OrdinalIgnoreCase)));
             var studentName = studentObj?.FullName ?? "Enrolled Student";
             var admNo = studentObj?.AdmissionNumber ?? adm ?? "ADM-2026-0001";
-            var baseScores = (examId == ExamQuiz1Id || examId == DbExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || exName.Contains("October", StringComparison.OrdinalIgnoreCase))
-                ? new (Guid compId, Guid subjId, string subjName, decimal score, string letter, decimal gp, string remarks)[]
-                {
-                    (CompQuizKhmerId, SubjKhmerId, "Khmer Literature", 94.0m, "A", 4.0m, "Superb vocabulary and classical quiz"),
-                    (CompQuizMathId, SubjMathId, "Mathematics", 96.0m, "A", 4.0m, "Perfect score on calculus problem sets"),
-                    (CompQuizEnglishId, SubjEnglishId, "English Communication", 92.0m, "A", 4.0m, "Great oral presentation score"),
-                    (CompQuizPhysicsId, SubjPhysicsId, "Physics", 90.0m, "A", 4.0m, "High precision kinematics quiz"),
-                    (CompQuizChemistryId, SubjChemistryId, "Chemistry", 89.0m, "B", 3.0m, "Good periodic trends assessment"),
-                    (CompQuizBiologyId, SubjBiologyId, "Biology", 92.0m, "A", 4.0m, "Accurate cell organelle diagrams"),
-                    (CompQuizHistoryId, SubjHistoryId, "History", 91.0m, "A", 4.0m, "Thorough timeline knowledge"),
-                    (CompQuizIctId, SubjIctId, "Computer Science & ICT", 99.0m, "A", 4.0m, "Outstanding algorithm test score")
-                }
-                : new (Guid compId, Guid subjId, string subjName, decimal score, string letter, decimal gp, string remarks)[]
-                {
-                    (CompKhmerId, SubjKhmerId, "Khmer Literature", 92.0m, "A", 4.0m, "Excellent Khmer composition and rhetoric"),
-                    (CompMathId, SubjMathId, "Mathematics", 95.0m, "A", 4.0m, "Outstanding algebraic and calculus problem solving"),
-                    (CompEnglishId, SubjEnglishId, "English Communication", 94.0m, "A", 4.0m, "Strong communicative fluency and essay analysis"),
-                    (CompPhysicsId, SubjPhysicsId, "Physics", 88.0m, "B", 3.0m, "Very good experimental accuracy and wave physics"),
-                    (CompChemistryId, SubjChemistryId, "Chemistry", 86.5m, "B", 3.0m, "Solid chemical reactions and stoichiometry calculations"),
-                    (CompBiologyId, SubjBiologyId, "Biology", 90.0m, "A", 4.0m, "Great understanding of genetics and cellular structures"),
-                    (CompHistoryId, SubjHistoryId, "History", 91.5m, "A", 4.0m, "Thorough knowledge of Cambodian and world history"),
-                    (CompIctId, SubjIctId, "Computer Science & ICT", 98.0m, "A", 4.0m, "Exceptional coding logic and software projects")
-                };
-
-            studentGrades = baseScores.Select(b => new StudentGradeDto(
-                Guid.NewGuid(), b.compId, "Assessment Exam", b.subjId, b.subjName,
-                studentId, studentName, admNo, b.score, 100m, b.score, b.letter, b.gp, b.remarks
-            )).ToList();
+            studentGrades = _mockSubjects.Select(subj =>
+            {
+                var compId = ResolveDeterministicComponentId(examId, subj.Name, Class10AId, exName);
+                var (sc, remarks) = GetDifferentiatedScore(exName, admNo, subj.Name);
+                var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
+                var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
+                return new StudentGradeDto(
+                    Guid.NewGuid(), compId, $"{subj.Name} Exam", subj.Id, subj.Name,
+                    studentId, studentName, admNo, sc, 100m, sc, letter, gpa, remarks
+                );
+            }).ToList();
 
             foreach (var g in studentGrades)
             {
@@ -2796,119 +3028,30 @@ public class ApiService : IApiService
         return records;
     }
 
-    private static List<StudentGradeDto> InitializeMockGrades() => new()
+    private static List<StudentGradeDto> InitializeMockGrades()
     {
-        // Visal Chan Grades across all subjects
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Excellent Khmer composition and rhetoric"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 95.0m, 100m, 95.0m, "A", 4.0m, "Outstanding algebraic and calculus problem solving"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Strong communicative fluency and essay analysis"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 88.0m, 100m, 88.0m, "B", 3.0m, "Very good experimental accuracy and wave physics"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 86.5m, 100m, 86.5m, "B", 3.0m, "Solid chemical reactions and stoichiometry calculations"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 90.0m, 100m, 90.0m, "A", 4.0m, "Great understanding of genetics and cellular structures"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.5m, 100m, 91.5m, "A", 4.0m, "Thorough knowledge of Cambodian and world history"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 98.0m, 100m, 98.0m, "A", 4.0m, "Exceptional coding logic and software projects"),
+        var grades = new List<StudentGradeDto>();
+        var components = InitializeMockComponents();
+        var students = InitializeMockStudents();
 
-        // Kanha Sok Grades
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 95.0m, 100m, 95.0m, "A", 4.0m, "Top scores in classical literature analysis"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 89.0m, 100m, 89.0m, "B", 3.0m, "Very good geometric reasoning"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 97.0m, 100m, 97.0m, "A", 4.0m, "Distinction in English debates and presentations"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 84.0m, 100m, 84.0m, "B", 3.0m, "Good lab work and scientific writeup"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 91.0m, 100m, 91.0m, "A", 4.0m, "Excellent laboratory procedure compliance"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 88.0m, 100m, 88.0m, "B", 3.0m, "Solid grasp of evolutionary biology"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 93.0m, 100m, 93.0m, "A", 4.0m, "Active historical analysis and source evaluation"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentKanhaId, "Kanha Sok", "ADM-2026-0002", 94.0m, 100m, 94.0m, "A", 4.0m, "Well executed interactive website project"),
-
-        // Dara Meng Grades
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentDaraId, "Dara Meng", "ADM-2026-0003", 85.0m, 100m, 85.0m, "A", 4.0m, "Strong analysis of Khmer poetry"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentDaraId, "Dara Meng", "ADM-2026-0003", 91.0m, 100m, 91.0m, "A", 4.0m, "Proficient trigonometric solutions"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentDaraId, "Dara Meng", "ADM-2026-0003", 86.0m, 100m, 86.0m, "B", 3.0m, "Effective technical presentation"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentDaraId, "Dara Meng", "ADM-2026-0003", 87.0m, 100m, 87.0m, "B", 3.0m, "Accurate mechanics experiments"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentDaraId, "Dara Meng", "ADM-2026-0003", 83.0m, 100m, 83.0m, "B", 3.0m, "Competent titration procedures"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentDaraId, "Dara Meng", "ADM-2026-0003", 89.0m, 100m, 89.0m, "B", 3.0m, "Clear botanical classifications"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentDaraId, "Dara Meng", "ADM-2026-0003", 88.0m, 100m, 88.0m, "B", 3.0m, "Good contextual historical analysis"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentDaraId, "Dara Meng", "ADM-2026-0003", 92.0m, 100m, 92.0m, "A", 4.0m, "Solid database schema construction"),
-
-        // Bopha Keo Grades
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 88.0m, 100m, 88.0m, "B", 3.0m, "Good critical reflections on folklore"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 84.0m, 100m, 84.0m, "B", 3.0m, "Solid algebraic expressions"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 90.0m, 100m, 90.0m, "A", 4.0m, "Expressive conversational fluency"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 82.0m, 100m, 82.0m, "B", 3.0m, "Good physics coursework"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 85.5m, 100m, 85.5m, "A", 4.0m, "Strong organic chemistry foundation"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 92.0m, 100m, 92.0m, "A", 4.0m, "Great physiology dissection work"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 86.0m, 100m, 86.0m, "B", 3.0m, "Well written historical essays"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentBophaId, "Bopha Keo", "ADM-2026-0004", 95.0m, 100m, 95.0m, "A", 4.0m, "Creative responsive web design"),
-
-        // === Class 10-A Cohort Students Grades ===
-        // Rithy Srun (Class 10-A)
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 88.0m, 100m, 88.0m, "B", 3.0m, "Strong comprehension"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 94.0m, 100m, 94.0m, "A", 4.0m, "Excellent algebra"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 89.0m, 100m, 89.0m, "B", 3.0m, "Good lab work"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 91.0m, 100m, 91.0m, "A", 4.0m, "Accurate titration"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 90.0m, 100m, 90.0m, "A", 4.0m, "Clear communication"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 87.0m, 100m, 87.0m, "B", 3.0m, "Good genetics grasp"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid essays"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 96.0m, 100m, 96.0m, "A", 4.0m, "Top coder"),
-
-        // Sreypov Lim (Class 10-A)
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 93.0m, 100m, 93.0m, "A", 4.0m, "Eloquent essays"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 87.0m, 100m, 87.0m, "B", 3.0m, "Consistent homework"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid theory"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 88.0m, 100m, 88.0m, "B", 3.0m, "Good lab work"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 95.0m, 100m, 95.0m, "A", 4.0m, "Fluent speaker"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 91.0m, 100m, 91.0m, "A", 4.0m, "Great drawings"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 90.0m, 100m, 90.0m, "A", 4.0m, "Deep analysis"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentSreypovId, "Sreypov Lim", "ADM-2026-0006", 92.0m, 100m, 92.0m, "A", 4.0m, "Clean code"),
-
-        // Vannak Heng (Class 10-A)
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 86.0m, 100m, 86.0m, "B", 3.0m, "Good effort"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 92.0m, 100m, 92.0m, "A", 4.0m, "Great calculation"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 90.0m, 100m, 90.0m, "A", 4.0m, "Thorough report"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 84.0m, 100m, 84.0m, "B", 3.0m, "Passionate student"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 88.0m, 100m, 88.0m, "B", 3.0m, "Good vocab"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 86.0m, 100m, 86.0m, "B", 3.0m, "Clear writeups"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 87.0m, 100m, 87.0m, "B", 3.0m, "Good facts"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentVannakId, "Vannak Heng", "ADM-2026-0007", 94.0m, 100m, 94.0m, "A", 4.0m, "Great web app"),
-
-        // Thida Meas (Class 10-A)
-        new(Guid.NewGuid(), CompKhmerId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentThidaId, "Thida Meas", "ADM-2026-0008", 94.0m, 100m, 94.0m, "A", 4.0m, "Top essays"),
-        new(Guid.NewGuid(), CompMathId, "Midterm Exam", SubjMathId, "Mathematics", StudentThidaId, "Thida Meas", "ADM-2026-0008", 89.0m, 100m, 89.0m, "B", 3.0m, "Good geometry"),
-        new(Guid.NewGuid(), CompPhysicsId, "Midterm Exam", SubjPhysicsId, "Physics", StudentThidaId, "Thida Meas", "ADM-2026-0008", 86.0m, 100m, 86.0m, "B", 3.0m, "Accurate graphs"),
-        new(Guid.NewGuid(), CompChemistryId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentThidaId, "Thida Meas", "ADM-2026-0008", 89.0m, 100m, 89.0m, "B", 3.0m, "Solid analysis"),
-        new(Guid.NewGuid(), CompEnglishId, "Midterm Exam", SubjEnglishId, "English Communication", StudentThidaId, "Thida Meas", "ADM-2026-0008", 96.0m, 100m, 96.0m, "A", 4.0m, "Excellent grammar"),
-        new(Guid.NewGuid(), CompBiologyId, "Midterm Exam", SubjBiologyId, "Biology", StudentThidaId, "Thida Meas", "ADM-2026-0008", 93.0m, 100m, 93.0m, "A", 4.0m, "Great knowledge"),
-        new(Guid.NewGuid(), CompHistoryId, "Midterm Exam", SubjHistoryId, "History", StudentThidaId, "Thida Meas", "ADM-2026-0008", 92.0m, 100m, 92.0m, "A", 4.0m, "High marks"),
-        new(Guid.NewGuid(), CompIctId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentThidaId, "Thida Meas", "ADM-2026-0008", 97.0m, 100m, 97.0m, "A", 4.0m, "Great UI design"),
-
-        // === Class 10-B Backup Grades ===
-        new(Guid.NewGuid(), CompKhmer10BId, "Midterm Exam", SubjKhmerId, "Khmer Literature", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 88.0m, 100m, 88.0m, "B", 3.0m, "Strong comprehension"),
-        new(Guid.NewGuid(), CompMath10BId, "Midterm Exam", SubjMathId, "Mathematics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 94.0m, 100m, 94.0m, "A", 4.0m, "Excellent algebra"),
-        new(Guid.NewGuid(), CompPhysics10BId, "Midterm Exam", SubjPhysicsId, "Physics", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 89.0m, 100m, 89.0m, "B", 3.0m, "Good lab work"),
-        new(Guid.NewGuid(), CompChemistry10BId, "Midterm Exam", SubjChemistryId, "Chemistry", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 91.0m, 100m, 91.0m, "A", 4.0m, "Accurate titration"),
-        new(Guid.NewGuid(), CompEnglish10BId, "Midterm Exam", SubjEnglishId, "English Communication", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 90.0m, 100m, 90.0m, "A", 4.0m, "Clear communication"),
-        new(Guid.NewGuid(), CompBiology10BId, "Midterm Exam", SubjBiologyId, "Biology", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 87.0m, 100m, 87.0m, "B", 3.0m, "Good genetics grasp"),
-        new(Guid.NewGuid(), CompHistory10BId, "Midterm Exam", SubjHistoryId, "History", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 85.0m, 100m, 85.0m, "A", 4.0m, "Solid essays"),
-        new(Guid.NewGuid(), CompIct10BId, "Midterm Exam", SubjIctId, "Computer Science & ICT", StudentRithyId, "Rithy Srun", "ADM-2026-0005", 96.0m, 100m, 96.0m, "A", 4.0m, "Top coder"),
-
-        // === October Monthly Quiz Grades (Visal Chan) ===
-        new(Guid.NewGuid(), CompQuizKhmerId, "Monthly Quiz", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Superb vocabulary and classical quiz"),
-        new(Guid.NewGuid(), CompQuizMathId, "Monthly Quiz", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 96.0m, 100m, 96.0m, "A", 4.0m, "Perfect score on calculus problem sets"),
-        new(Guid.NewGuid(), CompQuizEnglishId, "Monthly Quiz", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Great oral presentation score"),
-        new(Guid.NewGuid(), CompQuizPhysicsId, "Monthly Quiz", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 90.0m, 100m, 90.0m, "A", 4.0m, "High precision kinematics quiz"),
-        new(Guid.NewGuid(), CompQuizChemistryId, "Monthly Quiz", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 89.0m, 100m, 89.0m, "B", 3.0m, "Good periodic trends assessment"),
-        new(Guid.NewGuid(), CompQuizBiologyId, "Monthly Quiz", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 92.0m, 100m, 92.0m, "A", 4.0m, "Accurate cell organelle diagrams"),
-        new(Guid.NewGuid(), CompQuizHistoryId, "Monthly Quiz", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.0m, 100m, 91.0m, "A", 4.0m, "Thorough timeline knowledge"),
-        new(Guid.NewGuid(), CompQuizIctId, "Monthly Quiz", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 99.0m, 100m, 99.0m, "A", 4.0m, "Outstanding algorithm test score"),
-
-        // === Semester 1 Final Exam Grades (Visal Chan) ===
-        new(Guid.NewGuid(), CompFinalKhmerId, "Final Exam", SubjKhmerId, "Khmer Literature", StudentVisalId, "Visal Chan", "ADM-2026-0001", 93.0m, 100m, 93.0m, "A", 4.0m, "Mastery of literary essays"),
-        new(Guid.NewGuid(), CompFinalMathId, "Final Exam", SubjMathId, "Mathematics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 97.0m, 100m, 97.0m, "A", 4.0m, "Flawless mathematical reasoning"),
-        new(Guid.NewGuid(), CompFinalEnglishId, "Final Exam", SubjEnglishId, "English Communication", StudentVisalId, "Visal Chan", "ADM-2026-0001", 95.0m, 100m, 95.0m, "A", 4.0m, "Excellent rhetoric and analytical essay"),
-        new(Guid.NewGuid(), CompFinalPhysicsId, "Final Exam", SubjPhysicsId, "Physics", StudentVisalId, "Visal Chan", "ADM-2026-0001", 91.0m, 100m, 91.0m, "A", 4.0m, "Great thermodynamics performance"),
-        new(Guid.NewGuid(), CompFinalChemistryId, "Final Exam", SubjChemistryId, "Chemistry", StudentVisalId, "Visal Chan", "ADM-2026-0001", 88.0m, 100m, 88.0m, "B", 3.0m, "Very good organic chemistry final"),
-        new(Guid.NewGuid(), CompFinalBiologyId, "Final Exam", SubjBiologyId, "Biology", StudentVisalId, "Visal Chan", "ADM-2026-0001", 93.0m, 100m, 93.0m, "A", 4.0m, "Strong genetics and physiology answers"),
-        new(Guid.NewGuid(), CompFinalHistoryId, "Final Exam", SubjHistoryId, "History", StudentVisalId, "Visal Chan", "ADM-2026-0001", 94.0m, 100m, 94.0m, "A", 4.0m, "Deep historical synthesis"),
-        new(Guid.NewGuid(), CompFinalIctId, "Final Exam", SubjIctId, "Computer Science & ICT", StudentVisalId, "Visal Chan", "ADM-2026-0001", 99.0m, 100m, 99.0m, "A", 4.0m, "Flawless software engineering project")
-    };
+        foreach (var c in components)
+        {
+            var exName = c.ExamName ?? "Semester 1 Midterm";
+            var subjName = c.SubjectName ?? "Mathematics";
+            var classStudents = students.Where(s => s.CurrentClassSectionId == c.ClassSectionId || c.ClassSectionId == Class10AId).ToList();
+            foreach (var s in classStudents)
+            {
+                var (sc, remarks) = GetDifferentiatedScore(exName, s.AdmissionNumber, subjName);
+                var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
+                var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
+                grades.Add(new StudentGradeDto(
+                    Guid.NewGuid(), c.Id, c.Name, c.SubjectId, subjName,
+                    s.Id, s.FullName, s.AdmissionNumber, sc, 100m, sc, letter, gpa, remarks
+                ));
+            }
+        }
+        return grades;
+    }
 
     private static List<InvoiceDto> InitializeMockInvoices() => new()
     {

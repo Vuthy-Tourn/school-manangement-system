@@ -1843,119 +1843,6 @@ public partial class GradesViewModel : BaseViewModel
                     var mergedData = new List<StudentGradeDto>();
 
                     var examName = SelectedExam?.Name ?? string.Empty;
-                    Dictionary<string, (decimal Score, string Remarks)> sampleScores;
-                    if (examName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && examName.Contains("Final", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (94.0m, "Outstanding annual cumulative final exam score") },
-                            { "ADM-2026-0002", (96.0m, "Superior mastery of full academic year curriculum") },
-                            { "ADM-2026-0003", (89.0m, "Excellent annual examination achievements") },
-                            { "ADM-2026-0004", (88.0m, "Solid performance across all annual modules") },
-                            { "ADM-2026-0005", (95.0m, "Top-tier annual examination performance") },
-                            { "ADM-2026-0006", (92.0m, "Great analytical synthesis and critical thinking") },
-                            { "ADM-2026-0007", (93.0m, "Impressive final defense and comprehensive exam") },
-                            { "ADM-2026-0008", (91.0m, "Distinguished academic completion of Grade 10") },
-                        };
-                    }
-                    else if (examName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (91.0m, "Solid midterm performance in Semester 2") },
-                            { "ADM-2026-0002", (93.0m, "High analytical accuracy on Semester 2 midterm") },
-                            { "ADM-2026-0003", (86.0m, "Very good progress on new semester topics") },
-                            { "ADM-2026-0004", (87.0m, "Consistent midterm exam preparation") },
-                            { "ADM-2026-0005", (94.0m, "Exemplary understanding of advanced coursework") },
-                            { "ADM-2026-0006", (89.0m, "Thorough answers and well-structured solutions") },
-                            { "ADM-2026-0007", (90.0m, "Strong conceptual reasoning in midterm") },
-                            { "ADM-2026-0008", (88.0m, "Good academic performance on semester 2 test") },
-                        };
-                    }
-                    else if (examName.Contains("Final", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (96.0m, "Exceptional final examination score") },
-                            { "ADM-2026-0002", (94.0m, "Outstanding mastery across the entire syllabus") },
-                            { "ADM-2026-0003", (88.0m, "Great final essay and analytical work") },
-                            { "ADM-2026-0004", (85.0m, "Solid comprehensive examination performance") },
-                            { "ADM-2026-0005", (92.0m, "High final scores in advanced topics") },
-                            { "ADM-2026-0006", (91.0m, "Excellent retention and accurate responses") },
-                            { "ADM-2026-0007", (93.0m, "Strong critical and analytical thinking") },
-                            { "ADM-2026-0008", (90.0m, "Great academic achievement in final exam") },
-                        };
-                    }
-                    else if (examName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || examName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || examName.Contains("October", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (80.0m, "Solid quiz performance") },
-                            { "ADM-2026-0002", (95.0m, "Top quiz accuracy") },
-                            { "ADM-2026-0003", (85.0m, "Good quiz understanding") },
-                            { "ADM-2026-0004", (88.0m, "Very good work on weekly questions") },
-                            { "ADM-2026-0005", (90.0m, "Consistent quiz scores") },
-                            { "ADM-2026-0006", (87.0m, "Neat quiz worksheet") },
-                            { "ADM-2026-0007", (89.0m, "Good comprehension") },
-                            { "ADM-2026-0008", (86.0m, "Well prepared for assessment") },
-                        };
-                    }
-                    else if (ActiveSubjectHeader.Contains("Bio", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (94.0m, "Outstanding grasp of genetics and Punnett squares") },
-                            { "ADM-2026-0002", (92.0m, "Excellent cellular respiration lab report") },
-                            { "ADM-2026-0003", (88.0m, "Strong understanding of plant morphology") },
-                            { "ADM-2026-0004", (86.0m, "Good lab practical dissection technique") },
-                            { "ADM-2026-0005", (95.0m, "Exceptional analysis of human anatomical systems") },
-                            { "ADM-2026-0006", (89.0m, "Detailed cell diagram and accurate labeling") },
-                            { "ADM-2026-0007", (91.0m, "Solid scientific reasoning in ecology assignment") },
-                            { "ADM-2026-0008", (90.0m, "Great exam score in cellular biology and mitosis") },
-                        };
-                    }
-                    else if (ActiveSubjectHeader.Contains("Math", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (90.0m, "Demonstrated strong algebraic manipulation skills") },
-                            { "ADM-2026-0002", (95.0m, "High problem solving speed and flawless proofs") },
-                            { "ADM-2026-0003", (82.0m, "Good effort on trigonometric equations") },
-                            { "ADM-2026-0004", (88.0m, "Accurate graphing and functional analysis") },
-                            { "ADM-2026-0005", (92.0m, "Great mathematical reasoning on midterm") },
-                            { "ADM-2026-0006", (85.0m, "Solid homework and test consistency") },
-                            { "ADM-2026-0007", (90.0m, "Very good geometric proof work") },
-                            { "ADM-2026-0008", (88.0m, "Good understanding of quadratic formulas") },
-                        };
-                    }
-                    else if (ActiveSubjectHeader.Contains("Phys", StringComparison.OrdinalIgnoreCase))
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (88.0m, "Strong comprehension of kinematics and vectors") },
-                            { "ADM-2026-0002", (93.0m, "Excellent circuit analysis and Newton's laws") },
-                            { "ADM-2026-0003", (85.0m, "Good lab performance in optics experiment") },
-                            { "ADM-2026-0004", (87.0m, "Solid problem solving in thermodynamics") },
-                            { "ADM-2026-0005", (94.0m, "Outstanding work on rotational dynamics") },
-                            { "ADM-2026-0006", (86.0m, "Accurate experimental error analysis") },
-                            { "ADM-2026-0007", (89.0m, "Good mastery of wave mechanics") },
-                            { "ADM-2026-0008", (87.0m, "Very good laboratory notebook") },
-                        };
-                    }
-                    else
-                    {
-                        sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
-                        {
-                            { "ADM-2026-0001", (92.0m, "Excellent composition and rhetoric") },
-                            { "ADM-2026-0002", (90.0m, "Top scores in classical literature analysis") },
-                            { "ADM-2026-0003", (85.0m, "Strong analysis of Khmer poetry") },
-                            { "ADM-2026-0004", (84.0m, "Good critical reflections on folklore") },
-                            { "ADM-2026-0005", (94.0m, "Excellent grammar and writing") },
-                            { "ADM-2026-0006", (87.0m, "Consistent performance and neat assignments") },
-                            { "ADM-2026-0007", (91.0m, "Great reading and critical thinking") },
-                            { "ADM-2026-0008", (89.0m, "High exam score and good reasoning") },
-                        };
-                    }
 
                     foreach (var s in candidateStudents)
                     {
@@ -1988,7 +1875,7 @@ public partial class GradesViewModel : BaseViewModel
                         }
                         else
                         {
-                            var (sc, remarks) = sampleScores.TryGetValue(s.AdmissionNumber, out var pair) ? pair : (88.0m, "Good performance");
+                            var (sc, remarks) = ApiService.GetDifferentiatedScore(examName, s.AdmissionNumber, ActiveSubjectHeader);
                             var letter = sc >= 85 ? "A" : sc >= 75 ? "B" : sc >= 65 ? "C" : sc >= 50 ? "D" : "F";
                             var gpa = sc >= 85 ? 4.0m : sc >= 75 ? 3.0m : sc >= 65 ? 2.0m : sc >= 50 ? 1.0m : 0.0m;
                             mergedData.Add(new StudentGradeDto(
