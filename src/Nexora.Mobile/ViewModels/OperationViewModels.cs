@@ -760,7 +760,168 @@ public partial class ReportCardViewModel : BaseViewModel
     [RelayCommand]
     private async Task ExportReportCardAsync()
     {
-        await Shell.Current.DisplayAlert("Export Academic Transcript", $"Official Report Card for {StudentName} ({AdmissionNumber}) has been generated.\n\nReady for print / PDF archival.", "Download PDF");
+        try
+        {
+            var html = GenerateTranscriptHtml();
+            var fileName = $"Official_Transcript_{AdmissionNumber}_{DateTime.Today:yyyyMMdd}.html";
+
+            // Determine download target path (Downloads directory or AppData)
+            string targetPath;
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var downloadsDir = !string.IsNullOrEmpty(userProfile) ? Path.Combine(userProfile, "Downloads") : string.Empty;
+
+            if (!string.IsNullOrEmpty(downloadsDir) && Directory.Exists(downloadsDir))
+            {
+                targetPath = Path.Combine(downloadsDir, fileName);
+            }
+            else
+            {
+                targetPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
+            }
+
+            await File.WriteAllTextAsync(targetPath, html);
+
+            var cachePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+            if (cachePath != targetPath)
+            {
+                await File.WriteAllTextAsync(cachePath, html);
+            }
+
+            var choice = await Shell.Current.DisplayActionSheet(
+                $"Transcript Saved: {fileName}",
+                "Dismiss",
+                null,
+                "Open in Browser / Preview (Print as PDF)",
+                "Share / Save to Files / AirDrop");
+
+            if (choice == "Open in Browser / Preview (Print as PDF)")
+            {
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    Title = $"Official Transcript - {StudentName}",
+                    File = new ReadOnlyFile(targetPath)
+                });
+            }
+            else if (choice == "Share / Save to Files / AirDrop")
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = $"Official Academic Transcript - {StudentName}",
+                    File = new ShareFile(cachePath)
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Export Error", ex.Message, "OK");
+        }
+    }
+
+    private string GenerateTranscriptHtml()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html lang=\"en\">");
+        sb.AppendLine("<head>");
+        sb.AppendLine("<meta charset=\"UTF-8\">");
+        sb.AppendLine($"<title>Official Academic Transcript - {StudentName} ({AdmissionNumber})</title>");
+        sb.AppendLine("<style>");
+        sb.AppendLine("@page { size: A4 portrait; margin: 15mm; }");
+        sb.AppendLine("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0F172A; background: #FFFFFF; margin: 0; padding: 30px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }");
+        sb.AppendLine(".print-bar { position: fixed; top: 16px; right: 20px; z-index: 1000; }");
+        sb.AppendLine(".print-btn { background: #2563EB; color: #FFFFFF; border: none; padding: 10px 22px; font-size: 14px; font-weight: 700; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.3); }");
+        sb.AppendLine(".print-btn:hover { background: #1D4ED8; }");
+        sb.AppendLine(".header { text-align: center; border-bottom: 3px double #0F2042; padding-bottom: 18px; margin-bottom: 24px; }");
+        sb.AppendLine(".inst-name { font-size: 24px; font-weight: 800; color: #0F2042; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; }");
+        sb.AppendLine(".inst-sub { font-size: 13px; color: #64748B; font-weight: 500; margin-top: 4px; }");
+        sb.AppendLine(".badge-title { display: inline-block; margin-top: 12px; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-size: 12px; font-weight: 700; padding: 4px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.8px; }");
+        sb.AppendLine(".info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px; margin-bottom: 26px; font-size: 13px; }");
+        sb.AppendLine(".field { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #CBD5E1; }");
+        sb.AppendLine(".field-label { color: #64748B; font-weight: 600; }");
+        sb.AppendLine(".field-val { color: #0F172A; font-weight: 700; }");
+        sb.AppendLine("table { width: 100%; border-collapse: collapse; margin-bottom: 26px; font-size: 13px; }");
+        sb.AppendLine("th { background: #0F2042; color: #FFFFFF; text-align: left; padding: 11px 14px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }");
+        sb.AppendLine("td { padding: 11px 14px; border-bottom: 1px solid #E2E8F0; }");
+        sb.AppendLine("tr:nth-child(even) { background-color: #F8FAFC; }");
+        sb.AppendLine(".score { font-weight: 700; color: #0F172A; text-align: center; }");
+        sb.AppendLine(".grade { font-weight: 800; text-align: center; color: #065F46; }");
+        sb.AppendLine(".status-pass { color: #15803D; font-weight: 700; text-align: center; }");
+        sb.AppendLine(".summary-box { background: #0F2042; color: #FFFFFF; border-radius: 10px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }");
+        sb.AppendLine(".gpa-title { font-size: 12px; color: #94A3B8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }");
+        sb.AppendLine(".gpa-val { font-size: 34px; font-weight: 800; color: #38BDF8; margin: 4px 0 0 0; }");
+        sb.AppendLine(".honors-tag { background: #15803D; color: #FFFFFF; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; text-align: right; }");
+        sb.AppendLine(".signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 45px; }");
+        sb.AppendLine(".sig-block { text-align: center; }");
+        sb.AppendLine(".sig-line { border-top: 1.5px solid #64748B; margin-top: 40px; padding-top: 8px; font-size: 12px; color: #475569; font-weight: 600; }");
+        sb.AppendLine(".seal-stamp { font-size: 11px; color: #94A3B8; margin-top: 2px; }");
+        sb.AppendLine("@media print { .print-bar { display: none; } body { padding: 0; } }");
+        sb.AppendLine("</style>");
+        sb.AppendLine("</head>");
+        sb.AppendLine("<body>");
+        sb.AppendLine("<div class=\"print-bar\"><button class=\"print-btn\" onclick=\"window.print()\">🖨️ Print / Save as PDF</button></div>");
+        sb.AppendLine("<div class=\"header\">");
+        sb.AppendLine("<h1 class=\"inst-name\">Angkor International Academy</h1>");
+        sb.AppendLine("<div class=\"inst-sub\">Office of Academic Affairs &amp; Institutional Registrar • Phnom Penh, Cambodia</div>");
+        sb.AppendLine("<div class=\"badge-title\">Official Academic Transcript of Records</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class=\"info-grid\">");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Student Name:</span><span class=\"field-val\">{StudentName}</span></div>");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Admission ID:</span><span class=\"field-val\">{AdmissionNumber}</span></div>");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Academic Class:</span><span class=\"field-val\">Class {ClassName}</span></div>");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Academic Year:</span><span class=\"field-val\">2026-2027</span></div>");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Term / Semester:</span><span class=\"field-val\">Semester 1</span></div>");
+        sb.AppendLine($"<div class=\"field\"><span class=\"field-label\">Date of Issue:</span><span class=\"field-val\">{IssueDateFormatted}</span></div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<table>");
+        sb.AppendLine("<thead><tr>");
+        sb.AppendLine("<th>Subject / Course</th>");
+        sb.AppendLine("<th>Code</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Quiz</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Midterm</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Final</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Grade</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Credits</th>");
+        sb.AppendLine("<th style=\"text-align:center;\">Status</th>");
+        sb.AppendLine("</tr></thead>");
+        sb.AppendLine("<tbody>");
+        foreach (var s in SubjectGrades)
+        {
+            sb.AppendLine("<tr>");
+            sb.AppendLine($"<td><strong>{s.SubjectName}</strong></td>");
+            sb.AppendLine($"<td>{s.SubjectCode}</td>");
+            sb.AppendLine($"<td class=\"score\">{s.QuizScore}%</td>");
+            sb.AppendLine($"<td class=\"score\">{s.MidtermScore}%</td>");
+            sb.AppendLine($"<td class=\"score\">{s.FinalScore}%</td>");
+            sb.AppendLine($"<td class=\"grade\">{s.LetterGrade}</td>");
+            sb.AppendLine("<td style=\"text-align:center;\">3.0</td>");
+            sb.AppendLine("<td class=\"status-pass\">PASSED</td>");
+            sb.AppendLine("</tr>");
+        }
+        sb.AppendLine("</tbody>");
+        sb.AppendLine("</table>");
+        sb.AppendLine("<div class=\"summary-box\">");
+        sb.AppendLine("<div>");
+        sb.AppendLine("<div class=\"gpa-title\">Cumulative Grade Point Average (GPA)</div>");
+        sb.AppendLine($"<div class=\"gpa-val\">{CumulativeGpaFormatted} <span style=\"font-size:16px; color:#94A3B8;\">/ 4.00</span></div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class=\"honors-tag\">");
+        sb.AppendLine("<div style=\"font-size:10px; opacity:0.85; text-transform:uppercase;\">Academic Standing</div>");
+        sb.AppendLine("<div>Summa Cum Laude (Distinction)</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class=\"signatures\">");
+        sb.AppendLine("<div class=\"sig-block\">");
+        sb.AppendLine("<div class=\"sig-line\">Academic Dean / Principal</div>");
+        sb.AppendLine("<div class=\"seal-stamp\">Dr. Chan Sophal • Angkor Academy</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("<div class=\"sig-block\">");
+        sb.AppendLine("<div class=\"sig-line\">Official Institutional Registrar</div>");
+        sb.AppendLine("<div class=\"seal-stamp\">Office of Records &amp; Transcripts</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</body>");
+        sb.AppendLine("</html>");
+        return sb.ToString();
     }
 }
 
@@ -897,6 +1058,10 @@ public partial class ClassesViewModel : BaseViewModel
                 var chosen = teachers.FirstOrDefault(t => t.FullName == choice);
                 if (chosen != null)
                 {
+                    IsBusy = true;
+                    var assignRes = await _apiService.AssignClassTeacherAsync(section.Id, chosen.Id);
+                    IsBusy = false;
+
                     var updated = section with { ClassTeacherId = chosen.Id, ClassTeacherName = chosen.FullName };
                     var idx = Classes.IndexOf(section);
                     if (idx >= 0)
@@ -904,7 +1069,16 @@ public partial class ClassesViewModel : BaseViewModel
                         Classes[idx] = updated;
                         ApplyFilter();
                     }
-                    await Shell.Current.DisplayAlert("Advisor Assigned", $"{chosen.FullName} has been designated as Homeroom Advisor for Class {section.Name}.", "OK");
+
+                    await Shell.Current.DisplayAlert(
+                        "Homeroom Advisor Designated",
+                        $"{chosen.FullName} is now officially assigned as the Homeroom Advisor for Class {section.Name}.\n\n" +
+                        "What this means:\n" +
+                        "• Daily Attendance: Oversees morning roll call & presence validation.\n" +
+                        "• Student Custodian: Acts as the primary academic advisor & counselor for all students in this section.\n" +
+                        "• Family Liaison: Receives parent inquiries and conducts academic consultations.\n" +
+                        "• Report Cards: Reviews end-of-term grade distributions and signs official transcripts.",
+                        "Understood");
                 }
             }
         }

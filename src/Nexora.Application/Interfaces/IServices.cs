@@ -44,6 +44,7 @@ public interface IAcademicService
     Task<ApiResponse<List<SubjectDto>>> GetSubjectsAsync(CancellationToken ct = default);
     Task<ApiResponse<SubjectDto>> CreateSubjectAsync(CreateSubjectRequest request, CancellationToken ct = default);
     Task<ApiResponse<bool>> AssignTeacherToSubjectAsync(AssignTeacherSubjectRequest request, CancellationToken ct = default);
+    Task<ApiResponse<bool>> AssignClassTeacherAsync(Guid classSectionId, Guid teacherId, CancellationToken ct = default);
     Task<ApiResponse<StudentEnrollmentDto>> EnrollStudentAsync(EnrollStudentRequest request, CancellationToken ct = default);
     Task<ApiResponse<bool>> PromoteStudentAsync(PromoteStudentRequest request, CancellationToken ct = default);
 }

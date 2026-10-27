@@ -230,6 +230,22 @@ public class AcademicService : IAcademicService
         return ApiResponse<bool>.Ok(true, "Subject assignment saved successfully.");
     }
 
+    public async Task<ApiResponse<bool>> AssignClassTeacherAsync(Guid classSectionId, Guid teacherId, CancellationToken ct = default)
+    {
+        var section = await _context.ClassSections.FirstOrDefaultAsync(c => c.Id == classSectionId, ct);
+        if (section == null)
+            return ApiResponse<bool>.Fail("Class section not found.");
+
+        var teacherExists = await _context.Teachers.AnyAsync(t => t.Id == teacherId, ct);
+        if (!teacherExists)
+            return ApiResponse<bool>.Fail("Teacher not found.");
+
+        section.ClassTeacherId = teacherId;
+        await _context.SaveChangesAsync(ct);
+
+        return ApiResponse<bool>.Ok(true, "Homeroom advisor assigned successfully.");
+    }
+
     public async Task<ApiResponse<StudentEnrollmentDto>> EnrollStudentAsync(EnrollStudentRequest request, CancellationToken ct = default)
     {
         var schoolId = _currentUserService.SchoolId;

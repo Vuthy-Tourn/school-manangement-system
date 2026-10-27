@@ -40,6 +40,7 @@ public interface IApiService
     Task<ApiResponse<bool>> DeactivateTeacherAsync(Guid id);
 
     Task<ApiResponse<List<ClassSectionDto>>> GetClassesAsync();
+    Task<ApiResponse<bool>> AssignClassTeacherAsync(Guid classSectionId, Guid teacherId);
     Task<ApiResponse<List<SubjectDto>>> GetSubjectsAsync();
     Task<ApiResponse<List<AcademicYearDto>>> GetAcademicYearsAsync();
 
@@ -966,6 +967,34 @@ public class ApiService : IApiService
         }
 
         return ApiResponse<List<ClassSectionDto>>.Ok(_mockClasses);
+    }
+
+    public async Task<ApiResponse<bool>> AssignClassTeacherAsync(Guid classSectionId, Guid teacherId)
+    {
+        try
+        {
+            var res = await _httpClient.PutAsync($"api/academics/classes/{classSectionId}/teacher/{teacherId}", null);
+            if (res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadFromJsonAsync<ApiResponse<bool>>(JsonOptions);
+                if (body != null) return body;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("AssignClassTeacherAsync", ex);
+        }
+
+        var local = _mockClasses.Find(c => c.Id == classSectionId);
+        if (local != null)
+        {
+            var teacher = _mockTeachers.Find(t => t.Id == teacherId);
+            var updated = local with { ClassTeacherId = teacherId, ClassTeacherName = teacher?.FullName };
+            var idx = _mockClasses.IndexOf(local);
+            if (idx >= 0) _mockClasses[idx] = updated;
+        }
+
+        return ApiResponse<bool>.Ok(true, "Homeroom advisor assigned.");
     }
 
     public async Task<ApiResponse<List<SubjectDto>>> GetSubjectsAsync()

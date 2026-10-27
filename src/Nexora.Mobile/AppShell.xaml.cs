@@ -45,6 +45,7 @@ public partial class AppShell : Shell
         {
             case UserRole.Teacher:
                 tabBar.Items.Add(CreateTab("Dashboard", "icon_dashboard.png", "dashboard", typeof(TeacherDashboardPage)));
+                tabBar.Items.Add(CreateTab("Classes", "icon_classes.png", "classes", typeof(ClassesPage)));
                 tabBar.Items.Add(CreateTab("Attendance", "icon_attendance.png", "attendance", typeof(AttendancePage)));
                 tabBar.Items.Add(CreateTab("Grades", "icon_grades.png", "grades", typeof(GradesPage)));
                 tabBar.Items.Add(CreateTab("Timetable", "icon_timetable.png", "timetables", typeof(TimetablesPage)));
@@ -78,10 +79,12 @@ public partial class AppShell : Shell
                 tabBar.Items.Add(CreateTab("Students", "icon_students.png", "students", typeof(StudentsPage)));
                 tabBar.Items.Add(CreateTab("Teachers", "icon_faculty.png", "teachers", typeof(TeachersPage)));
                 tabBar.Items.Add(CreateTab("Attendance", "icon_attendance.png", "attendance", typeof(AttendancePage)));
+                tabBar.Items.Add(CreateTab("Classes", "icon_classes.png", "classes", typeof(ClassesPage)));
                 tabBar.Items.Add(CreateTab("Grades", "icon_grades.png", "grades", typeof(GradesPage)));
                 tabBar.Items.Add(CreateTab("Fees", "icon_fees.png", "fees", typeof(FeesPage)));
                 tabBar.Items.Add(CreateTab("Timetable", "icon_timetable.png", "timetables", typeof(TimetablesPage)));
                 tabBar.Items.Add(CreateTab("Updates", "icon_announcements.png", "announcements", typeof(AnnouncementsPage)));
+                tabBar.Items.Add(CreateTab("Audit Trail", "icon_check.png", "audit-logs", typeof(AuditLogsPage)));
                 tabBar.Items.Add(CreateTab("Profile", "icon_profile.png", "profile", typeof(ProfilePage)));
                 break;
         }

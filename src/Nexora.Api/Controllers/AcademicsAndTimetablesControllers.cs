@@ -54,6 +54,13 @@ public class AcademicsController : BaseApiController
         return HandleResult(await _academicService.CreateClassSectionAsync(request, ct));
     }
 
+    [HttpPut("classes/{id:guid}/teacher/{teacherId:guid}")]
+    [Authorize(Roles = "SuperAdmin,SchoolAdmin")]
+    public async Task<ActionResult<ApiResponse<bool>>> AssignClassTeacher(Guid id, Guid teacherId, CancellationToken ct)
+    {
+        return HandleResult(await _academicService.AssignClassTeacherAsync(id, teacherId, ct));
+    }
+
     [HttpGet("subjects")]
     public async Task<ActionResult<ApiResponse<List<SubjectDto>>>> GetSubjects(CancellationToken ct)
     {
