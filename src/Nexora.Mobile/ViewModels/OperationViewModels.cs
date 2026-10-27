@@ -241,6 +241,8 @@ public partial class StudentDetailViewModel : BaseViewModel
     [ObservableProperty] private double _gpa = 3.82;
     [ObservableProperty] private double _attendanceRate = 96.4;
     [ObservableProperty] private string _balanceStatus = "Paid ($0.00)";
+    [ObservableProperty] private bool _isAdmin;
+    [ObservableProperty] private bool _isMyAdvisee;
 
     public string GpaFormatted => $"{Gpa:F2}";
     public string AttendanceFormatted => $"{AttendanceRate:F1}%";
@@ -250,6 +252,30 @@ public partial class StudentDetailViewModel : BaseViewModel
         _apiService = apiService;
         _student = student;
         Title = student.FullName;
+
+        var role = _apiService.CurrentUser?.Role;
+        IsAdmin = role == UserRole.SuperAdmin || role == UserRole.SchoolAdmin;
+        _ = CheckAdviseeStatusAsync();
+    }
+
+    private async Task CheckAdviseeStatusAsync()
+    {
+        try
+        {
+            var teacherId = _apiService.CurrentUser?.LinkedProfileId;
+            if (teacherId.HasValue)
+            {
+                var classesRes = await _apiService.GetClassesAsync();
+                var matchingClass = classesRes.Data?.FirstOrDefault(c =>
+                    c.Name == Student.CurrentClassName ||
+                    (Student.CurrentClassSectionId.HasValue && c.Id == Student.CurrentClassSectionId.Value));
+                if (matchingClass != null && matchingClass.ClassTeacherId == teacherId.Value)
+                {
+                    IsMyAdvisee = true;
+                }
+            }
+        }
+        catch { }
     }
 
     [RelayCommand]
@@ -261,6 +287,11 @@ public partial class StudentDetailViewModel : BaseViewModel
     [RelayCommand]
     private async Task EditStudentAsync()
     {
+        if (!IsAdmin)
+        {
+            await Shell.Current.DisplayAlert("Access Restricted", "Student records can only be updated by School Administrators.", "OK");
+            return;
+        }
         await Shell.Current.Navigation.PushAsync(new Views.StudentFormPage(new StudentFormViewModel(_apiService, Student)));
     }
 
@@ -947,10 +978,23 @@ public partial class ClassesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _filteredClasses = new();
     [ObservableProperty] private ObservableCollection<SubjectDto> _filteredSubjects = new();
 
+    [ObservableProperty] private bool _isAdmin;
+    [ObservableProperty] private bool _isTeacher;
+    [ObservableProperty] private Guid? _currentTeacherId;
+
     public ClassesViewModel(IApiService apiService)
     {
         _apiService = apiService;
         Title = "Classes & Subjects";
+        UpdateRoleContext();
+    }
+
+    private void UpdateRoleContext()
+    {
+        var role = _apiService.CurrentUser?.Role;
+        IsAdmin = role == UserRole.SuperAdmin || role == UserRole.SchoolAdmin;
+        IsTeacher = role == UserRole.Teacher;
+        CurrentTeacherId = _apiService.CurrentUser?.LinkedProfileId;
     }
 
     partial void OnSelectedSegmentIndexChanged(int value)
@@ -1012,6 +1056,7 @@ public partial class ClassesViewModel : BaseViewModel
         {
             IsBusy = true;
             ClearError();
+            UpdateRoleContext();
 
             var classesRes = await _apiService.GetClassesAsync();
             if (classesRes.Success && classesRes.Data != null)
@@ -1041,6 +1086,12 @@ public partial class ClassesViewModel : BaseViewModel
     private async Task AssignAdvisorAsync(ClassSectionDto section)
     {
         if (section == null) return;
+        if (!IsAdmin)
+        {
+            await Shell.Current.DisplayAlert("Access Restricted", "Only School Administrators have authority to assign or modify homeroom advisors.", "OK");
+            return;
+        }
+
         try
         {
             var teachersRes = await _apiService.GetTeachersAsync();
@@ -1085,6 +1136,20 @@ public partial class ClassesViewModel : BaseViewModel
         catch (Exception ex)
         {
             SetError(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task TakeClassAttendanceAsync(ClassSectionDto section)
+    {
+        if (section == null) return;
+        try
+        {
+            await Shell.Current.GoToAsync($"///attendance?classId={section.Id}");
+        }
+        catch
+        {
+            await Shell.Current.GoToAsync("//attendance");
         }
     }
 
@@ -1256,8 +1321,17 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private string _permissionRemarks = string.Empty;
     [ObservableProperty] private LinkedStudentDto? _permissionTargetChild;
 
+    // Advisor role status
+    [ObservableProperty] private bool _isAdmin;
+    [ObservableProperty] private bool _isCurrentUserAdvisor;
+    [ObservableProperty] private string _advisorRoleBadge = string.Empty;
+    [ObservableProperty] private string _advisorRoleSubtitle = string.Empty;
+    [ObservableProperty] private Color _advisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
+    [ObservableProperty] private Color _advisorRoleBadgeText = Color.FromArgb("#1D4ED8");
+
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
+        UpdateAdvisorRoleStatus();
         if (_isInitializing || _isLoading) return;
         if (value != null && IsFacultyView)
         {
@@ -1344,7 +1418,10 @@ public partial class AttendanceViewModel : BaseViewModel
                 if (classesRes.Success && classesRes.Data != null)
                 {
                     Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
-                    SelectedClass = Classes.FirstOrDefault();
+                    var teacherId = _apiService.CurrentUser?.LinkedProfileId;
+                    var advisoryClass = Classes.FirstOrDefault(c => c.ClassTeacherId == teacherId);
+                    SelectedClass = advisoryClass ?? Classes.FirstOrDefault();
+                    UpdateAdvisorRoleStatus();
                     if (SelectedClass != null)
                     {
                         await LoadAttendanceInternalAsync();
@@ -1758,10 +1835,62 @@ public partial class AttendanceViewModel : BaseViewModel
         RecalculatePresentRate();
     }
 
+    private void UpdateAdvisorRoleStatus()
+    {
+        var role = _apiService.CurrentUser?.Role;
+        IsAdmin = role == UserRole.SuperAdmin || role == UserRole.SchoolAdmin;
+        var teacherId = _apiService.CurrentUser?.LinkedProfileId;
+
+        if (SelectedClass == null)
+        {
+            IsCurrentUserAdvisor = false;
+            AdvisorRoleBadge = string.Empty;
+            AdvisorRoleSubtitle = string.Empty;
+            return;
+        }
+
+        if (IsAdmin)
+        {
+            IsCurrentUserAdvisor = true;
+            AdvisorRoleBadge = "🛡️ Administrative Authority";
+            AdvisorRoleSubtitle = $"Full override permissions • Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
+            AdvisorRoleBadgeBg = Color.FromArgb("#EFF6FF");
+            AdvisorRoleBadgeText = Color.FromArgb("#1D4ED8");
+        }
+        else if (teacherId.HasValue && SelectedClass.ClassTeacherId == teacherId.Value)
+        {
+            IsCurrentUserAdvisor = true;
+            AdvisorRoleBadge = "👑 Homeroom Advisor (You)";
+            AdvisorRoleSubtitle = $"Authorized for morning roll call & presence verification for Class {SelectedClass.Name}";
+            AdvisorRoleBadgeBg = Color.FromArgb("#ECFDF5");
+            AdvisorRoleBadgeText = Color.FromArgb("#065F46");
+        }
+        else
+        {
+            IsCurrentUserAdvisor = false;
+            AdvisorRoleBadge = $"ℹ️ Advisory: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
+            AdvisorRoleSubtitle = "Viewing mode • Attendance is primarily managed by the assigned Homeroom Advisor";
+            AdvisorRoleBadgeBg = Color.FromArgb("#F8FAFC");
+            AdvisorRoleBadgeText = Color.FromArgb("#64748B");
+        }
+    }
+
     [RelayCommand]
     public async Task SaveAttendanceAsync()
     {
         if (SelectedClass == null || StudentItems.Count == 0) return;
+
+        if (!IsAdmin && !IsCurrentUserAdvisor)
+        {
+            var advisorName = SelectedClass.ClassTeacherName ?? "the designated homeroom advisor";
+            bool proceed = await Shell.Current.DisplayAlert(
+                "Relief Attendance Notice",
+                $"You are not the designated Homeroom Advisor for Class {SelectedClass.Name} ({advisorName}).\n\nDo you want to submit this record as a Relief / Substitute Instructor?",
+                "Submit as Relief",
+                "Cancel");
+            if (!proceed) return;
+        }
+
         try
         {
             IsBusy = true;
@@ -1776,7 +1905,11 @@ public partial class AttendanceViewModel : BaseViewModel
             var res = await _apiService.RecordBatchAttendanceAsync(req);
             if (res.Success)
             {
-                await Shell.Current.DisplayAlert("Saved", "Daily attendance successfully recorded!", "OK");
+                var title = IsCurrentUserAdvisor ? "Homeroom Attendance Recorded" : "Relief Attendance Logged";
+                var msg = IsCurrentUserAdvisor
+                    ? $"Official roll call for your advisory class ({SelectedClass.Name}) has been recorded."
+                    : $"Substitute roll call for Class {SelectedClass.Name} has been recorded.";
+                await Shell.Current.DisplayAlert(title, msg, "OK");
                 await LoadAttendanceAsync();
             }
             else

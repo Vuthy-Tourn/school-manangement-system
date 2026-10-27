@@ -346,17 +346,25 @@ public class DashboardService : IDashboardService
             return ApiResponse<TeacherDashboardStatsDto>.Fail("Teacher profile not found.");
 
         var assignments = teacher.SubjectAssignments.ToList();
-        var assignedClassesCount = assignments.Select(a => a.ClassSectionId).Distinct().Count();
+        var classIds = assignments.Select(a => a.ClassSectionId).Distinct().ToList();
+
+        // Also include class sections where this teacher is designated as Homeroom Advisor
+        var advisoryClassIds = await _context.ClassSections
+            .Where(c => c.ClassTeacherId == teacher.Id)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+        var allClassesIds = classIds.Union(advisoryClassIds).Distinct().ToList();
+
+        var assignedClassesCount = allClassesIds.Count;
         var assignedSubjectsCount = assignments.Select(a => a.SubjectId).Distinct().Count();
 
-        var classIds = assignments.Select(a => a.ClassSectionId).Distinct().ToList();
         var totalStudentsTaught = await _context.StudentEnrollments
-            .CountAsync(e => classIds.Contains(e.ClassSectionId) && e.Status == EnrollmentStatus.Enrolled, ct);
+            .CountAsync(e => allClassesIds.Contains(e.ClassSectionId) && e.Status == EnrollmentStatus.Enrolled, ct);
 
         if (totalStudentsTaught < 8)
         {
             var studentCountByClass = await _context.Students
-                .CountAsync(s => classIds.Contains(s.CurrentClassSectionId ?? Guid.Empty) && s.Status == StudentStatus.Active, ct);
+                .CountAsync(s => allClassesIds.Contains(s.CurrentClassSectionId ?? Guid.Empty) && s.Status == StudentStatus.Active, ct);
             totalStudentsTaught = Math.Max(totalStudentsTaught, studentCountByClass);
             if (totalStudentsTaught < 8)
             {
@@ -376,7 +384,7 @@ public class DashboardService : IDashboardService
         }
 
         var classesList = await _context.ClassSections
-            .Where(c => classIds.Contains(c.Id))
+            .Where(c => allClassesIds.Contains(c.Id))
             .Include(c => c.AcademicYear)
             .Include(c => c.GradeLevel)
             .Select(c => new ClassSectionDto(
@@ -390,7 +398,7 @@ public class DashboardService : IDashboardService
                 c.RoomNumber,
                 c.Capacity,
                 c.ClassTeacherId,
-                teacher.FullName,
+                c.ClassTeacherId == teacher.Id ? teacher.FullName : (c.ClassTeacher != null ? c.ClassTeacher.FullName : null),
                 c.Enrollments.Count
             ))
             .ToListAsync(ct);

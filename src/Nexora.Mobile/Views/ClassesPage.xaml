@@ -184,13 +184,28 @@
                                                 </HorizontalStackLayout>
 
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="End" VerticalOptions="Center">
+                                                    <!-- Admin Only: Assign Homeroom Advisor -->
                                                     <Button Text="Assign Advisor"
                                                             Command="{Binding BindingContext.AssignAdvisorCommand, Source={x:Reference ClassesRootPage}}"
                                                             CommandParameter="{Binding .}"
+                                                            IsVisible="{Binding BindingContext.IsAdmin, Source={x:Reference ClassesRootPage}}"
                                                             BackgroundColor="{StaticResource SecondaryLight}"
                                                             TextColor="{StaticResource SecondaryDark}"
                                                             BorderColor="{StaticResource SecondaryBorder}"
                                                             BorderWidth="1"
+                                                            CornerRadius="6"
+                                                            FontSize="10"
+                                                            FontAttributes="Bold"
+                                                            HeightRequest="28"
+                                                            Padding="10,0" />
+
+                                                    <!-- Teacher Shortcut: Take Attendance -->
+                                                    <Button Text="Take Attendance"
+                                                            Command="{Binding BindingContext.TakeClassAttendanceCommand, Source={x:Reference ClassesRootPage}}"
+                                                            CommandParameter="{Binding .}"
+                                                            IsVisible="{Binding BindingContext.IsTeacher, Source={x:Reference ClassesRootPage}}"
+                                                            BackgroundColor="{StaticResource Secondary}"
+                                                            TextColor="{StaticResource White}"
                                                             CornerRadius="6"
                                                             FontSize="10"
                                                             FontAttributes="Bold"

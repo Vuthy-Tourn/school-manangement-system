@@ -50,6 +50,18 @@
                                        FontAttributes="Bold"
                                        TextColor="{StaticResource Primary}" />
                             </Border>
+
+                            <Border StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#FEF3C7"
+                                    Stroke="#FDE68A"
+                                    Padding="6,2"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding IsMyAdvisee}">
+                                <Label Text="⭐ My Advisee"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="#92400E" />
+                            </Border>
                         </HorizontalStackLayout>
 
                         <Label LineBreakMode="TailTruncation" FontSize="12">
@@ -218,9 +230,10 @@
                         CornerRadius="8"
                         HeightRequest="46" />
 
-                <!-- Edit Button -->
+                <!-- Edit Button (Admins Only) -->
                 <Button Text="Edit Student Information"
                         Command="{Binding EditStudentCommand}"
+                        IsVisible="{Binding IsAdmin}"
                         BackgroundColor="{StaticResource SurfaceLight}"
                         TextColor="{StaticResource TextPrimary}"
                         BorderColor="{StaticResource SurfaceBorder}"

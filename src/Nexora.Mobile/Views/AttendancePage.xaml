@@ -69,6 +69,27 @@
                         </VerticalStackLayout>
                     </Grid>
 
+                    <!-- Advisory Authority & Permission Status Banner -->
+                    <Border StrokeShape="RoundRectangle 8"
+                            BackgroundColor="{Binding AdvisorRoleBadgeBg}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            StrokeThickness="1"
+                            Padding="12,8">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                            <Label Text="{Binding AdvisorRoleBadge}"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{Binding AdvisorRoleBadgeText}"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding AdvisorRoleSubtitle}"
+                                   FontSize="10.5"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
                     <!-- Attendance Rate & Quick Action Bar -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
                         <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
