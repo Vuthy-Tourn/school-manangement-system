@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
+             x:Class="Nexora.Mobile.Views.TeacherFormPage"
+             x:DataType="vm:TeacherFormViewModel"
+             Title="{Binding Title}"
+             BackgroundColor="{StaticResource SurfaceLight}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20,20,20,36" MaximumWidthRequest="650">
+
+            <!-- Form Introduction Header -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding Title}"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}" />
+                <Label Text="Fill in the required institutional credentials and faculty background details."
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}" />
+            </VerticalStackLayout>
+
+            <!-- Error Banner -->
+            <Border IsVisible="{Binding HasError}"
+                    StrokeShape="RoundRectangle 8"
+                    BackgroundColor="{StaticResource DangerLight}"
+                    Stroke="{StaticResource DangerBorder}"
+                    StrokeThickness="1"
+                    Padding="14,10">
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Label Text="⚠️" FontSize="14" VerticalOptions="Center" />
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="{StaticResource DangerText}"
+                           FontSize="12"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <!-- Card 1: Academic & Institutional Identification -->
+            <Border StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <VerticalStackLayout Spacing="16">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_faculty.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Institutional Identification"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <!-- Employee Number Row & Hire Date -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="Employee ID *"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding EmployeeNumber}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontAttributes="Bold"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Hire Date *"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <DatePicker Date="{Binding HireDate}"
+                                            Format="yyyy-MM-dd"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            FontSize="13"
+                                            VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Card 2: Faculty Profile Details -->
+            <Border StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <VerticalStackLayout Spacing="16">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_profile.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Faculty Profile &amp; Background"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <!-- Name Row -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <!-- First Name -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="First Name *"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding FirstName}"
+                                       Placeholder="e.g. Dara"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Last Name -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Last Name *"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding LastName}"
+                                       Placeholder="e.g. Sok"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Specialization & Qualification -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <!-- Specialization -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="Primary Specialization *"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding Specialization}"
+                                       Placeholder="e.g. Advanced Mathematics"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Qualification -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Academic Qualification"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding Qualification}"
+                                       Placeholder="e.g. Master of Education"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Card 3: Contact Details -->
+            <Border StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <VerticalStackLayout Spacing="16">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Contact &amp; Communication"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <!-- Email Address -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Email Address *"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,2"
+                                HeightRequest="44">
+                            <Entry Text="{Binding Email}"
+                                   Placeholder="dara.sok@angkoracademy.edu.kh"
+                                   PlaceholderColor="{StaticResource TextSubtle}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Phone Number -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Phone Number"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Border StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource SurfaceLight}"
+                                Padding="12,2"
+                                HeightRequest="44">
+                            <Entry Text="{Binding PhoneNumber}"
+                                   Placeholder="+855 12 345 678"
+                                   PlaceholderColor="{StaticResource TextSubtle}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="13"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Card 4: Portal Credentials (Add Mode Only) -->
+            <Border IsVisible="{Binding IsAddMode}"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <VerticalStackLayout Spacing="16">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image Source="icon_dashboard.png" WidthRequest="18" HeightRequest="18" />
+                        <Label Text="Portal Login Credentials"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </HorizontalStackLayout>
+
+                    <!-- Username & Password Row -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <!-- Username -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="Username (Optional)"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding Username}"
+                                       Placeholder="dara.sok"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Password -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Initial Password (Optional)"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="12,2"
+                                    HeightRequest="44">
+                                <Entry Text="{Binding Password}"
+                                       Placeholder="••••••••"
+                                       IsPassword="True"
+                                       PlaceholderColor="{StaticResource TextSubtle}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Card 5: Status Option (Edit Mode Only) -->
+            <Border IsVisible="{Binding IsEditMode}"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="{StaticResource SurfaceCard}"
+                    Stroke="{StaticResource SurfaceBorder}"
+                    StrokeThickness="1"
+                    Padding="20,18">
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                        <Label Text="Active Faculty Status"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Deactivating will prevent portal access and timetable assignments"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding IsActive}"
+                            OnColor="{StaticResource Secondary}"
+                            ThumbColor="{StaticResource White}"
+                            VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Submission Actions -->
+            <VerticalStackLayout Spacing="10" Margin="0,8,0,0">
+                <Button Text="Save Faculty Record"
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding IsNotBusy}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        FontAttributes="Bold"
+                        FontSize="14"
+                        CornerRadius="8"
+                        HeightRequest="48" />
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   Color="{StaticResource Secondary}"
+                                   HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

@@ -15,6 +15,7 @@ public partial class AppShell : Shell
 
         // Register auxiliary / sub-routes
         Routing.RegisterRoute("student-form", typeof(StudentFormPage));
+        Routing.RegisterRoute("teacher-form", typeof(TeacherFormPage));
         Routing.RegisterRoute("dashboard", typeof(ParentDashboardPage));
         Routing.RegisterRoute("attendance", typeof(AttendancePage));
         Routing.RegisterRoute("grades", typeof(GradesPage));
@@ -23,6 +24,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("announcements", typeof(AnnouncementsPage));
         Routing.RegisterRoute("profile", typeof(ProfilePage));
         Routing.RegisterRoute("students", typeof(StudentsPage));
+        Routing.RegisterRoute("teachers", typeof(TeachersPage));
 
         ConfigureRoleNavigation();
     }
@@ -69,6 +71,7 @@ public partial class AppShell : Shell
             default:
                 tabBar.Items.Add(CreateTab("Dashboard", "icon_dashboard.png", "dashboard", typeof(AdminDashboardPage)));
                 tabBar.Items.Add(CreateTab("Students", "icon_students.png", "students", typeof(StudentsPage)));
+                tabBar.Items.Add(CreateTab("Teachers", "icon_faculty.png", "teachers", typeof(TeachersPage)));
                 tabBar.Items.Add(CreateTab("Attendance", "icon_attendance.png", "attendance", typeof(AttendancePage)));
                 tabBar.Items.Add(CreateTab("Grades", "icon_grades.png", "grades", typeof(GradesPage)));
                 tabBar.Items.Add(CreateTab("Fees", "icon_fees.png", "fees", typeof(FeesPage)));

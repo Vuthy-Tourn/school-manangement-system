@@ -229,6 +229,15 @@ public partial class StudentFormViewModel : BaseViewModel
 public partial class TeachersViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
+    private List<TeacherDto> _allTeachers = new();
+
+    [ObservableProperty]
+    private string _searchTerm = string.Empty;
+
+    partial void OnSearchTermChanged(string value)
+    {
+        FilterTeachers();
+    }
 
     [ObservableProperty]
     private ObservableCollection<TeacherDto> _teachers = new();
@@ -251,7 +260,8 @@ public partial class TeachersViewModel : BaseViewModel
             var res = await _apiService.GetTeachersAsync();
             if (res.Success && res.Data != null)
             {
-                Teachers = new ObservableCollection<TeacherDto>(res.Data);
+                _allTeachers = res.Data;
+                FilterTeachers();
             }
         }
         catch (Exception ex)
@@ -261,6 +271,215 @@ public partial class TeachersViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private void FilterTeachers()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            Teachers = new ObservableCollection<TeacherDto>(_allTeachers);
+        }
+        else
+        {
+            var q = SearchTerm.Trim();
+            var filtered = _allTeachers.Where(t =>
+                (t.FullName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.EmployeeNumber?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.Specialization?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.Qualification?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.Email?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+            Teachers = new ObservableCollection<TeacherDto>(filtered);
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddTeacherAsync()
+    {
+        await Shell.Current.Navigation.PushAsync(new Views.TeacherFormPage(new TeacherFormViewModel(_apiService)));
+    }
+
+    [RelayCommand]
+    private async Task EditTeacherAsync(TeacherDto teacher)
+    {
+        if (teacher == null) return;
+        await Shell.Current.Navigation.PushAsync(new Views.TeacherFormPage(new TeacherFormViewModel(_apiService, teacher)));
+    }
+
+    [RelayCommand]
+    private async Task DeactivateTeacherAsync(TeacherDto teacher)
+    {
+        if (teacher == null) return;
+        bool confirm = await Shell.Current.DisplayAlert("Confirm Deactivation", $"Are you sure you want to deactivate {teacher.FullName}?", "Deactivate", "Cancel");
+        if (!confirm) return;
+
+        try
+        {
+            IsBusy = true;
+            var res = await _apiService.DeactivateTeacherAsync(teacher.Id);
+            if (res.Success)
+            {
+                await LoadTeachersAsync();
+                await Shell.Current.DisplayAlert("Success", "Teacher account deactivated.", "OK");
+            }
+            else
+            {
+                SetError(res.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+}
+
+// 3.1 Teacher Form ViewModel
+public partial class TeacherFormViewModel : BaseViewModel
+{
+    private readonly IApiService _apiService;
+    private readonly TeacherDto? _originalTeacher;
+
+    public bool IsEditMode => _originalTeacher != null;
+    public bool IsAddMode => !IsEditMode;
+
+    [ObservableProperty] private string _employeeNumber = string.Empty;
+    [ObservableProperty] private string _firstName = string.Empty;
+    [ObservableProperty] private string _lastName = string.Empty;
+    [ObservableProperty] private string _email = string.Empty;
+    [ObservableProperty] private string _phoneNumber = string.Empty;
+    [ObservableProperty] private string _qualification = string.Empty;
+    [ObservableProperty] private string _specialization = string.Empty;
+    [ObservableProperty] private DateTime _hireDate = DateTime.Today;
+    [ObservableProperty] private bool _isActive = true;
+    [ObservableProperty] private string _username = string.Empty;
+    [ObservableProperty] private string _password = string.Empty;
+
+    public TeacherFormViewModel(IApiService apiService, TeacherDto? teacher = null)
+    {
+        _apiService = apiService;
+        _originalTeacher = teacher;
+
+        if (teacher != null)
+        {
+            Title = $"Edit Teacher: {teacher.FullName}";
+            EmployeeNumber = teacher.EmployeeNumber;
+            FirstName = teacher.FirstName;
+            LastName = teacher.LastName;
+            Email = teacher.Email ?? string.Empty;
+            PhoneNumber = teacher.PhoneNumber ?? string.Empty;
+            Qualification = teacher.Qualification ?? string.Empty;
+            Specialization = teacher.Specialization ?? string.Empty;
+            HireDate = teacher.HireDate;
+            IsActive = teacher.IsActive;
+        }
+        else
+        {
+            Title = "Register Teacher";
+            EmployeeNumber = $"EMP-{Random.Shared.Next(10000, 99999)}";
+            HireDate = DateTime.Today;
+            IsActive = true;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+        {
+            SetError("First name and Last name are required.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            SetError("Email address is required.");
+            return;
+        }
+
+        if (IsAddMode && string.IsNullOrWhiteSpace(EmployeeNumber))
+        {
+            SetError("Employee number is required.");
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ClearError();
+
+            if (IsEditMode && _originalTeacher != null)
+            {
+                var req = new UpdateTeacherRequest(
+                    FirstName.Trim(),
+                    LastName.Trim(),
+                    Email.Trim(),
+                    string.IsNullOrWhiteSpace(PhoneNumber) ? null : PhoneNumber.Trim(),
+                    string.IsNullOrWhiteSpace(Qualification) ? null : Qualification.Trim(),
+                    string.IsNullOrWhiteSpace(Specialization) ? null : Specialization.Trim(),
+                    IsActive);
+
+                var res = await _apiService.UpdateTeacherAsync(_originalTeacher.Id, req);
+                if (res.Success)
+                {
+                    await Shell.Current.DisplayAlert("Success", "Faculty details updated successfully!", "OK");
+                    await PopPageAsync();
+                }
+                else
+                {
+                    SetError(res.Message);
+                }
+            }
+            else
+            {
+                var req = new CreateTeacherRequest(
+                    EmployeeNumber.Trim(),
+                    FirstName.Trim(),
+                    LastName.Trim(),
+                    Email.Trim(),
+                    string.IsNullOrWhiteSpace(PhoneNumber) ? null : PhoneNumber.Trim(),
+                    HireDate,
+                    string.IsNullOrWhiteSpace(Qualification) ? null : Qualification.Trim(),
+                    string.IsNullOrWhiteSpace(Specialization) ? null : Specialization.Trim(),
+                    string.IsNullOrWhiteSpace(Username) ? null : Username.Trim(),
+                    string.IsNullOrWhiteSpace(Password) ? null : Password.Trim());
+
+                var res = await _apiService.CreateTeacherAsync(req);
+                if (res.Success)
+                {
+                    await Shell.Current.DisplayAlert("Success", "Faculty member registered successfully!", "OK");
+                    await PopPageAsync();
+                }
+                else
+                {
+                    SetError(res.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static async Task PopPageAsync()
+    {
+        if (Shell.Current?.Navigation != null && Shell.Current.Navigation.NavigationStack.Count > 1)
+        {
+            await Shell.Current.Navigation.PopAsync();
+        }
+        else
+        {
+            await Shell.Current!.GoToAsync("..");
         }
     }
 }

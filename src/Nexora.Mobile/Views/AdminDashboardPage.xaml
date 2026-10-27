@@ -64,52 +64,68 @@
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}" />
 
-                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                         <!-- Students -->
                         <Border Grid.Row="0" Grid.Column="0"
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="students" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_students.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Students" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Directory &amp; Enrollment" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_students.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Students" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Student Directory" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <!-- Attendance -->
+                        <!-- Teachers -->
                         <Border Grid.Row="0" Grid.Column="1"
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="attendance" />
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="teachers" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_attendance.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Attendance" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Daily Tracking" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_faculty.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Teachers" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Faculty Directory" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <!-- Grades -->
+                        <!-- Attendance -->
                         <Border Grid.Row="0" Grid.Column="2"
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="attendance" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_attendance.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Attendance" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Daily Tracking" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Grades -->
+                        <Border Grid.Row="0" Grid.Column="3"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                Padding="8,10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="grades" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_grades.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Grades" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Exams &amp; Scoring" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_grades.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Grades" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Exams &amp; Scores" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
 
@@ -118,14 +134,14 @@
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="fees" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_fees.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Tuition &amp; Fees" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Invoices &amp; ABA Pay" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_fees.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Tuition Fees" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Invoices &amp; Pay" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
 
@@ -134,14 +150,14 @@
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="timetables" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_timetable.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Timetable" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Weekly Schedule" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_timetable.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Timetable" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Class Schedule" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
 
@@ -150,14 +166,30 @@
                                 StrokeShape="RoundRectangle 12"
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
-                                Padding="12,10">
+                                Padding="8,10">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="announcements" />
                             </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Image Source="icon_announcements.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" />
-                                <Label Text="Updates" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
-                                <Label Text="Campus Notices" FontSize="9" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_announcements.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Updates" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Campus Notices" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Profile / Settings -->
+                        <Border Grid.Row="1" Grid.Column="3"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                Padding="8,10">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="profile" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                                <Image Source="icon_profile.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                                <Label Text="Profile" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+                                <Label Text="Admin Account" FontSize="8.5" TextColor="{StaticResource TextMuted}" HorizontalOptions="Center" />
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
@@ -177,6 +209,9 @@
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
                                 Padding="16,14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="students" />
+                            </Border.GestureRecognizers>
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="TOTAL STUDENTS" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />
@@ -193,6 +228,9 @@
                                 BackgroundColor="{StaticResource SurfaceCard}"
                                 Stroke="{StaticResource SurfaceBorder}"
                                 Padding="16,14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToCommand}" CommandParameter="teachers" />
+                            </Border.GestureRecognizers>
                             <VerticalStackLayout Spacing="4">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <Label Text="FACULTY STAFF" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource TextMuted}" />

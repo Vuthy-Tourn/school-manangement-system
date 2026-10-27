@@ -36,6 +36,8 @@ public interface IApiService
 
     Task<ApiResponse<List<TeacherDto>>> GetTeachersAsync();
     Task<ApiResponse<TeacherDto>> CreateTeacherAsync(CreateTeacherRequest request);
+    Task<ApiResponse<TeacherDto>> UpdateTeacherAsync(Guid id, UpdateTeacherRequest request);
+    Task<ApiResponse<bool>> DeactivateTeacherAsync(Guid id);
 
     Task<ApiResponse<List<ClassSectionDto>>> GetClassesAsync();
     Task<ApiResponse<List<SubjectDto>>> GetSubjectsAsync();
@@ -878,6 +880,77 @@ public class ApiService : IApiService
             DateTime.UtcNow, request.Qualification, request.Specialization, true, new List<TeacherSubjectAssignmentDto>());
         _mockTeachers.Insert(0, t);
         return ApiResponse<TeacherDto>.Ok(t, "Teacher added.");
+    }
+
+    public async Task<ApiResponse<TeacherDto>> UpdateTeacherAsync(Guid id, UpdateTeacherRequest request)
+    {
+        try
+        {
+            var res = await _httpClient.PutAsJsonAsync($"api/teachers/{id}", request);
+            if (res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadFromJsonAsync<ApiResponse<TeacherDto>>(JsonOptions);
+                if (body?.Data != null)
+                {
+                    var idx = _mockTeachers.FindIndex(t => t.Id == id);
+                    if (idx >= 0) _mockTeachers[idx] = body.Data;
+                    return body;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("UpdateTeacherAsync", ex);
+        }
+
+        var localIdx = _mockTeachers.FindIndex(t => t.Id == id);
+        if (localIdx >= 0)
+        {
+            var existing = _mockTeachers[localIdx];
+            var updated = existing with
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                FullName = $"{request.FirstName} {request.LastName}",
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                Qualification = request.Qualification,
+                Specialization = request.Specialization,
+                IsActive = request.IsActive
+            };
+            _mockTeachers[localIdx] = updated;
+            return ApiResponse<TeacherDto>.Ok(updated, "Teacher updated.");
+        }
+
+        return ApiResponse<TeacherDto>.Fail("Teacher not found.");
+    }
+
+    public async Task<ApiResponse<bool>> DeactivateTeacherAsync(Guid id)
+    {
+        try
+        {
+            var res = await _httpClient.DeleteAsync($"api/teachers/{id}");
+            if (res.IsSuccessStatusCode)
+            {
+                var idx = _mockTeachers.FindIndex(t => t.Id == id);
+                if (idx >= 0)
+                {
+                    _mockTeachers[idx] = _mockTeachers[idx] with { IsActive = false };
+                }
+                return ApiResponse<bool>.Ok(true, "Teacher deactivated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogException("DeactivateTeacherAsync", ex);
+        }
+
+        var localIdx = _mockTeachers.FindIndex(t => t.Id == id);
+        if (localIdx >= 0)
+        {
+            _mockTeachers[localIdx] = _mockTeachers[localIdx] with { IsActive = false };
+        }
+        return ApiResponse<bool>.Ok(true, "Teacher deactivated.");
     }
 
     public async Task<ApiResponse<List<ClassSectionDto>>> GetClassesAsync()
