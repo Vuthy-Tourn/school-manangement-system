@@ -2500,10 +2500,14 @@ public partial class GradesViewModel : BaseViewModel
                         curUser.Username.Contains(t.LastName, StringComparison.OrdinalIgnoreCase));
                 }
 
-                // 1. From Assignments
+                // 1. From Assignments for this class
                 if (currentTeacher?.Assignments != null)
                 {
-                    foreach (var a in currentTeacher.Assignments)
+                    var classAssignments = currentTeacher.Assignments
+                        .Where(a => a.ClassSectionId == SelectedClass.Id || a.ClassSectionId == Guid.Empty)
+                        .ToList();
+                    var targetAssignments = classAssignments.Count > 0 ? classAssignments : currentTeacher.Assignments;
+                    foreach (var a in targetAssignments)
                     {
                         if (!string.IsNullOrWhiteSpace(a.SubjectName)) taughtSubjectNames.Add(a.SubjectName);
                         if (a.SubjectId != Guid.Empty) taughtSubjectIds.Add(a.SubjectId);
@@ -2526,27 +2530,32 @@ public partial class GradesViewModel : BaseViewModel
                     }
                 }
 
-                // 3. From Teacher Specialization or Qualification
-                var spec = $"{currentTeacher?.Specialization} {currentTeacher?.Qualification}";
-                if (spec.Contains("Bio", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Biology");
-                if (spec.Contains("Math", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Mathematics");
-                if (spec.Contains("Phys", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Physics");
-                if (spec.Contains("Chem", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Chemistry");
-                if (spec.Contains("Khmer", StringComparison.OrdinalIgnoreCase) || spec.Contains("Literature", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Khmer Literature");
-                if (spec.Contains("Eng", StringComparison.OrdinalIgnoreCase) || spec.Contains("Linguistic", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("English Communication");
-                if (spec.Contains("Hist", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("History");
-                if (spec.Contains("ICT", StringComparison.OrdinalIgnoreCase) || spec.Contains("Computer", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Computer Science & ICT");
+                // 3. Fallback heuristics: Only run if teacher has NO official assignments and NO timetable entries for this class
+                if (taughtSubjectNames.Count == 0)
+                {
+                    var spec = $"{currentTeacher?.Specialization} {currentTeacher?.Qualification}";
+                    if (spec.Contains("Bio", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Biology");
+                    if (spec.Contains("Math", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Mathematics");
+                    if (spec.Contains("Phys", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Physics");
+                    if (spec.Contains("Chem", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Chemistry");
+                    if (spec.Contains("Khmer", StringComparison.OrdinalIgnoreCase) || spec.Contains("Literature", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Khmer Literature");
+                    if (spec.Contains("English", StringComparison.OrdinalIgnoreCase) || spec.Contains("Linguistic", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("English Communication");
+                    if (spec.Contains("Hist", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("History");
+                    if (spec.Contains("ICT", StringComparison.OrdinalIgnoreCase) || spec.Contains("Computer", StringComparison.OrdinalIgnoreCase)) taughtSubjectNames.Add("Computer Science & ICT");
 
-                // 4. From Teacher Name / Username / Email mapping
-                var teacherNameLower = $"{curUser?.Username} {curUser?.FullName} {curUser?.Email}".ToLowerInvariant();
-                if (teacherNameLower.Contains("kolab") || teacherNameLower.Contains("bio")) taughtSubjectNames.Add("Biology");
-                else if (teacherNameLower.Contains("dara") || teacherNameLower.Contains("math")) taughtSubjectNames.Add("Mathematics");
-                else if (teacherNameLower.Contains("chenda") || teacherNameLower.Contains("phys")) taughtSubjectNames.Add("Physics");
-                else if (teacherNameLower.Contains("sokha") || teacherNameLower.Contains("khmer")) taughtSubjectNames.Add("Khmer Literature");
-                else if (teacherNameLower.Contains("rathana") || teacherNameLower.Contains("chem")) taughtSubjectNames.Add("Chemistry");
-                else if (teacherNameLower.Contains("john") || teacherNameLower.Contains("eng")) taughtSubjectNames.Add("English Communication");
-                else if (teacherNameLower.Contains("sophal") || teacherNameLower.Contains("hist")) taughtSubjectNames.Add("History");
-                else if (teacherNameLower.Contains("samnang") || teacherNameLower.Contains("ict")) taughtSubjectNames.Add("Computer Science & ICT");
+                    if (taughtSubjectNames.Count == 0)
+                    {
+                        var teacherNameLower = $"{curUser?.Username} {curUser?.FullName} {curUser?.Email}".ToLowerInvariant();
+                        if (teacherNameLower.Contains("kolab") || teacherNameLower.Contains("bio")) taughtSubjectNames.Add("Biology");
+                        else if (teacherNameLower.Contains("dara") || teacherNameLower.Contains("math")) taughtSubjectNames.Add("Mathematics");
+                        else if (teacherNameLower.Contains("chenda") || teacherNameLower.Contains("phys")) taughtSubjectNames.Add("Physics");
+                        else if (teacherNameLower.Contains("sokha") || teacherNameLower.Contains("khmer")) taughtSubjectNames.Add("Khmer Literature");
+                        else if (teacherNameLower.Contains("rathana") || teacherNameLower.Contains("chem")) taughtSubjectNames.Add("Chemistry");
+                        else if (teacherNameLower.Contains("john") || teacherNameLower.Contains("english")) taughtSubjectNames.Add("English Communication");
+                        else if (teacherNameLower.Contains("sophal") || teacherNameLower.Contains("hist")) taughtSubjectNames.Add("History");
+                        else if (teacherNameLower.Contains("samnang") || teacherNameLower.Contains("ict")) taughtSubjectNames.Add("Computer Science & ICT");
+                    }
+                }
 
                 if (taughtSubjectNames.Count > 0)
                 {
