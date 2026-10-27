@@ -10,16 +10,17 @@ namespace Nexora.Mobile.ViewModels;
 public class AttendanceChartColumn
 {
     public string Day { get; set; } = string.Empty;
-    public decimal Percentage { get; set; }
-    public string FormattedPercentage => $"{Percentage:F1}%";
-    public double BarHeight => (double)Math.Clamp(Percentage * 1.0m, 15m, 100m);
+    public decimal? Percentage { get; set; }
+    public bool IsRecorded { get; set; } = true;
+    public string FormattedPercentage => IsRecorded && Percentage.HasValue ? $"{Percentage.Value:F1}%" : "——";
+    public double BarHeight => IsRecorded && Percentage.HasValue ? (double)Math.Clamp(Percentage.Value * 1.0m, 15m, 100m) : 0;
     public bool IsPeak { get; set; }
-    public bool PeakBadgeVisible => IsPeak;
-    public bool NormalLabelVisible => !IsPeak;
+    public bool PeakBadgeVisible => IsRecorded && IsPeak;
+    public bool NormalLabelVisible => !PeakBadgeVisible;
     public Color BarColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#0F172A");
-    public Color TrackColor => IsPeak ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#E2E8F0");
-    public Color BadgeColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#0F172A");
-    public Color DayTextColor => IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#64748B");
+    public Color TrackColor => IsRecorded ? (IsPeak ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#E2E8F0")) : Color.FromArgb("#F1F5F9");
+    public Color BadgeColor => IsRecorded ? (IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#0F172A")) : Color.FromArgb("#94A3B8");
+    public Color DayTextColor => IsRecorded ? (IsPeak ? Color.FromArgb("#15803D") : Color.FromArgb("#64748B")) : Color.FromArgb("#94A3B8");
 }
 
 public class GradeDistributionSegment
@@ -175,10 +176,22 @@ public partial class AdminDashboardViewModel : BaseViewModel
     private GridLength _outstandingWidth = new(12, GridUnitType.Star);
 
     [ObservableProperty]
-    private string _tuitionColumnDefinitions = "68*,32*";
+    private GridLength _gradeAWidth = new(49.1, GridUnitType.Star);
 
     [ObservableProperty]
-    private string _gradeBarColumnDefinitions = "49.1*,50.6*,0.3*,0.01*";
+    private GridLength _gradeBWidth = new(50.6, GridUnitType.Star);
+
+    [ObservableProperty]
+    private GridLength _gradeCWidth = new(0.3, GridUnitType.Star);
+
+    [ObservableProperty]
+    private GridLength _gradeDFWidth = new(0, GridUnitType.Absolute);
+
+    [ObservableProperty]
+    private bool _hasGradeDF = false;
+
+    [ObservableProperty]
+    private bool _hasGradeC = true;
 
     [ObservableProperty]
     private string _gradeALabel = "Grade A (49.1%)";
@@ -206,12 +219,14 @@ public partial class AdminDashboardViewModel : BaseViewModel
     {
         WeeklyAttendance = new ObservableCollection<AttendanceChartColumn>
         {
-            new() { Day = "Mon", Percentage = 98.0m, IsPeak = false },
-            new() { Day = "Tue", Percentage = 96.5m, IsPeak = false },
-            new() { Day = "Wed", Percentage = 100.0m, IsPeak = true },
-            new() { Day = "Thu", Percentage = 97.5m, IsPeak = false },
-            new() { Day = "Fri", Percentage = 99.0m, IsPeak = false }
+            new() { Day = "Mon", Percentage = 81.2m, IsRecorded = true, IsPeak = false },
+            new() { Day = "Tue", Percentage = 100.0m, IsRecorded = true, IsPeak = true },
+            new() { Day = "Wed", Percentage = null, IsRecorded = false, IsPeak = false },
+            new() { Day = "Thu", Percentage = null, IsRecorded = false, IsPeak = false },
+            new() { Day = "Fri", Percentage = null, IsRecorded = false, IsPeak = false }
         };
+
+        WeeklyAverageAttendance = 90.6m;
 
         GradeDistribution = new ObservableCollection<GradeDistributionSegment>
         {
@@ -241,26 +256,29 @@ public partial class AdminDashboardViewModel : BaseViewModel
                 // Update Weekly Attendance Trends
                 var trends = res.Data.WeeklyAttendanceTrend ?? new List<AttendanceTrendItemDto>
                 {
-                    new("Mon", 98.0m),
-                    new("Tue", 96.5m),
-                    new("Wed", 100.0m),
-                    new("Thu", 97.5m),
-                    new("Fri", 99.0m)
+                    new("Mon", 81.2m, true),
+                    new("Tue", 100.0m, true),
+                    new("Wed", null, false),
+                    new("Thu", null, false),
+                    new("Fri", null, false)
                 };
 
-                var maxVal = trends.Count > 0 ? trends.Max(t => t.Percentage) : 100m;
+                var recordedTrends = trends.Where(t => t.IsRecorded && t.Percentage.HasValue).ToList();
+                var maxVal = recordedTrends.Count > 0 ? recordedTrends.Max(t => t.Percentage!.Value) : 100m;
                 WeeklyAttendance = new ObservableCollection<AttendanceChartColumn>(
                     trends.Select(t => new AttendanceChartColumn
                     {
                         Day = t.Day,
                         Percentage = t.Percentage,
-                        IsPeak = t.Percentage == maxVal
+                        IsRecorded = t.IsRecorded && t.Percentage.HasValue,
+                        IsPeak = t.IsRecorded && t.Percentage.HasValue && t.Percentage.Value == maxVal
                     })
                 );
 
-                if (WeeklyAttendance.Count > 0)
+                var validDays = WeeklyAttendance.Where(x => x.IsRecorded && x.Percentage.HasValue).ToList();
+                if (validDays.Count > 0)
                 {
-                    WeeklyAverageAttendance = Math.Round(WeeklyAttendance.Average(x => x.Percentage), 1);
+                    WeeklyAverageAttendance = Math.Round(validDays.Average(x => x.Percentage!.Value), 1);
                 }
 
                 // Update Fee Collection Graph
@@ -272,7 +290,6 @@ public partial class AdminDashboardViewModel : BaseViewModel
                     var outstandingRatio = 100 - collectedRatio;
                     CollectedWidth = new GridLength(collectedRatio, GridUnitType.Star);
                     OutstandingWidth = new GridLength(outstandingRatio, GridUnitType.Star);
-                    TuitionColumnDefinitions = $"{collectedRatio}*,{outstandingRatio}*";
                 }
 
                 // Update Real Grade Distribution from Database
@@ -284,11 +301,13 @@ public partial class AdminDashboardViewModel : BaseViewModel
                     GradeCLabel = $"Grade C ({gd.GradeCPercentage:F1}%)";
                     GradeDFLabel = $"Grade D/F ({gd.GradeDFPercentage:F1}%)";
 
-                    var aStar = Math.Max(0.01m, gd.GradeAPercentage);
-                    var bStar = Math.Max(0.01m, gd.GradeBPercentage);
-                    var cStar = Math.Max(0.01m, gd.GradeCPercentage);
-                    var dfStar = Math.Max(0.01m, gd.GradeDFPercentage);
-                    GradeBarColumnDefinitions = $"{aStar:F1}*,{bStar:F1}*,{cStar:F1}*,{dfStar:F1}*";
+                    HasGradeDF = gd.GradeDFPercentage > 0;
+                    HasGradeC = gd.GradeCPercentage > 0;
+
+                    GradeAWidth = new GridLength((double)Math.Max(0.1m, gd.GradeAPercentage), GridUnitType.Star);
+                    GradeBWidth = new GridLength((double)Math.Max(0.1m, gd.GradeBPercentage), GridUnitType.Star);
+                    GradeCWidth = new GridLength(HasGradeC ? (double)Math.Max(0.1m, gd.GradeCPercentage) : 0, HasGradeC ? GridUnitType.Star : GridUnitType.Absolute);
+                    GradeDFWidth = new GridLength(HasGradeDF ? (double)Math.Max(0.1m, gd.GradeDFPercentage) : 0, HasGradeDF ? GridUnitType.Star : GridUnitType.Absolute);
 
                     GradeDistribution = new ObservableCollection<GradeDistributionSegment>
                     {

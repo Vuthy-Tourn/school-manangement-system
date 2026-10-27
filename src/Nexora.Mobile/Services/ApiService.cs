@@ -434,11 +434,11 @@ public class ApiService : IApiService
 
         var weeklyTrend = new List<AttendanceTrendItemDto>
         {
-            new("Mon", 98.0m),
-            new("Tue", 96.5m),
-            new("Wed", 100.0m),
-            new("Thu", 97.5m),
-            new("Fri", 99.0m)
+            new("Mon", 81.2m, true),
+            new("Tue", 100.0m, true),
+            new("Wed", null, false),
+            new("Thu", null, false),
+            new("Fri", null, false)
         };
 
         var mockDist = new GradeDistributionDto(49.1m, 157, 50.6m, 162, 0.3m, 1, 0.0m, 0, 320);

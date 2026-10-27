@@ -1,6 +1,6 @@
 namespace Nexora.Application.DTOs;
 
-public record AttendanceTrendItemDto(string Day, decimal Percentage);
+public record AttendanceTrendItemDto(string Day, decimal? Percentage, bool IsRecorded = true);
 
 public record GradeDistributionDto(
     decimal GradeAPercentage,

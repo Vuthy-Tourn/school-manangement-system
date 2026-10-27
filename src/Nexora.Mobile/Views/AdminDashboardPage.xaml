@@ -425,7 +425,11 @@
                                     HeightRequest="14"
                                     StrokeThickness="0"
                                     Padding="0">
-                                <Grid ColumnDefinitions="{Binding TuitionColumnDefinitions}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding CollectedWidth}" />
+                                        <ColumnDefinition Width="{Binding OutstandingWidth}" />
+                                    </Grid.ColumnDefinitions>
                                     <!-- Collected Segment -->
                                     <BoxView Grid.Column="0" Color="{StaticResource Success}" HorizontalOptions="Fill" />
                                     <!-- Remaining Segment -->
@@ -487,14 +491,21 @@
 
                             <!-- 4-tier Grade Distribution Bar -->
                             <Border StrokeShape="RoundRectangle 8"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
                                     HeightRequest="12"
                                     StrokeThickness="0"
                                     Padding="0">
-                                <Grid ColumnDefinitions="{Binding GradeBarColumnDefinitions}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding GradeAWidth}" />
+                                        <ColumnDefinition Width="{Binding GradeBWidth}" />
+                                        <ColumnDefinition Width="{Binding GradeCWidth}" />
+                                        <ColumnDefinition Width="{Binding GradeDFWidth}" />
+                                    </Grid.ColumnDefinitions>
                                     <BoxView Grid.Column="0" Color="#15803D" HorizontalOptions="Fill" />
                                     <BoxView Grid.Column="1" Color="#2563EB" HorizontalOptions="Fill" />
-                                    <BoxView Grid.Column="2" Color="#D97706" HorizontalOptions="Fill" />
-                                    <BoxView Grid.Column="3" Color="#DC2626" HorizontalOptions="Fill" />
+                                    <BoxView Grid.Column="2" Color="#D97706" HorizontalOptions="Fill" IsVisible="{Binding HasGradeC}" />
+                                    <BoxView Grid.Column="3" Color="#DC2626" HorizontalOptions="Fill" IsVisible="{Binding HasGradeDF}" />
                                 </Grid>
                             </Border>
 

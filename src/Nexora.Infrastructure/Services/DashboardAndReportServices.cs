@@ -277,29 +277,24 @@ public class DashboardService : IDashboardService
             var dayDate = mondayDate.AddDays(i);
             var (dayLabel, _) = daysOfWeekNames[i];
 
-            var records = await _context.AttendanceRecords.Where(a => a.Date == dayDate).ToListAsync(ct);
-            if (records.Count > 0)
+            if (dayDate > today)
             {
-                var present = records.Count(a => a.Status == AttendanceStatus.Present);
-                var late = records.Count(a => a.Status == AttendanceStatus.Late);
-                var rate = Math.Round(((present + (late * 0.5m)) / (decimal)records.Count) * 100m, 1);
-                weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, rate));
+                // Future days haven't occurred yet - cannot know attendance in advance
+                weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, null, false));
             }
             else
             {
-                // Fallback to previous week's corresponding weekday record if available
-                var prevWeekDate = dayDate.AddDays(-7);
-                var prevRecords = await _context.AttendanceRecords.Where(a => a.Date == prevWeekDate).ToListAsync(ct);
-                if (prevRecords.Count > 0)
+                var records = await _context.AttendanceRecords.Where(a => a.Date == dayDate).ToListAsync(ct);
+                if (records.Count > 0)
                 {
-                    var present = prevRecords.Count(a => a.Status == AttendanceStatus.Present);
-                    var late = prevRecords.Count(a => a.Status == AttendanceStatus.Late);
-                    var rate = Math.Round(((present + (late * 0.5m)) / (decimal)prevRecords.Count) * 100m, 1);
-                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, rate));
+                    var present = records.Count(a => a.Status == AttendanceStatus.Present);
+                    var late = records.Count(a => a.Status == AttendanceStatus.Late);
+                    var rate = Math.Round(((present + (late * 0.5m)) / (decimal)records.Count) * 100m, 1);
+                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, rate, true));
                 }
                 else
                 {
-                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, 100.0m));
+                    weeklyTrend.Add(new AttendanceTrendItemDto(dayLabel, null, false));
                 }
             }
         }
