@@ -496,12 +496,14 @@ public class ApiService : IApiService
             .Where(s => s.TeacherId == fallbackTeacherId || string.Equals(s.TeacherName, fallbackTeacherName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
+        var teacherAssignedClasses = _mockClasses.Where(c => c.ClassTeacherId == fallbackTeacherId).ToList();
+
         return ApiResponse<TeacherDashboardStatsDto>.Ok(new TeacherDashboardStatsDto(
-            AssignedClassesCount: _mockClasses.Count,
+            AssignedClassesCount: teacherAssignedClasses.Count,
             AssignedSubjectsCount: 8,
             TotalStudentsTaught: _mockStudents.Count,
             TodaySchedule: fallbackSchedule.Count > 0 ? fallbackSchedule : _mockSchedule,
-            ClassesList: _mockClasses
+            ClassesList: teacherAssignedClasses
         ));
     }
 
@@ -1272,6 +1274,15 @@ public class ApiService : IApiService
 
     public async Task<ApiResponse<bool>> RecordBatchAttendanceAsync(BatchAttendanceRequest request)
     {
+        if (CurrentUser?.Role == UserRole.Teacher && CurrentUser?.LinkedProfileId.HasValue == true)
+        {
+            var targetClass = _mockClasses.FirstOrDefault(c => c.Id == request.ClassSectionId);
+            if (targetClass != null && targetClass.ClassTeacherId != CurrentUser.LinkedProfileId.Value)
+            {
+                return ApiResponse<bool>.Fail($"Access restricted: Only the designated Homeroom Advisor ({targetClass.ClassTeacherName ?? "Assigned Teacher"}) is authorized to record attendance for Class {targetClass.Name}.");
+            }
+        }
+
         // Keep in-memory mock state up to date so any subsequent reads (mock or hybrid) reflect the teacher's edits immediately
         foreach (var item in request.Records)
         {

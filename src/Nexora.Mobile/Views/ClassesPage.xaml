@@ -44,23 +44,17 @@
             </Grid>
         </Border>
 
-        <!-- Search Bar -->
-        <Border Grid.Row="1"
-                StrokeShape="RoundRectangle 8"
-                Stroke="{StaticResource SurfaceBorder}"
-                StrokeThickness="1"
-                BackgroundColor="{StaticResource SurfaceCard}"
-                Padding="8,0"
-                Margin="0,0,0,16"
-                HeightRequest="44">
-            <SearchBar Text="{Binding SearchTerm}"
-                       Placeholder="Search classes, rooms, teachers or subjects..."
-                       PlaceholderColor="{StaticResource TextSubtle}"
-                       TextColor="{StaticResource TextPrimary}"
-                       BackgroundColor="Transparent"
-                       FontSize="13"
-                       VerticalOptions="Center" />
-        </Border>
+        <!-- Search Bar (No background card container) -->
+        <SearchBar Grid.Row="1"
+                   Text="{Binding SearchTerm}"
+                   Placeholder="Search classes, rooms, teachers or subjects..."
+                   PlaceholderColor="{StaticResource TextSubtle}"
+                   TextColor="{StaticResource TextPrimary}"
+                   BackgroundColor="Transparent"
+                   FontSize="13"
+                   HeightRequest="44"
+                   Margin="0,0,0,16"
+                   VerticalOptions="Center" />
 
         <!-- Content Area: Refreshable CollectionView -->
         <RefreshView Grid.Row="2" IsRefreshing="{Binding IsBusy}" Command="{Binding LoadDataCommand}">
@@ -94,7 +88,7 @@
                             </CollectionView.EmptyView>
 
                             <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="dto:ClassSectionDto">
+                                <DataTemplate x:DataType="vm:ClassSectionItemViewModel">
                                     <Border StrokeShape="RoundRectangle 12"
                                             BackgroundColor="{StaticResource SurfaceCard}"
                                             Stroke="{StaticResource SurfaceBorder}"
@@ -175,12 +169,21 @@
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
                                                 <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
                                                     <Image Source="icon_faculty.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center" />
-                                                    <Label Text="{Binding ClassTeacherName, TargetNullValue='Homeroom Advisor: Mr. Dara Sok', StringFormat='Advisor: {0}'}"
+                                                    <Label Text="{Binding AdvisorDisplay}"
                                                            FontSize="11"
                                                            FontAttributes="Bold"
                                                            TextColor="{StaticResource Primary}"
                                                            VerticalOptions="Center"
                                                            LineBreakMode="TailTruncation" />
+                                                    <Border StrokeShape="RoundRectangle 4"
+                                                            BackgroundColor="{StaticResource SuccessLight}"
+                                                            Stroke="{StaticResource SuccessBorder}"
+                                                            StrokeThickness="1"
+                                                            Padding="5,1"
+                                                            IsVisible="{Binding IsMyAdvisory}"
+                                                            VerticalOptions="Center">
+                                                        <Label Text="Your Advisory" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
+                                                    </Border>
                                                 </HorizontalStackLayout>
 
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="End" VerticalOptions="Center">
@@ -199,11 +202,11 @@
                                                             HeightRequest="28"
                                                             Padding="10,0" />
 
-                                                    <!-- Teacher Shortcut: Take Attendance -->
+                                                    <!-- Homeroom Advisor / Admin Shortcut: Take Attendance -->
                                                     <Button Text="Take Attendance"
                                                             Command="{Binding BindingContext.TakeClassAttendanceCommand, Source={x:Reference ClassesRootPage}}"
                                                             CommandParameter="{Binding .}"
-                                                            IsVisible="{Binding BindingContext.IsTeacher, Source={x:Reference ClassesRootPage}}"
+                                                            IsVisible="{Binding CanTakeAttendance}"
                                                             BackgroundColor="{StaticResource Secondary}"
                                                             TextColor="{StaticResource White}"
                                                             CornerRadius="6"

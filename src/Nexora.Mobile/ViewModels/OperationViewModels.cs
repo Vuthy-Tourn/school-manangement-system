@@ -956,6 +956,28 @@ public partial class ReportCardViewModel : BaseViewModel
     }
 }
 
+// Class Section Display Model with per-teacher authorization context
+public class ClassSectionItemViewModel : ObservableObject
+{
+    public ClassSectionDto Section { get; init; } = null!;
+    public Guid Id => Section.Id;
+    public string Name => Section.Name;
+    public string GradeLevelName => Section.GradeLevelName;
+    public string AcademicYearName => Section.AcademicYearName;
+    public string? RoomNumber => Section.RoomNumber;
+    public int EnrolledCount => Section.EnrolledCount;
+    public Guid? ClassTeacherId => Section.ClassTeacherId;
+    public string? ClassTeacherName => Section.ClassTeacherName;
+
+    public bool CanTakeAttendance { get; init; }
+    public bool IsMyAdvisory { get; init; }
+    public bool CanAssignAdvisor { get; init; }
+
+    public string AdvisorDisplay => IsMyAdvisory
+        ? $"Advisor: {ClassTeacherName ?? "You"} (You)"
+        : $"Advisor: {ClassTeacherName ?? "Unassigned"}";
+}
+
 // 4. Classes ViewModel
 public partial class ClassesViewModel : BaseViewModel
 {
@@ -975,7 +997,7 @@ public partial class ClassesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ObservableCollection<SubjectDto> _subjects = new();
 
-    [ObservableProperty] private ObservableCollection<ClassSectionDto> _filteredClasses = new();
+    [ObservableProperty] private ObservableCollection<ClassSectionItemViewModel> _filteredClasses = new();
     [ObservableProperty] private ObservableCollection<SubjectDto> _filteredSubjects = new();
 
     [ObservableProperty] private bool _isAdmin;
@@ -1023,9 +1045,27 @@ public partial class ClassesViewModel : BaseViewModel
 
     private void ApplyFilter()
     {
+        var role = _apiService.CurrentUser?.Role;
+        var isAdmin = role == UserRole.SuperAdmin || role == UserRole.SchoolAdmin;
+        var isTeacher = role == UserRole.Teacher;
+        var teacherId = _apiService.CurrentUser?.LinkedProfileId;
+
         if (string.IsNullOrWhiteSpace(SearchTerm))
         {
-            FilteredClasses = new ObservableCollection<ClassSectionDto>(Classes);
+            var allVms = Classes.Select(c =>
+            {
+                var isAdvisor = isTeacher && teacherId.HasValue && c.ClassTeacherId == teacherId.Value;
+                var canTakeAttendance = isAdmin || isAdvisor;
+                return new ClassSectionItemViewModel
+                {
+                    Section = c,
+                    CanTakeAttendance = canTakeAttendance,
+                    IsMyAdvisory = isAdvisor,
+                    CanAssignAdvisor = isAdmin
+                };
+            }).ToList();
+
+            FilteredClasses = new ObservableCollection<ClassSectionItemViewModel>(allVms);
             FilteredSubjects = new ObservableCollection<SubjectDto>(Subjects);
             return;
         }
@@ -1036,7 +1076,18 @@ public partial class ClassesViewModel : BaseViewModel
             (c.RoomNumber?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (c.ClassTeacherName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (c.GradeLevelName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
-        ).ToList();
+        ).Select(c =>
+        {
+            var isAdvisor = isTeacher && teacherId.HasValue && c.ClassTeacherId == teacherId.Value;
+            var canTakeAttendance = isAdmin || isAdvisor;
+            return new ClassSectionItemViewModel
+            {
+                Section = c,
+                CanTakeAttendance = canTakeAttendance,
+                IsMyAdvisory = isAdvisor,
+                CanAssignAdvisor = isAdmin
+            };
+        }).ToList();
 
         var fs = Subjects.Where(s =>
             s.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
@@ -1044,7 +1095,7 @@ public partial class ClassesViewModel : BaseViewModel
             (s.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
         ).ToList();
 
-        FilteredClasses = new ObservableCollection<ClassSectionDto>(fc);
+        FilteredClasses = new ObservableCollection<ClassSectionItemViewModel>(fc);
         FilteredSubjects = new ObservableCollection<SubjectDto>(fs);
     }
 
@@ -1083,8 +1134,15 @@ public partial class ClassesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task AssignAdvisorAsync(ClassSectionDto section)
+    private async Task AssignAdvisorAsync(object parameter)
     {
+        ClassSectionDto? section = parameter switch
+        {
+            ClassSectionItemViewModel vm => vm.Section,
+            ClassSectionDto dto => dto,
+            _ => null
+        };
+
         if (section == null) return;
         if (!IsAdmin)
         {
@@ -1118,8 +1176,17 @@ public partial class ClassesViewModel : BaseViewModel
                     if (idx >= 0)
                     {
                         Classes[idx] = updated;
-                        ApplyFilter();
                     }
+                    else
+                    {
+                        var existing = Classes.FirstOrDefault(c => c.Id == section.Id);
+                        if (existing != null)
+                        {
+                            var eIdx = Classes.IndexOf(existing);
+                            if (eIdx >= 0) Classes[eIdx] = updated;
+                        }
+                    }
+                    ApplyFilter();
 
                     await Shell.Current.DisplayAlert(
                         "Homeroom Advisor Designated",
@@ -1140,9 +1207,27 @@ public partial class ClassesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task TakeClassAttendanceAsync(ClassSectionDto section)
+    private async Task TakeClassAttendanceAsync(object parameter)
     {
+        ClassSectionDto? section = parameter switch
+        {
+            ClassSectionItemViewModel vm => vm.Section,
+            ClassSectionDto dto => dto,
+            _ => null
+        };
+
         if (section == null) return;
+
+        // Specific authorization: Only designated homeroom advisor or admin
+        if (!IsAdmin && (!CurrentTeacherId.HasValue || section.ClassTeacherId != CurrentTeacherId.Value))
+        {
+            await Shell.Current.DisplayAlert(
+                "Access Restricted",
+                $"You are not assigned as the Homeroom Advisor for Class {section.Name}.\n\nOfficial attendance roll call is strictly managed by {section.ClassTeacherName ?? "the designated Homeroom Advisor"} or a School Administrator.",
+                "OK");
+            return;
+        }
+
         try
         {
             await Shell.Current.GoToAsync($"///attendance?classId={section.Id}");
@@ -1154,8 +1239,15 @@ public partial class ClassesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task ViewRosterAsync(ClassSectionDto section)
+    private async Task ViewRosterAsync(object parameter)
     {
+        ClassSectionDto? section = parameter switch
+        {
+            ClassSectionItemViewModel vm => vm.Section,
+            ClassSectionDto dto => dto,
+            _ => null
+        };
+
         if (section == null) return;
         try
         {
@@ -1245,9 +1337,31 @@ public partial class AttendanceItemViewModel : ObservableObject
     }
 }
 
+[QueryProperty(nameof(ClassIdParam), "classId")]
 public partial class AttendanceViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
+
+    [ObservableProperty] private string? _classIdParam;
+    [ObservableProperty] private Guid? _targetClassId;
+
+    public bool CanTakeAttendanceActions => !IsBusy && (IsAdmin || IsCurrentUserAdvisor) && SelectedClass != null;
+
+    partial void OnClassIdParamChanged(string? value)
+    {
+        if (Guid.TryParse(value, out var guid))
+        {
+            TargetClassId = guid;
+            if (Classes != null && Classes.Count > 0)
+            {
+                var match = Classes.FirstOrDefault(c => c.Id == guid);
+                if (match != null)
+                {
+                    SelectedClass = match;
+                }
+            }
+        }
+    }
 
     // Faculty & Admin class attendance properties
     [ObservableProperty] private bool _isParentView = false;
@@ -1332,6 +1446,7 @@ public partial class AttendanceViewModel : BaseViewModel
     partial void OnSelectedClassChanged(ClassSectionDto? value)
     {
         UpdateAdvisorRoleStatus();
+        OnPropertyChanged(nameof(CanTakeAttendanceActions));
         if (_isInitializing || _isLoading) return;
         if (value != null && IsFacultyView)
         {
@@ -1417,14 +1532,38 @@ public partial class AttendanceViewModel : BaseViewModel
                 var classesRes = await _apiService.GetClassesAsync();
                 if (classesRes.Success && classesRes.Data != null)
                 {
-                    Classes = new ObservableCollection<ClassSectionDto>(classesRes.Data);
+                    var all = classesRes.Data;
                     var teacherId = _apiService.CurrentUser?.LinkedProfileId;
-                    var advisoryClass = Classes.FirstOrDefault(c => c.ClassTeacherId == teacherId);
-                    SelectedClass = advisoryClass ?? Classes.FirstOrDefault();
+
+                    if (role == UserRole.Teacher)
+                    {
+                        // Specific Permission: Teachers ONLY see and take attendance for classes assigned to them as Homeroom Advisor
+                        var assignedClasses = all.Where(c => c.ClassTeacherId == teacherId).ToList();
+                        Classes = new ObservableCollection<ClassSectionDto>(assignedClasses);
+                    }
+                    else
+                    {
+                        // Admins have access to all classes
+                        Classes = new ObservableCollection<ClassSectionDto>(all);
+                    }
+
+                    if (TargetClassId.HasValue && TargetClassId.Value != Guid.Empty)
+                    {
+                        SelectedClass = Classes.FirstOrDefault(c => c.Id == TargetClassId.Value) ?? Classes.FirstOrDefault();
+                    }
+                    else
+                    {
+                        SelectedClass = Classes.FirstOrDefault();
+                    }
+
                     UpdateAdvisorRoleStatus();
                     if (SelectedClass != null)
                     {
                         await LoadAttendanceInternalAsync();
+                    }
+                    else
+                    {
+                        StudentItems.Clear();
                     }
                 }
             }
@@ -1824,6 +1963,8 @@ public partial class AttendanceViewModel : BaseViewModel
     [RelayCommand]
     private void MarkAllPresent()
     {
+        if (!IsAdmin && !IsCurrentUserAdvisor) return;
+
         foreach (var item in StudentItems)
         {
             item.Status = AttendanceStatus.Present;
@@ -1844,8 +1985,19 @@ public partial class AttendanceViewModel : BaseViewModel
         if (SelectedClass == null)
         {
             IsCurrentUserAdvisor = false;
-            AdvisorRoleBadge = string.Empty;
-            AdvisorRoleSubtitle = string.Empty;
+            if (role == UserRole.Teacher && Classes.Count == 0)
+            {
+                AdvisorRoleBadge = "⚠️ No Advisory Class Assigned";
+                AdvisorRoleSubtitle = "You are not assigned as Homeroom Advisor to any class section. Please contact an Administrator.";
+                AdvisorRoleBadgeBg = Color.FromArgb("#FEF3C7");
+                AdvisorRoleBadgeText = Color.FromArgb("#B45309");
+            }
+            else
+            {
+                AdvisorRoleBadge = string.Empty;
+                AdvisorRoleSubtitle = string.Empty;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
             return;
         }
 
@@ -1868,11 +2020,12 @@ public partial class AttendanceViewModel : BaseViewModel
         else
         {
             IsCurrentUserAdvisor = false;
-            AdvisorRoleBadge = $"ℹ️ Advisory: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
-            AdvisorRoleSubtitle = "Viewing mode • Attendance is primarily managed by the assigned Homeroom Advisor";
-            AdvisorRoleBadgeBg = Color.FromArgb("#F8FAFC");
-            AdvisorRoleBadgeText = Color.FromArgb("#64748B");
+            AdvisorRoleBadge = $"🔒 Restricted • Assigned Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
+            AdvisorRoleSubtitle = "Attendance permissions are restricted exclusively to the assigned Homeroom Advisor.";
+            AdvisorRoleBadgeBg = Color.FromArgb("#FEF2F2");
+            AdvisorRoleBadgeText = Color.FromArgb("#991B1B");
         }
+        OnPropertyChanged(nameof(CanTakeAttendanceActions));
     }
 
     [RelayCommand]
@@ -1882,13 +2035,12 @@ public partial class AttendanceViewModel : BaseViewModel
 
         if (!IsAdmin && !IsCurrentUserAdvisor)
         {
-            var advisorName = SelectedClass.ClassTeacherName ?? "the designated homeroom advisor";
-            bool proceed = await Shell.Current.DisplayAlert(
-                "Relief Attendance Notice",
-                $"You are not the designated Homeroom Advisor for Class {SelectedClass.Name} ({advisorName}).\n\nDo you want to submit this record as a Relief / Substitute Instructor?",
-                "Submit as Relief",
-                "Cancel");
-            if (!proceed) return;
+            var advisorName = SelectedClass.ClassTeacherName ?? "the designated Homeroom Advisor";
+            await Shell.Current.DisplayAlert(
+                "Access Restricted",
+                $"You do not have permission to record attendance for Class {SelectedClass.Name}.\n\nOfficial attendance roll call is strictly managed by {advisorName} or a School Administrator.",
+                "OK");
+            return;
         }
 
         try
