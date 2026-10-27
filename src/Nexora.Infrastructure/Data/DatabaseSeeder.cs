@@ -815,16 +815,20 @@ public class DatabaseSeeder
                 new TimetableEntry { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10B.Id, SubjectId = biology.Id, TeacherId = teacherKolab.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(9, 30, 0), RoomNumber = "Biology Lab" }
             );
 
-            // 9. Attendance Records for past 10 days (Visal Chan: Day 0 Excused with Parent Permission)
+            // 9. Attendance Records for past 10 days (Visal Chan: Yesterday Excused with Parent Permission, Today Present)
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             for (int i = 0; i < 10; i++)
             {
                 var date = today.AddDays(-i);
-                var visalStatus = (i == 0) ? AttendanceStatus.Excused : AttendanceStatus.Present;
-                var visalRemarks = (i == 0) ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever" : null;
+                var visalStatus = (i == 1) ? AttendanceStatus.Excused : AttendanceStatus.Present;
+                var visalRemarks = (i == 1) ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever" : null;
+                var visalTimeUtc = (i == 1)
+                    ? date.ToDateTime(new TimeOnly(0, 15), DateTimeKind.Utc) // Permission asked at 07:15 AM
+                    : date.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc); // Arrived on campus at 07:42 AM
+
                 _context.AttendanceRecords.AddRange(
-                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentVisal.Id, Date = date, Status = visalStatus, Remarks = visalRemarks, RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = DateTime.UtcNow },
-                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentKanha.Id, Date = date, Status = (i == 1 ? AttendanceStatus.Late : AttendanceStatus.Present), Remarks = (i == 1 ? "Traffic delay" : null), RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = DateTime.UtcNow }
+                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentVisal.Id, Date = date, Status = visalStatus, Remarks = visalRemarks, RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = visalTimeUtc },
+                    new AttendanceRecord { Id = Guid.NewGuid(), SchoolId = school.Id, ClassSectionId = class10A.Id, StudentId = studentKanha.Id, Date = date, Status = (i == 2 ? AttendanceStatus.Late : AttendanceStatus.Present), Remarks = (i == 2 ? "Traffic delay" : null), RecordedByUserId = teacherDaraUser.Id, RecordedAtUtc = date.ToDateTime(new TimeOnly(0, 45), DateTimeKind.Utc) }
                 );
             }
 
@@ -1376,23 +1380,58 @@ public class DatabaseSeeder
                     var existingAtt = await _context.AttendanceRecords.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.StudentId == st.Id && a.Date == attDate);
                     if (existingAtt != null)
                     {
-                        if (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001" && existingAtt.Status != AttendanceStatus.Excused)
+                        if (st.AdmissionNumber == "ADM-2026-0001")
                         {
-                            existingAtt.Status = AttendanceStatus.Excused;
-                            existingAtt.Remarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
-                            hasChanges = true;
+                            if (dIdx == 0) // TODAY (Tuesday): Visal is Present at school
+                            {
+                                if (existingAtt.Status != AttendanceStatus.Present || existingAtt.Remarks != null)
+                                {
+                                    existingAtt.Status = AttendanceStatus.Present;
+                                    existingAtt.Remarks = null;
+                                    hasChanges = true;
+                                }
+                                var morningGateUtc = attDate.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc); // 07:42 AM local
+                                if (existingAtt.RecordedAtUtc != morningGateUtc)
+                                {
+                                    existingAtt.RecordedAtUtc = morningGateUtc;
+                                    hasChanges = true;
+                                }
+                            }
+                            else if (dIdx == 1) // YESTERDAY (Monday): Visal was Excused by Parent Permission
+                            {
+                                if (existingAtt.Status != AttendanceStatus.Excused || existingAtt.Remarks != "[Parent Permission] Sick Leave / Medical: Visal has a mild fever")
+                                {
+                                    existingAtt.Status = AttendanceStatus.Excused;
+                                    existingAtt.Remarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
+                                    hasChanges = true;
+                                }
+                                var morningPermUtc = attDate.ToDateTime(new TimeOnly(0, 15), DateTimeKind.Utc); // 07:15 AM local
+                                if (existingAtt.RecordedAtUtc != morningPermUtc)
+                                {
+                                    existingAtt.RecordedAtUtc = morningPermUtc;
+                                    hasChanges = true;
+                                }
+                            }
                         }
                     }
                     else
                     {
-                        var status = (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001") ? AttendanceStatus.Excused
-                            : (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0002") ? AttendanceStatus.Late
-                            : (dIdx == 3 && st.AdmissionNumber == "ADM-2026-0003") ? AttendanceStatus.Excused
+                        var status = (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0001") ? AttendanceStatus.Excused
+                            : (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001") ? AttendanceStatus.Present
+                            : (dIdx == 2 && st.AdmissionNumber == "ADM-2026-0002") ? AttendanceStatus.Late
+                            : (dIdx == 4 && st.AdmissionNumber == "ADM-2026-0003") ? AttendanceStatus.Excused
                             : AttendanceStatus.Present;
-                        var remarks = (dIdx == 0 && st.AdmissionNumber == "ADM-2026-0001") ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever"
+
+                        var remarks = (dIdx == 1 && st.AdmissionNumber == "ADM-2026-0001") ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever"
                             : (status == AttendanceStatus.Late) ? "Traffic delay"
                             : (status == AttendanceStatus.Excused) ? "Medical appointment"
                             : null;
+
+                        var recordTimeUtc = (status == AttendanceStatus.Excused)
+                            ? attDate.ToDateTime(new TimeOnly(0, 15), DateTimeKind.Utc) // Permission asked at 07:15 AM
+                            : (status == AttendanceStatus.Late)
+                            ? attDate.ToDateTime(new TimeOnly(1, 22), DateTimeKind.Utc) // Arrived at 08:22 AM
+                            : attDate.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc); // Arrived at 07:42 AM
 
                         _context.AttendanceRecords.Add(new AttendanceRecord
                         {
@@ -1404,7 +1443,7 @@ public class DatabaseSeeder
                             Status = status,
                             Remarks = remarks,
                             RecordedByUserId = graderId,
-                            RecordedAtUtc = DateTime.UtcNow
+                            RecordedAtUtc = recordTimeUtc
                         });
                         hasChanges = true;
                     }

@@ -326,6 +326,28 @@ public partial class AttendanceItemViewModel : ObservableObject
     [ObservableProperty]
     private string? _remarks;
 
+    public bool IsPresent => Status == AttendanceStatus.Present;
+    public bool IsLate => Status == AttendanceStatus.Late;
+    public bool IsAbsent => Status == AttendanceStatus.Absent;
+    public bool IsExcused => Status == AttendanceStatus.Excused;
+
+    // Dynamic button styling for active/selected chip state
+    public Color PresentBgColor => IsPresent ? Color.FromArgb("#059669") : Color.FromArgb("#F8FAFC");
+    public Color PresentTextColor => IsPresent ? Colors.White : Color.FromArgb("#065F46");
+    public Color PresentBorderColor => IsPresent ? Color.FromArgb("#047857") : Color.FromArgb("#A7F3D0");
+
+    public Color LateBgColor => IsLate ? Color.FromArgb("#D97706") : Color.FromArgb("#F8FAFC");
+    public Color LateTextColor => IsLate ? Colors.White : Color.FromArgb("#92400E");
+    public Color LateBorderColor => IsLate ? Color.FromArgb("#B45309") : Color.FromArgb("#FDE68A");
+
+    public Color AbsentBgColor => IsAbsent ? Color.FromArgb("#DC2626") : Color.FromArgb("#F8FAFC");
+    public Color AbsentTextColor => IsAbsent ? Colors.White : Color.FromArgb("#991B1B");
+    public Color AbsentBorderColor => IsAbsent ? Color.FromArgb("#B91C1C") : Color.FromArgb("#FECACA");
+
+    public Color ExcusedBgColor => IsExcused ? Color.FromArgb("#2563EB") : Color.FromArgb("#F8FAFC");
+    public Color ExcusedTextColor => IsExcused ? Colors.White : Color.FromArgb("#1E40AF");
+    public Color ExcusedBorderColor => IsExcused ? Color.FromArgb("#1D4ED8") : Color.FromArgb("#BFDBFE");
+
     public AttendanceItemViewModel(Action? onStatusChanged = null)
     {
         _onStatusChanged = onStatusChanged;
@@ -333,6 +355,22 @@ public partial class AttendanceItemViewModel : ObservableObject
 
     partial void OnStatusChanged(AttendanceStatus value)
     {
+        OnPropertyChanged(nameof(IsPresent));
+        OnPropertyChanged(nameof(IsLate));
+        OnPropertyChanged(nameof(IsAbsent));
+        OnPropertyChanged(nameof(IsExcused));
+        OnPropertyChanged(nameof(PresentBgColor));
+        OnPropertyChanged(nameof(PresentTextColor));
+        OnPropertyChanged(nameof(PresentBorderColor));
+        OnPropertyChanged(nameof(LateBgColor));
+        OnPropertyChanged(nameof(LateTextColor));
+        OnPropertyChanged(nameof(LateBorderColor));
+        OnPropertyChanged(nameof(AbsentBgColor));
+        OnPropertyChanged(nameof(AbsentTextColor));
+        OnPropertyChanged(nameof(AbsentBorderColor));
+        OnPropertyChanged(nameof(ExcusedBgColor));
+        OnPropertyChanged(nameof(ExcusedTextColor));
+        OnPropertyChanged(nameof(ExcusedBorderColor));
         _onStatusChanged?.Invoke();
     }
 
@@ -342,6 +380,10 @@ public partial class AttendanceItemViewModel : ObservableObject
         if (Enum.TryParse<AttendanceStatus>(statusStr, out var s))
         {
             Status = s;
+            if (s != AttendanceStatus.Excused && Remarks?.Contains("Parent Permission") == true)
+            {
+                Remarks = null;
+            }
         }
     }
 }
@@ -467,10 +509,9 @@ public partial class AttendanceViewModel : BaseViewModel
         int total = StudentItems.Count;
         int present = StudentItems.Count(s => s.Status == AttendanceStatus.Present);
         int late = StudentItems.Count(s => s.Status == AttendanceStatus.Late);
-        int excused = StudentItems.Count(s => s.Status == AttendanceStatus.Excused);
 
         decimal rate = total > 0
-            ? ((present + (late * 0.5m) + excused) / (decimal)total) * 100m
+            ? ((present + (late * 0.5m)) / (decimal)total) * 100m
             : 100.0m;
         CurrentPresentRate = Math.Round(Math.Clamp(rate, 0m, 100m), 1);
     }
@@ -885,13 +926,6 @@ public partial class AttendanceViewModel : BaseViewModel
                 var status = r?.Status ?? AttendanceStatus.Present;
                 var remarks = r?.Remarks;
 
-                // Preserve parent permission excused leave for Visal Chan on today
-                if (st.AdmissionNumber == "ADM-2026-0001" && (isToday || remarks?.Contains("Parent Permission") == true))
-                {
-                    status = AttendanceStatus.Excused;
-                    remarks ??= "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
-                }
-
                 itemsList.Add(new AttendanceItemViewModel(() => RecalculatePresentRate())
                 {
                     StudentId = r?.StudentId ?? st.Id,
@@ -924,6 +958,10 @@ public partial class AttendanceViewModel : BaseViewModel
         foreach (var item in StudentItems)
         {
             item.Status = AttendanceStatus.Present;
+            if (item.Remarks?.Contains("Parent Permission") == true)
+            {
+                item.Remarks = null;
+            }
         }
         RecalculatePresentRate();
     }
@@ -1168,6 +1206,7 @@ public partial class GradesViewModel : BaseViewModel
 
     private bool _isInitializing = false;
     private bool _isLoadingComponents = false;
+    private bool _hasPendingComponentLoad = false;
 
     public GradesViewModel(IApiService apiService)
     {
@@ -1219,6 +1258,15 @@ public partial class GradesViewModel : BaseViewModel
 
     partial void OnSelectedExamChanged(ExamDto? value)
     {
+        if (value != null)
+        {
+            try
+            {
+                Preferences.Default.Set("nexora_last_selected_exam_id", value.Id.ToString());
+            }
+            catch { /* Preferences fallback */ }
+        }
+
         if (_isInitializing) return;
         if (value != null && SelectedClass != null)
         {
@@ -1243,7 +1291,15 @@ public partial class GradesViewModel : BaseViewModel
             if (examsRes.Success && examsRes.Data != null)
             {
                 Exams = new ObservableCollection<ExamDto>(examsRes.Data);
-                SelectedExam = Exams.FirstOrDefault();
+                var savedExamIdStr = Preferences.Default.Get("nexora_last_selected_exam_id", string.Empty);
+                if (!string.IsNullOrEmpty(savedExamIdStr) && Guid.TryParse(savedExamIdStr, out var savedExamId))
+                {
+                    SelectedExam = Exams.FirstOrDefault(e => e.Id == savedExamId) ?? Exams.FirstOrDefault();
+                }
+                else
+                {
+                    SelectedExam = Exams.FirstOrDefault();
+                }
             }
 
             var classesRes = await _apiService.GetClassesAsync();
@@ -1296,7 +1352,11 @@ public partial class GradesViewModel : BaseViewModel
     public async Task LoadComponentsAsync()
     {
         if (SelectedExam == null || SelectedClass == null) return;
-        if (_isLoadingComponents) return;
+        if (_isLoadingComponents)
+        {
+            _hasPendingComponentLoad = true;
+            return;
+        }
         _isLoadingComponents = true;
         try
         {
@@ -1552,6 +1612,11 @@ public partial class GradesViewModel : BaseViewModel
         {
             _isLoadingComponents = false;
             IsBusy = false;
+            if (_hasPendingComponentLoad)
+            {
+                _hasPendingComponentLoad = false;
+                _ = LoadComponentsAsync();
+            }
         }
     }
 
@@ -1821,7 +1886,7 @@ public partial class GradesViewModel : BaseViewModel
                             { "ADM-2026-0008", (90.0m, "Great academic achievement in final exam") },
                         };
                     }
-                    else if (examName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || examName.Contains("Quiz", StringComparison.OrdinalIgnoreCase))
+                    else if (examName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || examName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || examName.Contains("October", StringComparison.OrdinalIgnoreCase))
                     {
                         sampleScores = new Dictionary<string, (decimal Score, string Remarks)>
                         {

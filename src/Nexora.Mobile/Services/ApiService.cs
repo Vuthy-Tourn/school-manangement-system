@@ -1103,25 +1103,12 @@ public class ApiService : IApiService
 
                     if (matched != null)
                     {
-                        // If parent permission granted excused leave, ensure Excused status is reflected
-                        if (excusedInMock.TryGetValue(s.AdmissionNumber, out var exc) && matched.Status != AttendanceStatus.Excused)
-                        {
-                            matched = matched with { Status = AttendanceStatus.Excused, Remarks = exc.Remarks ?? matched.Remarks };
-                        }
-                        else if (s.AdmissionNumber == "ADM-2026-0001" && (date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow)) && matched.Status != AttendanceStatus.Excused)
-                        {
-                            matched = matched with { Status = AttendanceStatus.Excused, Remarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever" };
-                        }
                         merged.Add(matched);
                     }
                     else
                     {
-                        var status = (s.AdmissionNumber == "ADM-2026-0001" && (date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow)))
-                            ? AttendanceStatus.Excused
-                            : (excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec) ? excRec.Status : AttendanceStatus.Present);
-                        var remarks = (s.AdmissionNumber == "ADM-2026-0001" && (date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow)))
-                            ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever"
-                            : (excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec2) ? excRec2.Remarks : null);
+                        var status = excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec) ? excRec.Status : AttendanceStatus.Present;
+                        var remarks = excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec2) ? excRec2.Remarks : null;
 
                         merged.Add(new AttendanceRecordDto(
                             Guid.NewGuid(), Guid.NewGuid(), targetClassId, "10-A",
@@ -1163,12 +1150,8 @@ public class ApiService : IApiService
             }
             else
             {
-                var status = (s.AdmissionNumber == "ADM-2026-0001" && (date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow)))
-                    ? AttendanceStatus.Excused
-                    : AttendanceStatus.Present;
-                var remarks = (s.AdmissionNumber == "ADM-2026-0001" && (date == DateOnly.FromDateTime(DateTime.Today) || date == DateOnly.FromDateTime(DateTime.UtcNow)))
-                    ? "[Parent Permission] Sick Leave / Medical: Visal has a mild fever"
-                    : null;
+                var status = excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec) ? excRec.Status : AttendanceStatus.Present;
+                var remarks = excusedInMock.TryGetValue(s.AdmissionNumber, out var excRec2) ? excRec2.Remarks : null;
 
                 var r = new AttendanceRecordDto(
                     Guid.NewGuid(), Guid.NewGuid(), targetClassId, "10-A", s.Id, s.FullName, s.AdmissionNumber,
@@ -1184,6 +1167,20 @@ public class ApiService : IApiService
 
     public async Task<ApiResponse<bool>> RecordBatchAttendanceAsync(BatchAttendanceRequest request)
     {
+        // Keep in-memory mock state up to date so any subsequent reads (mock or hybrid) reflect the teacher's edits immediately
+        foreach (var item in request.Records)
+        {
+            var student = _mockStudents.FirstOrDefault(s => s.Id == item.StudentId);
+            var name = student?.FullName ?? "Student";
+            var adm = student?.AdmissionNumber ?? "";
+            _mockAttendance.RemoveAll(a => (a.StudentId == item.StudentId || (!string.IsNullOrEmpty(adm) && a.AdmissionNumber == adm)) && a.Date == request.Date);
+            _mockAttendance.Add(new AttendanceRecordDto(
+                Guid.NewGuid(), Guid.NewGuid(), request.ClassSectionId, "10-A",
+                item.StudentId, name, adm, request.Date, item.Status, item.Remarks,
+                DateTime.UtcNow, "Teacher", null, null, null
+            ));
+        }
+
         try
         {
             var res = await _httpClient.PostAsJsonAsync("api/attendance/batch", request);
@@ -1198,21 +1195,8 @@ public class ApiService : IApiService
             LogException("RecordBatchAttendanceAsync", ex);
         }
 
-        foreach (var item in request.Records)
-        {
-            var student = _mockStudents.FirstOrDefault(s => s.Id == item.StudentId);
-            var name = student?.FullName ?? "Student";
-            var adm = student?.AdmissionNumber ?? "";
-            _mockAttendance.RemoveAll(a => a.StudentId == item.StudentId && a.Date == request.Date);
-            _mockAttendance.Add(new AttendanceRecordDto(
-                Guid.NewGuid(), Guid.NewGuid(), request.ClassSectionId, "10-A",
-                item.StudentId, name, adm, request.Date, item.Status, item.Remarks,
-                DateTime.UtcNow, "Admin", null, null, null
-            ));
-        }
-
         _mockAudits.Insert(0, new AuditLogDto(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "admin", AuditAction.Create, "Attendance",
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "teacher", AuditAction.Create, "Attendance",
             request.Date.ToString("yyyy-MM-dd"), $"Recorded batch attendance for {request.Records.Count} students", null, null, "127.0.0.1", DateTime.UtcNow));
 
         return ApiResponse<bool>.Ok(true, "Attendance successfully saved.");
@@ -1327,7 +1311,7 @@ public class ApiService : IApiService
             Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A",
             request.StudentId, name, adm, request.Date,
             AttendanceStatus.Excused, reasonNote,
-            DateTime.UtcNow, CurrentUser?.FullName ?? "Parent",
+            request.Date.ToDateTime(new TimeOnly(0, 15), DateTimeKind.Utc), CurrentUser?.FullName ?? "Parent",
             null, null, null
         );
         _mockAttendance.Insert(0, newRecord);
@@ -1348,6 +1332,17 @@ public class ApiService : IApiService
 
         try
         {
+            _examNameCache[DbExamMidtermId] = "Semester 1 Midterm Examination";
+            _examNameCache[DbExamQuiz1Id] = "Semester 1 Monthly Assessment (October)";
+            _examNameCache[DbExamFinal1Id] = "Semester 1 Final Examination";
+            _examNameCache[DbExamMidterm2Id] = "Semester 2 Midterm Examination";
+            _examNameCache[DbExamFinal2Id] = "Semester 2 Final Annual Examination";
+            _examNameCache[ExamMidtermId] = "Semester 1 Midterm Examination";
+            _examNameCache[ExamQuiz1Id] = "Semester 1 Monthly Assessment (October)";
+            _examNameCache[ExamFinal1Id] = "Semester 1 Final Examination";
+            _examNameCache[ExamMidterm2Id] = "Semester 2 Midterm Examination";
+            _examNameCache[ExamFinal2Id] = "Semester 2 Final Annual Examination";
+
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<ExamDto>>>("api/grades/exams", JsonOptions);
             if (res?.Data != null && res.Data.Count > 0)
             {
@@ -1397,10 +1392,10 @@ public class ApiService : IApiService
             exName = cachedName;
         }
 
-        bool isMonthly = examId == ExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase);
-        bool isFinal2 = examId == ExamFinal2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
-        bool isMidterm2 = examId == ExamMidterm2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && (exName.Contains("Midterm", StringComparison.OrdinalIgnoreCase) || !isFinal2));
-        bool isFinal1 = examId == ExamFinal1Id || (exName.Contains("Semester 1", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase)) || (exName.Contains("Final", StringComparison.OrdinalIgnoreCase) && !isFinal2);
+        bool isMonthly = examId == ExamQuiz1Id || examId == DbExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || exName.Contains("October", StringComparison.OrdinalIgnoreCase);
+        bool isFinal2 = examId == ExamFinal2Id || examId == DbExamFinal2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
+        bool isMidterm2 = examId == ExamMidterm2Id || examId == DbExamMidterm2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && (exName.Contains("Midterm", StringComparison.OrdinalIgnoreCase) || !isFinal2));
+        bool isFinal1 = examId == ExamFinal1Id || examId == DbExamFinal1Id || (exName.Contains("Semester 1", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase)) || (exName.Contains("Final", StringComparison.OrdinalIgnoreCase) && !isFinal2);
 
         if (isMonthly)
         {
@@ -1544,7 +1539,13 @@ public class ApiService : IApiService
         }
 
         var examId = comp?.ExamId ?? Guid.Empty;
-        var sampleScores = examId == ExamQuiz1Id
+        var exName = comp?.ExamName ?? (_examNameCache.TryGetValue(examId, out var en) ? en : string.Empty);
+        bool isMonthlyComp = examId == ExamQuiz1Id || examId == DbExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || exName.Contains("October", StringComparison.OrdinalIgnoreCase);
+        bool isFinal1Comp = examId == ExamFinal1Id || examId == DbExamFinal1Id || (exName.Contains("Semester 1", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
+        bool isMidterm2Comp = examId == ExamMidterm2Id || examId == DbExamMidterm2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Midterm", StringComparison.OrdinalIgnoreCase));
+        bool isFinal2Comp = examId == ExamFinal2Id || examId == DbExamFinal2Id || (exName.Contains("Semester 2", StringComparison.OrdinalIgnoreCase) && exName.Contains("Final", StringComparison.OrdinalIgnoreCase));
+
+        var sampleScores = isMonthlyComp
             ? new Dictionary<string, (decimal Score, string Remarks)>
             {
                 { "ADM-2026-0001", (80.0m, "Solid quiz performance and timely submission") },
@@ -1556,7 +1557,7 @@ public class ApiService : IApiService
                 { "ADM-2026-0007", (89.0m, "Good comprehension") },
                 { "ADM-2026-0008", (86.0m, "Well prepared for assessment") },
             }
-            : examId == ExamFinal1Id
+            : isFinal1Comp
             ? new Dictionary<string, (decimal Score, string Remarks)>
             {
                 { "ADM-2026-0001", (96.0m, "Exceptional final examination score") },
@@ -1568,7 +1569,7 @@ public class ApiService : IApiService
                 { "ADM-2026-0007", (93.0m, "Strong critical and analytical thinking") },
                 { "ADM-2026-0008", (90.0m, "Great academic achievement in final exam") },
             }
-            : examId == ExamMidterm2Id
+            : isMidterm2Comp
             ? new Dictionary<string, (decimal Score, string Remarks)>
             {
                 { "ADM-2026-0001", (91.0m, "Solid midterm performance in Semester 2") },
@@ -1580,7 +1581,7 @@ public class ApiService : IApiService
                 { "ADM-2026-0007", (90.0m, "Strong conceptual reasoning in midterm") },
                 { "ADM-2026-0008", (88.0m, "Good academic performance on semester 2 test") },
             }
-            : examId == ExamFinal2Id
+            : isFinal2Comp
             ? new Dictionary<string, (decimal Score, string Remarks)>
             {
                 { "ADM-2026-0001", (94.0m, "Outstanding annual cumulative final exam score") },
@@ -1647,13 +1648,22 @@ public class ApiService : IApiService
             .OrderBy(s => s.AdmissionNumber)
             .ToList();
 
-        var canonicalCompId = ResolveDeterministicComponentId(examId, resolvedSubjName, classId);
+        var canonicalCompId = ResolveDeterministicComponentId(examId, resolvedSubjName, classId, exName);
 
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<List<StudentGradeDto>>>($"api/grades/components/{componentId}/grades", JsonOptions);
             if (res?.Data != null && res.Data.Count > 0)
             {
+                // Synchronize returned database grades into _mockGrades cache so subsequent queries reflect real persistent data
+                foreach (var dbGrade in res.Data)
+                {
+                    _mockGrades.RemoveAll(g =>
+                        (g.StudentId == dbGrade.StudentId || (!string.IsNullOrEmpty(dbGrade.AdmissionNumber) && string.Equals(g.AdmissionNumber, dbGrade.AdmissionNumber, StringComparison.OrdinalIgnoreCase))) &&
+                        (g.AssessmentComponentId == componentId || g.AssessmentComponentId == canonicalCompId));
+                    _mockGrades.Insert(0, dbGrade);
+                }
+
                 var existingById = res.Data.GroupBy(g => g.StudentId).ToDictionary(g => g.Key, g => g.First());
                 var existingByAdm = res.Data.Where(g => !string.IsNullOrEmpty(g.AdmissionNumber)).GroupBy(g => g.AdmissionNumber).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
                 var mockGradesForComp = _mockGrades.Where(g => g.AssessmentComponentId == componentId || g.AssessmentComponentId == canonicalCompId).ToList();
@@ -1749,11 +1759,13 @@ public class ApiService : IApiService
         try
         {
             var res = await _httpClient.GetFromJsonAsync<ApiResponse<ReportCardDto>>($"api/grades/report-card/{studentId}/{examId}", JsonOptions);
+            var targetExamName = _examNameCache.TryGetValue(examId, out var ename) ? ename : string.Empty;
+
             if (res?.Data?.Subjects != null && res.Data.Subjects.Count >= 8)
             {
                 var list = res.Data.Subjects.Select(s =>
                 {
-                    var targetCompId = ResolveDeterministicComponentId(examId, s.SubjectName, Class10AId);
+                    var targetCompId = ResolveDeterministicComponentId(examId, s.SubjectName, Class10AId, targetExamName);
                     var localOverride = _mockGrades.FirstOrDefault(g =>
                         (g.StudentId == studentId || (!string.IsNullOrEmpty(res.Data.AdmissionNumber) && string.Equals(g.AdmissionNumber, res.Data.AdmissionNumber, StringComparison.OrdinalIgnoreCase))) &&
                         (g.AssessmentComponentId == targetCompId || (_componentCache.TryGetValue(g.AssessmentComponentId, out var gc) && gc.ExamId == examId && string.Equals(g.SubjectName, s.SubjectName, StringComparison.OrdinalIgnoreCase))));
@@ -1785,9 +1797,8 @@ public class ApiService : IApiService
             else if (res?.Data?.Subjects != null && res.Data.Subjects.Count > 0)
             {
                 // Partial backend report card. Merge with complete 8-subject curriculum!
-                var targetExamName = _examNameCache.TryGetValue(examId, out var ename) ? ename : string.Empty;
                 var studentGradesList = _mockGrades.Where(g =>
-                    (g.StudentId == studentId || g.StudentId == StudentVisalId) &&
+                    (g.StudentId == studentId || (!string.IsNullOrEmpty(res.Data.AdmissionNumber) && string.Equals(g.AdmissionNumber, res.Data.AdmissionNumber, StringComparison.OrdinalIgnoreCase))) &&
                     (examId == Guid.Empty || g.AssessmentComponentId == ResolveDeterministicComponentId(examId, g.SubjectName, Class10AId, targetExamName) ||
                      (_componentCache.TryGetValue(g.AssessmentComponentId, out var gc) && gc.ExamId == examId))).ToList();
 
@@ -1847,7 +1858,7 @@ public class ApiService : IApiService
         var adm = _mockStudents.FirstOrDefault(s => s.Id == studentId)?.AdmissionNumber;
         var exName = _examNameCache.TryGetValue(examId, out var en) ? en : string.Empty;
         var studentGrades = _mockGrades
-            .Where(g => (g.StudentId == studentId || g.StudentId == StudentVisalId ||
+            .Where(g => (g.StudentId == studentId ||
                         (!string.IsNullOrEmpty(adm) && string.Equals(g.AdmissionNumber, adm, StringComparison.OrdinalIgnoreCase))) &&
                         (examId == Guid.Empty ||
                          g.AssessmentComponentId == ResolveDeterministicComponentId(examId, g.SubjectName, Class10AId, exName) ||
@@ -1856,10 +1867,10 @@ public class ApiService : IApiService
 
         if (studentGrades.Count == 0)
         {
-            var studentObj = _mockStudents.FirstOrDefault(s => s.Id == studentId);
+            var studentObj = _mockStudents.FirstOrDefault(s => s.Id == studentId || (!string.IsNullOrEmpty(adm) && string.Equals(s.AdmissionNumber, adm, StringComparison.OrdinalIgnoreCase)));
             var studentName = studentObj?.FullName ?? "Enrolled Student";
-            var admNo = studentObj?.AdmissionNumber ?? "ADM-2026-0001";
-            var baseScores = (examId == ExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase))
+            var admNo = studentObj?.AdmissionNumber ?? adm ?? "ADM-2026-0001";
+            var baseScores = (examId == ExamQuiz1Id || examId == DbExamQuiz1Id || exName.Contains("Monthly", StringComparison.OrdinalIgnoreCase) || exName.Contains("Quiz", StringComparison.OrdinalIgnoreCase) || exName.Contains("October", StringComparison.OrdinalIgnoreCase))
                 ? new (Guid compId, Guid subjId, string subjName, decimal score, string letter, decimal gp, string remarks)[]
                 {
                     (CompQuizKhmerId, SubjKhmerId, "Khmer Literature", 94.0m, "A", 4.0m, "Superb vocabulary and classical quiz"),
@@ -1945,7 +1956,8 @@ public class ApiService : IApiService
         }
 
         var targetExamId = comp?.ExamId ?? ExamMidtermId;
-        var canonicalCompId = ResolveDeterministicComponentId(targetExamId, resolvedSubjName, Class10AId);
+        var targetExamName = comp?.ExamName ?? (_examNameCache.TryGetValue(targetExamId, out var cachedExamName) ? cachedExamName : string.Empty);
+        var canonicalCompId = ResolveDeterministicComponentId(targetExamId, resolvedSubjName, Class10AId, targetExamName);
 
         // Register in cache & mock components so subsequent queries find it
         if (!_componentCache.ContainsKey(request.AssessmentComponentId))
@@ -2377,6 +2389,12 @@ public class ApiService : IApiService
     private static readonly Guid ExamMidterm2Id = Guid.Parse("b0000000-0000-0000-0000-000000000004");
     private static readonly Guid ExamFinal2Id = Guid.Parse("b0000000-0000-0000-0000-000000000005");
 
+    public static readonly Guid DbExamMidtermId = Guid.Parse("372c01e9-495b-458a-8b90-fce4ae24c1f7");
+    public static readonly Guid DbExamQuiz1Id = Guid.Parse("c31e1389-d496-4502-9347-a9701a7be4c4");
+    public static readonly Guid DbExamFinal1Id = Guid.Parse("f551261d-dfa3-43d5-a13a-9ecbc769ec9d");
+    public static readonly Guid DbExamMidterm2Id = Guid.Parse("1a89f821-f2df-48f9-9c45-e6f9bdb1d790");
+    public static readonly Guid DbExamFinal2Id = Guid.Parse("c3ae8c60-d559-4ca1-b378-67ff746dee61");
+
     private static readonly Guid SubjKhmerId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static readonly Guid SubjMathId = Guid.Parse("10000000-0000-0000-0000-000000000002");
     private static readonly Guid SubjPhysicsId = Guid.Parse("10000000-0000-0000-0000-000000000003");
@@ -2701,33 +2719,46 @@ public class ApiService : IApiService
         for (int i = 0; i < schoolDays.Count; i++)
         {
             var d = schoolDays[i];
-            var checkInUtc = d.ToDateTime(new TimeOnly(7, 48)).AddMinutes(i % 12);
+            // School morning arrival: on-campus gate check-in between 07:38 AM and 07:53 AM (00:38 - 00:53 UTC)
+            var checkInUtc = d.ToDateTime(new TimeOnly(0, 38).AddMinutes((i * 3 + 4) % 15), DateTimeKind.Utc);
 
             // 1. Visal Chan: 26 Present, 2 Late, 2 Excused (Total 30) -> Rate: 90.0%
             AttendanceStatus visalStatus = AttendanceStatus.Present;
             string? visalRemarks = null;
-            if (i == 0)
+            DateTime visalTimestamp = checkInUtc;
+
+            if (i == 0) // TODAY (Tuesday): Present at school (checked in 07:42 AM)
+            {
+                visalStatus = AttendanceStatus.Present;
+                visalRemarks = null;
+                visalTimestamp = d.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc);
+            }
+            else if (i == 1) // YESTERDAY (Monday): Excused absence via Parent Permission (asked 07:15 AM)
             {
                 visalStatus = AttendanceStatus.Excused;
                 visalRemarks = "[Parent Permission] Sick Leave / Medical: Visal has a mild fever";
+                visalTimestamp = d.ToDateTime(new TimeOnly(0, 15), DateTimeKind.Utc);
             }
             else if (i == 3)
             {
                 visalStatus = AttendanceStatus.Late;
                 visalRemarks = "Traffic delay on Russian Blvd (Checked in 08:22 AM)";
+                visalTimestamp = d.ToDateTime(new TimeOnly(1, 22), DateTimeKind.Utc);
             }
             else if (i == 9)
             {
                 visalStatus = AttendanceStatus.Late;
                 visalRemarks = "Monsoon heavy rain delay (Checked in 08:18 AM)";
+                visalTimestamp = d.ToDateTime(new TimeOnly(1, 18), DateTimeKind.Utc);
             }
             else if (i == 16)
             {
                 visalStatus = AttendanceStatus.Excused;
                 visalRemarks = "[Parent Permission] Doctor / Clinic Appointment";
+                visalTimestamp = d.ToDateTime(new TimeOnly(0, 20), DateTimeKind.Utc);
             }
 
-            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVisalId, "Visal Chan", "ADM-2026-0001", d, visalStatus, visalRemarks, checkInUtc, "Teacher Dara Sok", null, null, null));
+            records.Add(new(Guid.NewGuid(), Guid.NewGuid(), Class10AId, "10-A", StudentVisalId, "Visal Chan", "ADM-2026-0001", d, visalStatus, visalRemarks, visalTimestamp, "Teacher Dara Sok", null, null, null));
 
             // 2. Kanha Sok
             var kanhaStatus = (i == 1 || i == 7) ? AttendanceStatus.Late : AttendanceStatus.Present;

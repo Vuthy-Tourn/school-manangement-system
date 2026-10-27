@@ -169,10 +169,10 @@
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
-                                                BackgroundColor="{StaticResource SuccessLight}"
-                                                TextColor="{StaticResource SuccessText}"
-                                                BorderColor="{StaticResource SuccessBorder}"
-                                                BorderWidth="1"
+                                                BackgroundColor="{Binding PresentBgColor}"
+                                                TextColor="{Binding PresentTextColor}"
+                                                BorderColor="{Binding PresentBorderColor}"
+                                                BorderWidth="1.5"
                                                 Padding="0" />
                                         <!-- Late -->
                                         <Button Text="L"
@@ -181,10 +181,10 @@
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
-                                                BackgroundColor="{StaticResource WarningLight}"
-                                                TextColor="{StaticResource WarningText}"
-                                                BorderColor="{StaticResource WarningBorder}"
-                                                BorderWidth="1"
+                                                BackgroundColor="{Binding LateBgColor}"
+                                                TextColor="{Binding LateTextColor}"
+                                                BorderColor="{Binding LateBorderColor}"
+                                                BorderWidth="1.5"
                                                 Padding="0" />
                                         <!-- Absent -->
                                         <Button Text="A"
@@ -193,10 +193,10 @@
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
-                                                BackgroundColor="{StaticResource DangerLight}"
-                                                TextColor="{StaticResource DangerText}"
-                                                BorderColor="{StaticResource DangerBorder}"
-                                                BorderWidth="1"
+                                                BackgroundColor="{Binding AbsentBgColor}"
+                                                TextColor="{Binding AbsentTextColor}"
+                                                BorderColor="{Binding AbsentBorderColor}"
+                                                BorderWidth="1.5"
                                                 Padding="0" />
                                         <!-- Excused -->
                                         <Button Text="E"
@@ -205,10 +205,10 @@
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
-                                                BackgroundColor="{StaticResource InfoLight}"
-                                                TextColor="{StaticResource InfoText}"
-                                                BorderColor="{StaticResource InfoBorder}"
-                                                BorderWidth="1"
+                                                BackgroundColor="{Binding ExcusedBgColor}"
+                                                TextColor="{Binding ExcusedTextColor}"
+                                                BorderColor="{Binding ExcusedBorderColor}"
+                                                BorderWidth="1.5"
                                                 Padding="0" />
                                     </HorizontalStackLayout>
 
