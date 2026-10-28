@@ -251,7 +251,6 @@
                                         <Button Text="P"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Present"
-                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -264,7 +263,6 @@
                                         <Button Text="L"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Late"
-                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -277,7 +275,6 @@
                                         <Button Text="A"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Absent"
-                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"
@@ -286,11 +283,10 @@
                                                 BorderColor="{Binding AbsentBorderColor}"
                                                 BorderWidth="1.5"
                                                 Padding="0" />
-                                        <!-- Excused -->
+                                        <!-- Excused (Permission) -->
                                         <Button Text="E"
                                                 Command="{Binding SetStatusCommand}"
                                                 CommandParameter="Excused"
-                                                IsEnabled="{Binding CanEdit}"
                                                 WidthRequest="32" HeightRequest="32"
                                                 CornerRadius="6"
                                                 FontSize="12" FontAttributes="Bold"

@@ -1382,7 +1382,12 @@ public partial class AttendanceItemViewModel : ObservableObject
     [RelayCommand]
     private void SetStatus(string statusStr)
     {
-        if (!CanEdit) return;
+        if (!CanEdit)
+        {
+            Shell.Current?.DisplayAlert("View Only Mode", "You do not have permission to modify attendance for this class session.", "OK");
+            return;
+        }
+
         if (Enum.TryParse<AttendanceStatus>(statusStr, out var s))
         {
             Status = s;
@@ -1431,7 +1436,7 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private Guid? _targetClassId;
 
     private bool _isAuthorizedForCurrentSession = false;
-    public bool CanTakeAttendanceActions => !IsBusy && _isAuthorizedForCurrentSession && SelectedClass != null;
+    public bool CanTakeAttendanceActions => _isAuthorizedForCurrentSession && SelectedClass != null;
 
     private readonly HashSet<Guid> _currentTeacherAssignedClassIds = new();
     private readonly Dictionary<string, (AttendanceStatus Status, string? Remarks)> _sessionAttendanceCache = new();
@@ -1628,7 +1633,7 @@ public partial class AttendanceViewModel : BaseViewModel
 
         foreach (var item in StudentItems)
         {
-            item.CanEdit = CanTakeAttendanceActions;
+            item.CanEdit = _isAuthorizedForCurrentSession;
             var cacheId = $"{sessionKey}_{item.StudentId}";
             if (_sessionAttendanceCache.TryGetValue(cacheId, out var cached))
             {
@@ -1749,6 +1754,11 @@ public partial class AttendanceViewModel : BaseViewModel
             _isInitializing = false;
             IsBusy = false;
             IsRefreshing = false;
+            foreach (var item in StudentItems)
+            {
+                item.CanEdit = _isAuthorizedForCurrentSession;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
         }
     }
 
@@ -1885,16 +1895,26 @@ public partial class AttendanceViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            IsRefreshing = false;
+            foreach (var item in StudentItems)
+            {
+                item.CanEdit = _isAuthorizedForCurrentSession;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
         }
     }
 
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        if (IsRefreshing || _isInitializing || _isLoading) return;
+        if (_isInitializing || _isLoading)
+        {
+            IsRefreshing = false;
+            return;
+        }
+
         try
         {
-            IsRefreshing = true;
             if (IsParentView && SelectedParentChild != null)
             {
                 await LoadParentChildAttendanceInternalAsync(SelectedParentChild.StudentId);
@@ -1908,6 +1928,11 @@ public partial class AttendanceViewModel : BaseViewModel
         finally
         {
             IsRefreshing = false;
+            foreach (var item in StudentItems)
+            {
+                item.CanEdit = _isAuthorizedForCurrentSession;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
         }
     }
 
@@ -2152,6 +2177,12 @@ public partial class AttendanceViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+            IsRefreshing = false;
+            foreach (var item in StudentItems)
+            {
+                item.CanEdit = _isAuthorizedForCurrentSession;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
         }
     }
 
@@ -2333,7 +2364,7 @@ public partial class AttendanceViewModel : BaseViewModel
                     AdmissionNumber = r?.AdmissionNumber ?? st.AdmissionNumber,
                     Status = initialStatus,
                     Remarks = initialRemarks,
-                    CanEdit = CanTakeAttendanceActions
+                    CanEdit = _isAuthorizedForCurrentSession
                 };
 
                 if (currentSessionKey != null)
@@ -2345,6 +2376,11 @@ public partial class AttendanceViewModel : BaseViewModel
             }
 
             StudentItems = new ObservableCollection<AttendanceItemViewModel>(itemsList);
+            foreach (var item in StudentItems)
+            {
+                item.CanEdit = _isAuthorizedForCurrentSession;
+            }
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
             RecalculatePresentRate();
 
             var sumRes = await _apiService.GetClassAttendanceSummaryAsync(SelectedClass.Id);
@@ -2533,7 +2569,7 @@ public partial class AttendanceViewModel : BaseViewModel
     [RelayCommand]
     public async Task SaveAttendanceAsync()
     {
-        if (SelectedClass == null || StudentItems.Count == 0) return;
+        if (SelectedClass == null || StudentItems.Count == 0 || IsBusy) return;
 
         if (!CanTakeAttendanceActions)
         {
