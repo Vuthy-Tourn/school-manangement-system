@@ -1427,9 +1427,71 @@ public class AttendanceSessionItemViewModel : ObservableObject
         : $"{SubjectName} ({TimeSlotDisplay}) • {InstructorName ?? "Faculty"}";
 }
 
+public class StudentSessionAttendanceItem : ObservableObject
+{
+    public string SessionKey { get; set; } = string.Empty;
+    public string PeriodName { get; set; } = string.Empty;
+    public string SubjectName { get; set; } = string.Empty;
+    public string TimeSlot { get; set; } = string.Empty;
+    public string InstructorName { get; set; } = string.Empty;
+    public string RoomNumber { get; set; } = string.Empty;
+    public AttendanceStatus Status { get; set; } = AttendanceStatus.Present;
+    public string? Remarks { get; set; }
+    public bool HasRemarks => !string.IsNullOrWhiteSpace(Remarks);
+    public bool IsHomeroom { get; set; }
+
+    public string StatusBadgeText => Status switch
+    {
+        AttendanceStatus.Present => "Present",
+        AttendanceStatus.Late => "Late",
+        AttendanceStatus.Excused => "Excused",
+        AttendanceStatus.Absent => "Absent",
+        _ => "Present"
+    };
+
+    public string StatusIcon => Status switch
+    {
+        AttendanceStatus.Present => "P",
+        AttendanceStatus.Late => "L",
+        AttendanceStatus.Excused => "E",
+        AttendanceStatus.Absent => "A",
+        _ => "P"
+    };
+
+    public Color StatusColor => Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#10B981"),
+        AttendanceStatus.Late => Color.FromArgb("#F59E0B"),
+        AttendanceStatus.Excused => Color.FromArgb("#3B82F6"),
+        AttendanceStatus.Absent => Color.FromArgb("#EF4444"),
+        _ => Colors.Gray
+    };
+
+    public Color StatusBgColor => Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#ECFDF5"),
+        AttendanceStatus.Late => Color.FromArgb("#FFFBEB"),
+        AttendanceStatus.Excused => Color.FromArgb("#EFF6FF"),
+        AttendanceStatus.Absent => Color.FromArgb("#FEF2F2"),
+        _ => Color.FromArgb("#F3F4F6")
+    };
+
+    public Color StatusBorderColor => Status switch
+    {
+        AttendanceStatus.Present => Color.FromArgb("#A7F3D0"),
+        AttendanceStatus.Late => Color.FromArgb("#FDE68A"),
+        AttendanceStatus.Excused => Color.FromArgb("#BFDBFE"),
+        AttendanceStatus.Absent => Color.FromArgb("#FECACA"),
+        _ => Color.FromArgb("#E5E7EB")
+    };
+}
+
 [QueryProperty(nameof(ClassIdParam), "classId")]
 public partial class AttendanceViewModel : BaseViewModel
 {
+    private static readonly Guid FallbackStudentId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+    private static readonly Guid FallbackClassId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
     private readonly IApiService _apiService;
 
     [ObservableProperty] private string? _classIdParam;
@@ -1458,9 +1520,31 @@ public partial class AttendanceViewModel : BaseViewModel
         }
     }
 
-    // Faculty & Admin class attendance properties
+    // Role-dependent views
     [ObservableProperty] private bool _isParentView = false;
+    [ObservableProperty] private bool _isStudentOnlyView = false;
+    [ObservableProperty] private bool _isStudentView = false;
     [ObservableProperty] private bool _isFacultyView = true;
+
+    // Student self-profile properties
+    [ObservableProperty] private string _studentFullName = "Visal Chan";
+    [ObservableProperty] private string _studentAdmissionNumber = "ADM-2026-0001";
+    [ObservableProperty] private string _studentClassName = "Class 10-A";
+    [ObservableProperty] private string _studentProfileSubtext = "Visal Chan • Class 10-A • ADM-2026-0001";
+    private Guid _currentStudentId = FallbackStudentId;
+    private List<TimetableEntryDto> _studentTimetable = new();
+
+    // Session-by-Session Inspection Properties
+    [ObservableProperty] private ObservableCollection<StudentSessionAttendanceItem> _daySessions = new();
+    [ObservableProperty] private DateTime _selectedInspectionDate = DateTime.Today;
+    [ObservableProperty] private string _selectedInspectionDateDisplay = "Today's Schedule & Sessions";
+    [ObservableProperty] private string _selectedDayOverallStatusText = "All Sessions Present";
+    [ObservableProperty] private Color _selectedDayOverallStatusColor = Color.FromArgb("#10B981");
+    [ObservableProperty] private Color _selectedDayOverallStatusBgColor = Color.FromArgb("#ECFDF5");
+    [ObservableProperty] private Color _selectedDayOverallStatusBorderColor = Color.FromArgb("#A7F3D0");
+    [ObservableProperty] private bool _hasDaySessions = true;
+    [ObservableProperty] private bool _canGoToNextInspectionDay = false;
+    [ObservableProperty] private string _permissionModalTitle = "Ask Permission";
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
@@ -1654,11 +1738,27 @@ public partial class AttendanceViewModel : BaseViewModel
             ClearError();
             var role = _apiService.CurrentUser?.Role;
             IsParentView = role == UserRole.Parent;
-            IsFacultyView = !IsParentView;
+            IsStudentOnlyView = role == UserRole.Student;
+            IsStudentView = IsParentView || IsStudentOnlyView;
+            IsFacultyView = !IsStudentView;
 
-            if (IsParentView)
+            if (IsStudentOnlyView)
+            {
+                Title = "My Attendance";
+                PermissionModalTitle = "Ask Absence Permission";
+                var user = _apiService.CurrentUser;
+                _currentStudentId = user?.LinkedProfileId ?? FallbackStudentId;
+                StudentFullName = !string.IsNullOrWhiteSpace(user?.FullName) ? user.FullName : "Visal Chan";
+                StudentAdmissionNumber = "ADM-2026-0001";
+                StudentClassName = "Class 10-A";
+                StudentProfileSubtext = $"{StudentFullName} • {StudentClassName} • {StudentAdmissionNumber}";
+
+                await LoadStudentOrChildAttendanceInternalAsync(_currentStudentId);
+            }
+            else if (IsParentView)
             {
                 Title = "Child School Attendance";
+                PermissionModalTitle = "Ask Permission for Child";
                 var parentDashRes = await _apiService.GetParentDashboardAsync(_apiService.CurrentSelectedChildId);
                 if (parentDashRes.Success && parentDashRes.Data != null)
                 {
@@ -1668,7 +1768,11 @@ public partial class AttendanceViewModel : BaseViewModel
                         ?? ParentChildren.FirstOrDefault();
                     if (SelectedParentChild != null)
                     {
-                        await LoadParentChildAttendanceInternalAsync(SelectedParentChild.StudentId);
+                        StudentFullName = SelectedParentChild.FullName;
+                        StudentAdmissionNumber = SelectedParentChild.AdmissionNumber;
+                        StudentClassName = SelectedParentChild.ClassName ?? "Class 10-A";
+                        StudentProfileSubtext = $"{StudentFullName} • {StudentClassName} • {StudentAdmissionNumber}";
+                        await LoadStudentOrChildAttendanceInternalAsync(SelectedParentChild.StudentId);
                     }
                 }
             }
@@ -1915,9 +2019,13 @@ public partial class AttendanceViewModel : BaseViewModel
 
         try
         {
-            if (IsParentView && SelectedParentChild != null)
+            if (IsStudentOnlyView)
             {
-                await LoadParentChildAttendanceInternalAsync(SelectedParentChild.StudentId);
+                await LoadStudentOrChildAttendanceInternalAsync(_currentStudentId);
+            }
+            else if (IsParentView && SelectedParentChild != null)
+            {
+                await LoadStudentOrChildAttendanceInternalAsync(SelectedParentChild.StudentId);
             }
             else if (IsFacultyView && SelectedClass != null)
             {
@@ -1943,7 +2051,7 @@ public partial class AttendanceViewModel : BaseViewModel
         try
         {
             IsBusy = true;
-            await LoadParentChildAttendanceInternalAsync(studentId);
+            await LoadStudentOrChildAttendanceInternalAsync(studentId);
         }
         finally
         {
@@ -1951,12 +2059,24 @@ public partial class AttendanceViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadParentChildAttendanceInternalAsync(Guid studentId)
+    private async Task LoadStudentOrChildAttendanceInternalAsync(Guid studentId)
     {
         if (_isLoading) return;
         try
         {
             _isLoading = true;
+
+            // Fetch timetable for student to render precise class periods
+            try
+            {
+                var ttRes = await _apiService.GetStudentTimetableAsync(studentId);
+                if (ttRes.Success && ttRes.Data != null)
+                {
+                    _studentTimetable = ttRes.Data;
+                }
+            }
+            catch { /* Ignore timetable query fallback */ }
+
             var res = await _apiService.GetStudentAttendanceHistoryAsync(studentId);
             if (res.Success && res.Data != null)
             {
@@ -2007,10 +2127,16 @@ public partial class AttendanceViewModel : BaseViewModel
 
                     TodayStatusDetails = todayRec.Status switch
                     {
-                        AttendanceStatus.Present => $"Your child arrived at school and checked in at {todayRec.CheckInTimeText}.",
-                        AttendanceStatus.Late => $"Your child arrived late today. Checked in at {todayRec.CheckInTimeText}. Note: {todayRec.Remarks ?? "Tardy"}",
+                        AttendanceStatus.Present => IsStudentOnlyView
+                            ? $"You arrived at school and checked in at {todayRec.CheckInTimeText}."
+                            : $"Your child arrived at school and checked in at {todayRec.CheckInTimeText}.",
+                        AttendanceStatus.Late => IsStudentOnlyView
+                            ? $"You arrived late today. Checked in at {todayRec.CheckInTimeText}. Note: {todayRec.Remarks ?? "Tardy"}"
+                            : $"Your child arrived late today. Checked in at {todayRec.CheckInTimeText}. Note: {todayRec.Remarks ?? "Tardy"}",
                         AttendanceStatus.Excused => $"Excused absence granted. Note: {todayRec.Remarks ?? "Permission approved by school."}",
-                        AttendanceStatus.Absent => "No check-in scan recorded today. Please submit permission or contact school office.",
+                        AttendanceStatus.Absent => IsStudentOnlyView
+                            ? "No check-in scan recorded today. Please submit permission or contact homeroom advisor."
+                            : "No check-in scan recorded today. Please submit permission or contact school office.",
                         _ => "Attendance recorded."
                     };
                 }
@@ -2040,6 +2166,8 @@ public partial class AttendanceViewModel : BaseViewModel
                         TodayStatusIcon = "A";
                     }
                 }
+
+                LoadSessionsForInspectionDate(DateTime.Today);
             }
         }
         catch (Exception ex)
@@ -2050,6 +2178,354 @@ public partial class AttendanceViewModel : BaseViewModel
         {
             _isLoading = false;
         }
+    }
+
+    public void LoadSessionsForInspectionDate(DateTime inspectionDate)
+    {
+        SelectedInspectionDate = inspectionDate;
+        CanGoToNextInspectionDay = inspectionDate.Date < DateTime.Today.Date;
+
+        var dateOnly = DateOnly.FromDateTime(inspectionDate);
+        bool isToday = dateOnly == DateOnly.FromDateTime(DateTime.Today);
+        bool isYesterday = dateOnly == DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+
+        SelectedInspectionDateDisplay = isToday
+            ? $"Today ({inspectionDate:dddd, MMM dd})"
+            : isYesterday
+                ? $"Yesterday ({inspectionDate:dddd, MMM dd})"
+                : $"{inspectionDate:dddd, MMM dd, yyyy}";
+
+        if (inspectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        {
+            SelectedDayOverallStatusText = "Weekend - Campus Closed";
+            SelectedDayOverallStatusColor = Color.FromArgb("#6B7280");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#F3F4F6");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#E5E7EB");
+            DaySessions = new ObservableCollection<StudentSessionAttendanceItem>();
+            HasDaySessions = false;
+            return;
+        }
+
+        HasDaySessions = true;
+        var dayRecord = _allChildAttendanceRecords?.FirstOrDefault(r => r.Date == dateOnly);
+
+        var dayOfWeek = inspectionDate.DayOfWeek;
+        var ttEntries = _studentTimetable?
+            .Where(t => t.DayOfWeek == dayOfWeek)
+            .OrderBy(t => t.StartTime)
+            .ToList() ?? new List<TimetableEntryDto>();
+
+        if (ttEntries.Count == 0 && _studentTimetable != null && _studentTimetable.Count > 0)
+        {
+            ttEntries = _studentTimetable
+                .GroupBy(t => t.SubjectId)
+                .Select(g => g.First())
+                .OrderBy(t => t.StartTime)
+                .ToList();
+        }
+
+        var sessions = new List<StudentSessionAttendanceItem>();
+
+        // 1. Daily Homeroom Roll Call
+        sessions.Add(new StudentSessionAttendanceItem
+        {
+            SessionKey = "homeroom",
+            PeriodName = "Roll Call",
+            SubjectName = "Daily Homeroom Roll Call",
+            TimeSlot = "07:30 - 08:00",
+            InstructorName = "Teacher Dara Sok (Advisor)",
+            RoomNumber = "Room 101",
+            IsHomeroom = true
+        });
+
+        // 2. Class Subject Sessions
+        if (ttEntries.Count > 0)
+        {
+            int periodIndex = 1;
+            foreach (var tt in ttEntries)
+            {
+                sessions.Add(new StudentSessionAttendanceItem
+                {
+                    SessionKey = $"tt_{tt.Id}",
+                    PeriodName = $"Period {periodIndex}",
+                    SubjectName = tt.SubjectName,
+                    TimeSlot = $"{tt.StartTime:hh\\:mm} - {tt.EndTime:hh\\:mm}",
+                    InstructorName = !string.IsNullOrWhiteSpace(tt.TeacherName) ? $"Teacher {tt.TeacherName}" : "Faculty",
+                    RoomNumber = !string.IsNullOrWhiteSpace(tt.RoomNumber) ? tt.RoomNumber : "Room 101",
+                    IsHomeroom = false
+                });
+                periodIndex++;
+            }
+        }
+        else
+        {
+            sessions.Add(new StudentSessionAttendanceItem
+            {
+                SessionKey = "session_period_1",
+                PeriodName = "Period 1",
+                SubjectName = "Computer Science & ICT",
+                TimeSlot = "08:00 - 10:00",
+                InstructorName = "Teacher Somnang Rath",
+                RoomNumber = "Lab 1",
+                IsHomeroom = false
+            });
+            sessions.Add(new StudentSessionAttendanceItem
+            {
+                SessionKey = "session_period_2",
+                PeriodName = "Period 2",
+                SubjectName = "Mathematics & Geometry",
+                TimeSlot = "10:15 - 12:00",
+                InstructorName = "Teacher Dara Sok",
+                RoomNumber = "Room 101",
+                IsHomeroom = false
+            });
+            sessions.Add(new StudentSessionAttendanceItem
+            {
+                SessionKey = "session_period_3",
+                PeriodName = "Period 3",
+                SubjectName = "English Communication",
+                TimeSlot = "13:00 - 15:00",
+                InstructorName = "Teacher Kolab Pich",
+                RoomNumber = "Room 101",
+                IsHomeroom = false
+            });
+        }
+
+        // Check if dayRecord has formatted session tags in remarks: [SessionTitle: Status - Note]
+        bool parsedFromTags = false;
+        if (dayRecord != null && !string.IsNullOrWhiteSpace(dayRecord.Remarks) && dayRecord.Remarks.Contains("["))
+        {
+            foreach (var s in sessions)
+            {
+                var marker = $"[{s.SubjectName}:";
+                var altMarker = $"[{s.PeriodName}:";
+                var hrMarker = s.IsHomeroom ? "[Daily Homeroom Roll Call" : null;
+
+                int idx = -1;
+                if (hrMarker != null) idx = dayRecord.Remarks.IndexOf(hrMarker, StringComparison.OrdinalIgnoreCase);
+                if (idx == -1) idx = dayRecord.Remarks.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                if (idx == -1) idx = dayRecord.Remarks.IndexOf(altMarker, StringComparison.OrdinalIgnoreCase);
+
+                if (idx != -1)
+                {
+                    int closeIdx = dayRecord.Remarks.IndexOf("]", idx);
+                    if (closeIdx > idx)
+                    {
+                        var tagContent = dayRecord.Remarks.Substring(idx + 1, closeIdx - idx - 1);
+                        var colonIdx = tagContent.IndexOf(":");
+                        if (colonIdx != -1)
+                        {
+                            var statusAndNote = tagContent.Substring(colonIdx + 1).Trim();
+                            var dashIdx = statusAndNote.IndexOf("-");
+                            var statusPart = dashIdx != -1 ? statusAndNote.Substring(0, dashIdx).Trim() : statusAndNote;
+                            var notePart = dashIdx != -1 ? statusAndNote.Substring(dashIdx + 1).Trim() : null;
+
+                            if (Enum.TryParse<AttendanceStatus>(statusPart, true, out var parsedStatus))
+                            {
+                                s.Status = parsedStatus;
+                                s.Remarks = notePart ?? (parsedStatus == AttendanceStatus.Present ? "Attended session" : null);
+                                parsedFromTags = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Also check runtime session attendance cache
+        foreach (var s in sessions)
+        {
+            var targetClassId = SelectedClass?.Id ?? FallbackClassId;
+            var sKey = GetSessionCacheKey(targetClassId, inspectionDate, s.SessionKey);
+            if (_sessionAttendanceCache.TryGetValue($"{sKey}_{_currentStudentId}", out var cached))
+            {
+                s.Status = cached.Status;
+                if (!string.IsNullOrWhiteSpace(cached.Remarks))
+                    s.Remarks = cached.Remarks;
+                parsedFromTags = true;
+            }
+        }
+
+        // If no explicit session tags, derive intelligently from daily record
+        if (!parsedFromTags)
+        {
+            if (dayRecord != null)
+            {
+                if (dayRecord.Status == AttendanceStatus.Present)
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Status = AttendanceStatus.Present;
+                        s.Remarks = s.IsHomeroom ? $"Checked in on-time at {dayRecord.CheckInTimeText}" : "Attended full session";
+                    }
+                }
+                else if (dayRecord.Status == AttendanceStatus.Late)
+                {
+                    foreach (var s in sessions)
+                    {
+                        if (s.IsHomeroom)
+                        {
+                            s.Status = AttendanceStatus.Late;
+                            s.Remarks = $"Late arrival ({dayRecord.CheckInTimeText}) - {dayRecord.Remarks ?? "Tardy"}";
+                        }
+                        else
+                        {
+                            s.Status = AttendanceStatus.Present;
+                            s.Remarks = "Attended class session";
+                        }
+                    }
+                }
+                else if (dayRecord.Status == AttendanceStatus.Excused)
+                {
+                    bool isAfternoonOnly = dayRecord.Remarks?.Contains("noon", StringComparison.OrdinalIgnoreCase) == true ||
+                                          dayRecord.Remarks?.Contains("afternoon", StringComparison.OrdinalIgnoreCase) == true;
+
+                    if (isAfternoonOnly)
+                    {
+                        for (int i = 0; i < sessions.Count; i++)
+                        {
+                            if (i <= 1)
+                            {
+                                sessions[i].Status = AttendanceStatus.Present;
+                                sessions[i].Remarks = "Attended morning session";
+                            }
+                            else
+                            {
+                                sessions[i].Status = AttendanceStatus.Excused;
+                                sessions[i].Remarks = dayRecord.Remarks ?? "Excused absence (Medical leave)";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var s in sessions)
+                        {
+                            s.Status = AttendanceStatus.Excused;
+                            s.Remarks = dayRecord.Remarks ?? "Excused absence - Permission approved";
+                        }
+                    }
+                }
+                else if (dayRecord.Status == AttendanceStatus.Absent)
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Status = AttendanceStatus.Absent;
+                        s.Remarks = "No attendance scan registered";
+                    }
+                }
+            }
+            else
+            {
+                if (isToday)
+                {
+                    var now = DateTime.Now.TimeOfDay;
+                    foreach (var s in sessions)
+                    {
+                        if (now >= new TimeSpan(8, 0, 0))
+                        {
+                            s.Status = AttendanceStatus.Present;
+                            s.Remarks = "On campus (Morning Roll Call verified)";
+                        }
+                        else
+                        {
+                            s.Status = AttendanceStatus.Present;
+                            s.Remarks = "Scheduled session";
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Status = AttendanceStatus.Present;
+                        s.Remarks = "Regular class session completed";
+                    }
+                }
+            }
+        }
+
+        DaySessions = new ObservableCollection<StudentSessionAttendanceItem>(sessions);
+
+        // Overall status badge for the inspected day
+        int presCount = sessions.Count(s => s.Status == AttendanceStatus.Present);
+        int lateCount = sessions.Count(s => s.Status == AttendanceStatus.Late);
+        int excCount = sessions.Count(s => s.Status == AttendanceStatus.Excused);
+        int absCount = sessions.Count(s => s.Status == AttendanceStatus.Absent);
+
+        if (absCount > 0)
+        {
+            SelectedDayOverallStatusText = $"{absCount} Session{(absCount > 1 ? "s" : "")} Absent";
+            SelectedDayOverallStatusColor = Color.FromArgb("#EF4444");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#FEF2F2");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#FECACA");
+        }
+        else if (excCount > 0 && presCount > 0)
+        {
+            SelectedDayOverallStatusText = $"{presCount} Present, {excCount} Excused";
+            SelectedDayOverallStatusColor = Color.FromArgb("#2563EB");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#EFF6FF");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#BFDBFE");
+        }
+        else if (excCount > 0)
+        {
+            SelectedDayOverallStatusText = "Full Day Excused";
+            SelectedDayOverallStatusColor = Color.FromArgb("#2563EB");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#EFF6FF");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#BFDBFE");
+        }
+        else if (lateCount > 0)
+        {
+            SelectedDayOverallStatusText = "Late Arrival Recorded";
+            SelectedDayOverallStatusColor = Color.FromArgb("#F59E0B");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#FFFBEB");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#FDE68A");
+        }
+        else
+        {
+            SelectedDayOverallStatusText = "All Sessions Present (100%)";
+            SelectedDayOverallStatusColor = Color.FromArgb("#10B981");
+            SelectedDayOverallStatusBgColor = Color.FromArgb("#ECFDF5");
+            SelectedDayOverallStatusBorderColor = Color.FromArgb("#A7F3D0");
+        }
+    }
+
+    [RelayCommand]
+    public void InspectPreviousDaySessions()
+    {
+        var prev = SelectedInspectionDate.AddDays(-1);
+        while (prev.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        {
+            prev = prev.AddDays(-1);
+        }
+        LoadSessionsForInspectionDate(prev);
+    }
+
+    [RelayCommand]
+    public void InspectNextDaySessions()
+    {
+        if (SelectedInspectionDate.Date >= DateTime.Today.Date) return;
+        var next = SelectedInspectionDate.AddDays(1);
+        while (next.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        {
+            next = next.AddDays(1);
+        }
+        if (next.Date <= DateTime.Today.Date)
+        {
+            LoadSessionsForInspectionDate(next);
+        }
+    }
+
+    [RelayCommand]
+    public void InspectTodaySessions()
+    {
+        LoadSessionsForInspectionDate(DateTime.Today);
+    }
+
+    [RelayCommand]
+    public void InspectRecordSessions(AttendanceRecordDisplayItem record)
+    {
+        if (record == null) return;
+        LoadSessionsForInspectionDate(record.Date.ToDateTime(TimeOnly.MinValue));
     }
 
     [RelayCommand]
@@ -2097,7 +2573,20 @@ public partial class AttendanceViewModel : BaseViewModel
     [RelayCommand]
     public void OpenPermissionModal()
     {
-        PermissionTargetChild = SelectedParentChild ?? ParentChildren.FirstOrDefault();
+        if (IsStudentOnlyView)
+        {
+            PermissionTargetChild = new LinkedStudentDto(
+                _currentStudentId,
+                StudentFullName,
+                StudentAdmissionNumber,
+                StudentClassName,
+                "Self",
+                true);
+        }
+        else
+        {
+            PermissionTargetChild = SelectedParentChild ?? ParentChildren.FirstOrDefault();
+        }
         PermissionDate = DateTime.Today;
         SelectedPermissionReason = PermissionReasons.FirstOrDefault() ?? "Sick Leave / Medical";
         PermissionRemarks = string.Empty;
@@ -2143,12 +2632,20 @@ public partial class AttendanceViewModel : BaseViewModel
 
             if (res.Success)
             {
+                var targetName = IsStudentOnlyView ? "your record" : PermissionTargetChild.FullName;
                 await Shell.Current.DisplayAlert(
                     "Permission Submitted",
-                    $"Official leave permission has been recorded for {PermissionTargetChild.FullName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
+                    $"Official leave permission has been recorded for {targetName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
                     "OK");
 
-                await LoadParentChildAttendanceAsync(PermissionTargetChild.StudentId);
+                if (IsStudentOnlyView)
+                {
+                    await LoadStudentOrChildAttendanceInternalAsync(_currentStudentId);
+                }
+                else
+                {
+                    await LoadParentChildAttendanceAsync(PermissionTargetChild.StudentId);
+                }
             }
             else
             {
