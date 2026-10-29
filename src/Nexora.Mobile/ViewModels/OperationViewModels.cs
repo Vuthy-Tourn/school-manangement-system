@@ -1415,6 +1415,8 @@ public class AttendanceSessionItemViewModel : ObservableObject
     public TimeSpan? EndTime { get; init; }
     public string? RoomNumber { get; init; }
     public bool IsHomeroomSession { get; init; }
+    public Guid ClassSectionId { get; init; }
+    public string ClassName { get; init; } = string.Empty;
 
     public string TimeSlotDisplay => StartTime.HasValue && EndTime.HasValue
         ? $"{StartTime.Value:hh\\:mm} - {EndTime.Value:hh\\:mm}"
@@ -1425,6 +1427,10 @@ public class AttendanceSessionItemViewModel : ObservableObject
     public string PickerDisplay => IsHomeroomSession
         ? $"Daily Homeroom Roll Call ({TimeSlotDisplay}) • {InstructorName ?? "Advisor"}"
         : $"{SubjectName} ({TimeSlotDisplay}) • {InstructorName ?? "Faculty"}";
+
+    public string PickerDisplayWithClass => IsHomeroomSession
+        ? $"Daily Homeroom • Class {ClassName} ({TimeSlotDisplay})"
+        : $"{SubjectName} • Class {ClassName} ({TimeSlotDisplay})";
 }
 
 public class StudentSessionAttendanceItem : ObservableObject

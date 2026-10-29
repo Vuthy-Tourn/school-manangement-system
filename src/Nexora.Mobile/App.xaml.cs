@@ -18,10 +18,7 @@ public partial class App : Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        Page initialPage = _apiService.IsAuthenticated
-            ? new AppShell(_apiService)
-            : new NavigationPage(new LoginPage(_loginViewModel));
-
-        return new Window(initialPage);
+        // Boot directly into the motion-driven Tinder-style SplashPage
+        return new Window(new SplashPage(_apiService, _loginViewModel));
     }
 }

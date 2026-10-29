@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+             x:Class="Nexora.Mobile.Views.SplashPage"
+             BackgroundColor="{StaticResource SurfaceLight}"
+             Shell.NavBarIsVisible="False"
+             ios:Page.UseSafeArea="False">
+
+    <Grid>
+        <!-- ========================================================= -->
+        <!-- LAYER 1 (UNDERNEATH): Destination Canvas Revealed by Swipe -->
+        <!-- ========================================================= -->
+        <Grid x:Name="RevealLayer"
+              BackgroundColor="{StaticResource SurfaceLight}"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
+
+            <!-- Celebratory Micro-Particle Sparks Container -->
+            <Grid x:Name="ParticleContainer"
+                  WidthRequest="180"
+                  HeightRequest="180"
+                  HorizontalOptions="Center"
+                  VerticalOptions="Center">
+
+                <!-- Particle 1: Cyan Diamond -->
+                <Border x:Name="Particle1"
+                        WidthRequest="8" HeightRequest="8"
+                        Rotation="45"
+                        BackgroundColor="#0EA5E9"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+
+                <!-- Particle 2: Gold Circle -->
+                <Border x:Name="Particle2"
+                        WidthRequest="7" HeightRequest="7"
+                        StrokeShape="RoundRectangle 4"
+                        BackgroundColor="#F59E0B"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+
+                <!-- Particle 3: Royal Sapphire Circle -->
+                <Border x:Name="Particle3"
+                        WidthRequest="9" HeightRequest="9"
+                        StrokeShape="RoundRectangle 5"
+                        BackgroundColor="#2563EB"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+
+                <!-- Particle 4: Emerald Circle -->
+                <Border x:Name="Particle4"
+                        WidthRequest="7" HeightRequest="7"
+                        StrokeShape="RoundRectangle 4"
+                        BackgroundColor="#10B981"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+
+                <!-- Particle 5: Cyan Diamond -->
+                <Border x:Name="Particle5"
+                        WidthRequest="8" HeightRequest="8"
+                        Rotation="45"
+                        BackgroundColor="#0EA5E9"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+
+                <!-- Particle 6: Gold Circle -->
+                <Border x:Name="Particle6"
+                        WidthRequest="7" HeightRequest="7"
+                        StrokeShape="RoundRectangle 4"
+                        BackgroundColor="#F59E0B"
+                        StrokeThickness="0"
+                        Opacity="0"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Revealed Full Official Nexora Brand Emblem -->
+            <Image x:Name="RevealLogo"
+                   Source="logo_full_transparent.png"
+                   WidthRequest="140"
+                   HeightRequest="140"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <!-- Institutional Bottom Pill -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{StaticResource PrimaryLight}"
+                    Stroke="{StaticResource PrimaryBorder}"
+                    StrokeThickness="1"
+                    Padding="16,6"
+                    HorizontalOptions="Center"
+                    VerticalOptions="End"
+                    Margin="0,0,0,48"
+                    Opacity="0.85">
+                <Label Text="Angkor International Academy"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource Secondary}"
+                       HorizontalTextAlignment="Center" />
+            </Border>
+        </Grid>
+
+        <!-- ========================================================= -->
+        <!-- LAYER 2 (FOREGROUND): Radiant Gradient Tinder-Style Card  -->
+        <!-- ========================================================= -->
+        <Grid x:Name="GradientCard"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0.1,0.0" EndPoint="0.9,1.0">
+                    <GradientStop Color="#060E1F" Offset="0.0" />
+                    <GradientStop Color="#0A1D47" Offset="0.38" />
+                    <GradientStop Color="#1E4ED8" Offset="0.82" />
+                    <GradientStop Color="#2563EB" Offset="1.0" />
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <!-- Centered Brand Lockup: [Official Ribbon 'N'] [Official 'NEXORA' Wordmark] -->
+            <HorizontalStackLayout x:Name="HeroLockup"
+                                   Spacing="16"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center">
+
+                <!-- Official Nexora Ribbon Crest -->
+                <Image x:Name="HeroIcon"
+                       Source="logo_icon_transparent.png"
+                       WidthRequest="64"
+                       HeightRequest="52"
+                       Aspect="AspectFit"
+                       VerticalOptions="Center" />
+
+                <!-- Official Nexora Wordmark (with signature cyan slash across 'X') -->
+                <Image x:Name="HeroTitle"
+                       Source="logo_wordmark_white.png"
+                       HeightRequest="36"
+                       WidthRequest="165"
+                       Aspect="AspectFit"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+
+            <!-- Subtle Bottom Institution Tag -->
+            <Label Text="Angkor International Academy"
+                   TextColor="#93C5FD"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   VerticalOptions="End"
+                   Margin="0,0,0,50"
+                   Opacity="0.8" />
+        </Grid>
+    </Grid>
+
+</ContentPage>

@@ -54,6 +54,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ReportCardViewModel>();
 
         // 3. Pages
+        builder.Services.AddTransient<SplashPage>();
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<AdminDashboardPage>();
