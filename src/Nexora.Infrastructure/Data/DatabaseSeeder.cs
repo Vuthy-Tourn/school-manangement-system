@@ -560,7 +560,7 @@ public class DatabaseSeeder
             // 6. Students Profiles
             var studentVisal = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentVisalUser.Id,
                 SchoolId = school.Id,
                 UserId = studentVisalUser.Id,
                 AdmissionNumber = "ADM-2026-0001",
@@ -582,7 +582,7 @@ public class DatabaseSeeder
 
             var studentKanha = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentKanhaUser.Id,
                 SchoolId = school.Id,
                 UserId = studentKanhaUser.Id,
                 AdmissionNumber = "ADM-2026-0002",
@@ -604,7 +604,7 @@ public class DatabaseSeeder
 
             var studentDara = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentDaraUser.Id,
                 SchoolId = school.Id,
                 UserId = studentDaraUser.Id,
                 AdmissionNumber = "ADM-2026-0003",
@@ -626,7 +626,7 @@ public class DatabaseSeeder
 
             var studentBopha = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentBophaUser.Id,
                 SchoolId = school.Id,
                 UserId = studentBophaUser.Id,
                 AdmissionNumber = "ADM-2026-0004",
@@ -648,7 +648,7 @@ public class DatabaseSeeder
 
             var studentRithy = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentRithyUser.Id,
                 SchoolId = school.Id,
                 UserId = studentRithyUser.Id,
                 AdmissionNumber = "ADM-2026-0005",
@@ -670,7 +670,7 @@ public class DatabaseSeeder
 
             var studentSreypov = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentSreypovUser.Id,
                 SchoolId = school.Id,
                 UserId = studentSreypovUser.Id,
                 AdmissionNumber = "ADM-2026-0006",
@@ -692,7 +692,7 @@ public class DatabaseSeeder
 
             var studentVannak = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentVannakUser.Id,
                 SchoolId = school.Id,
                 UserId = studentVannakUser.Id,
                 AdmissionNumber = "ADM-2026-0007",
@@ -714,7 +714,7 @@ public class DatabaseSeeder
 
             var studentThida = new Student
             {
-                Id = Guid.NewGuid(),
+                Id = studentThidaUser.Id,
                 SchoolId = school.Id,
                 UserId = studentThidaUser.Id,
                 AdmissionNumber = "ADM-2026-0008",
@@ -1382,18 +1382,13 @@ public class DatabaseSeeder
                     {
                         if (st.AdmissionNumber == "ADM-2026-0001")
                         {
-                            if (dIdx == 0) // TODAY (Tuesday): Visal is Present at school
+                            if (dIdx == 0) // TODAY: Preserve teacher's attendance edits (e.g. Late) if already recorded
                             {
-                                if (existingAtt.Status != AttendanceStatus.Present || existingAtt.Remarks != null)
+                                if (existingAtt.Status == AttendanceStatus.Absent)
                                 {
                                     existingAtt.Status = AttendanceStatus.Present;
                                     existingAtt.Remarks = null;
-                                    hasChanges = true;
-                                }
-                                var morningGateUtc = attDate.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc); // 07:42 AM local
-                                if (existingAtt.RecordedAtUtc != morningGateUtc)
-                                {
-                                    existingAtt.RecordedAtUtc = morningGateUtc;
+                                    existingAtt.RecordedAtUtc = attDate.ToDateTime(new TimeOnly(0, 42), DateTimeKind.Utc);
                                     hasChanges = true;
                                 }
                             }

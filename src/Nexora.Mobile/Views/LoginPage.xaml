@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
              xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              x:Class="Nexora.Mobile.Views.LoginPage"
              x:DataType="vm:LoginViewModel"
              BackgroundColor="{StaticResource SurfaceLight}"
-             Shell.NavBarIsVisible="False">
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False"
+             ios:Page.UseSafeArea="True">
 
     <ScrollView>
         <Grid Padding="24,40,24,32" VerticalOptions="Center" MaximumWidthRequest="500">
             <VerticalStackLayout Spacing="24">
 
-                <!-- Brand Header with Official Nexora Logo -->
-                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                <!-- Brand Header with Official Nexora Logo (Animated Entrance) -->
+                <VerticalStackLayout x:Name="BrandHeaderSection"
+                                     Spacing="6"
+                                     HorizontalOptions="Center"
+                                     Opacity="0"
+                                     TranslationY="-24">
                     <Image Source="logo_full_transparent.png"
                            WidthRequest="220"
                            HeightRequest="180"
@@ -35,12 +42,16 @@
                     </Border>
                 </VerticalStackLayout>
 
-                <!-- Main Login Card -->
-                <Border StrokeShape="RoundRectangle 16"
+                <!-- Main Login Card (Animated Entrance) -->
+                <Border x:Name="LoginCardSection"
+                        StrokeShape="RoundRectangle 16"
                         BackgroundColor="{StaticResource SurfaceCard}"
                         Stroke="{StaticResource SurfaceBorder}"
                         StrokeThickness="1"
-                        Padding="28,24">
+                        Padding="28,24"
+                        Opacity="0"
+                        TranslationY="36"
+                        Scale="0.96">
                     <VerticalStackLayout Spacing="20">
 
                         <VerticalStackLayout Spacing="4">
@@ -192,8 +203,11 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Institutional Compliance Footer -->
-                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                <!-- Institutional Compliance Footer (Animated Entrance) -->
+                <VerticalStackLayout x:Name="FooterSection"
+                                     Spacing="4"
+                                     HorizontalOptions="Center"
+                                     Opacity="0">
                     <Label Text="Nexora Cloud Education Architecture"
                            FontSize="11"
                            FontAttributes="Bold"

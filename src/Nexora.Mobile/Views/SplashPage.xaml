@@ -2,113 +2,299 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+             xmlns:vm="clr-namespace:Nexora.Mobile.ViewModels"
              x:Class="Nexora.Mobile.Views.SplashPage"
-             BackgroundColor="{StaticResource SurfaceLight}"
+             x:DataType="vm:LoginViewModel"
+             BackgroundColor="#060E1F"
              Shell.NavBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False"
              ios:Page.UseSafeArea="False">
 
-    <Grid>
+    <Grid IgnoreSafeArea="True" BackgroundColor="#060E1F">
         <!-- ========================================================= -->
-        <!-- LAYER 1 (UNDERNEATH): Destination Canvas Revealed by Swipe -->
+        <!-- LAYER 1 (UNDERNEATH): Full Login Destination Canvas       -->
         <!-- ========================================================= -->
         <Grid x:Name="RevealLayer"
+              IsVisible="False"
               BackgroundColor="{StaticResource SurfaceLight}"
               HorizontalOptions="Fill"
-              VerticalOptions="Fill">
+              VerticalOptions="Fill"
+              IgnoreSafeArea="True">
 
-            <!-- Celebratory Micro-Particle Sparks Container -->
-            <Grid x:Name="ParticleContainer"
-                  WidthRequest="180"
-                  HeightRequest="180"
-                  HorizontalOptions="Center"
-                  VerticalOptions="Center">
+            <ScrollView>
+                <Grid Padding="24,40,24,32" VerticalOptions="Center" MaximumWidthRequest="500">
+                    <VerticalStackLayout Spacing="24">
 
-                <!-- Particle 1: Cyan Diamond -->
-                <Border x:Name="Particle1"
-                        WidthRequest="8" HeightRequest="8"
-                        Rotation="45"
-                        BackgroundColor="#0EA5E9"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                        <!-- Brand Header with Official Nexora Logo & Institution Badge (Animated from Center to Top) -->
+                        <VerticalStackLayout x:Name="BrandHeaderSection"
+                                             Spacing="6"
+                                             HorizontalOptions="Center">
 
-                <!-- Particle 2: Gold Circle -->
-                <Border x:Name="Particle2"
-                        WidthRequest="7" HeightRequest="7"
-                        StrokeShape="RoundRectangle 4"
-                        BackgroundColor="#F59E0B"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                            <Grid HorizontalOptions="Center" VerticalOptions="Center">
+                                <!-- Celebratory Micro-Particle Sparks Container -->
+                                <Grid x:Name="ParticleContainer"
+                                      WidthRequest="180"
+                                      HeightRequest="180"
+                                      HorizontalOptions="Center"
+                                      VerticalOptions="Center">
 
-                <!-- Particle 3: Royal Sapphire Circle -->
-                <Border x:Name="Particle3"
-                        WidthRequest="9" HeightRequest="9"
-                        StrokeShape="RoundRectangle 5"
-                        BackgroundColor="#2563EB"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                                    <!-- Particle 1: Cyan Diamond -->
+                                    <Border x:Name="Particle1"
+                                            WidthRequest="8" HeightRequest="8"
+                                            Rotation="45"
+                                            BackgroundColor="#0EA5E9"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
 
-                <!-- Particle 4: Emerald Circle -->
-                <Border x:Name="Particle4"
-                        WidthRequest="7" HeightRequest="7"
-                        StrokeShape="RoundRectangle 4"
-                        BackgroundColor="#10B981"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                                    <!-- Particle 2: Gold Circle -->
+                                    <Border x:Name="Particle2"
+                                            WidthRequest="7" HeightRequest="7"
+                                            StrokeShape="RoundRectangle 4"
+                                            BackgroundColor="#F59E0B"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
 
-                <!-- Particle 5: Cyan Diamond -->
-                <Border x:Name="Particle5"
-                        WidthRequest="8" HeightRequest="8"
-                        Rotation="45"
-                        BackgroundColor="#0EA5E9"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                                    <!-- Particle 3: Royal Sapphire Circle -->
+                                    <Border x:Name="Particle3"
+                                            WidthRequest="9" HeightRequest="9"
+                                            StrokeShape="RoundRectangle 5"
+                                            BackgroundColor="#2563EB"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
 
-                <!-- Particle 6: Gold Circle -->
-                <Border x:Name="Particle6"
-                        WidthRequest="7" HeightRequest="7"
-                        StrokeShape="RoundRectangle 4"
-                        BackgroundColor="#F59E0B"
-                        StrokeThickness="0"
-                        Opacity="0"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
-            </Grid>
+                                    <!-- Particle 4: Emerald Circle -->
+                                    <Border x:Name="Particle4"
+                                            WidthRequest="7" HeightRequest="7"
+                                            StrokeShape="RoundRectangle 4"
+                                            BackgroundColor="#10B981"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
 
-            <!-- Revealed Full Official Nexora Brand Emblem -->
-            <Image x:Name="RevealLogo"
-                   Source="logo_full_transparent.png"
-                   WidthRequest="140"
-                   HeightRequest="140"
-                   Aspect="AspectFit"
-                   HorizontalOptions="Center"
-                   VerticalOptions="Center" />
+                                    <!-- Particle 5: Cyan Diamond -->
+                                    <Border x:Name="Particle5"
+                                            WidthRequest="8" HeightRequest="8"
+                                            Rotation="45"
+                                            BackgroundColor="#0EA5E9"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
 
-            <!-- Institutional Bottom Pill -->
-            <Border StrokeShape="RoundRectangle 16"
-                    BackgroundColor="{StaticResource PrimaryLight}"
-                    Stroke="{StaticResource PrimaryBorder}"
-                    StrokeThickness="1"
-                    Padding="16,6"
-                    HorizontalOptions="Center"
-                    VerticalOptions="End"
-                    Margin="0,0,0,48"
-                    Opacity="0.85">
-                <Label Text="Angkor International Academy"
-                       FontSize="11"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource Secondary}"
-                       HorizontalTextAlignment="Center" />
-            </Border>
+                                    <!-- Particle 6: Gold Circle -->
+                                    <Border x:Name="Particle6"
+                                            WidthRequest="7" HeightRequest="7"
+                                            StrokeShape="RoundRectangle 4"
+                                            BackgroundColor="#F59E0B"
+                                            StrokeThickness="0"
+                                            Opacity="0"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                </Grid>
+
+                                <Image Source="logo_full_transparent.png"
+                                       WidthRequest="220"
+                                       HeightRequest="180"
+                                       Aspect="AspectFit"
+                                       HorizontalOptions="Center" />
+                            </Grid>
+
+                            <!-- School Institution Pill -->
+                            <Border StrokeShape="RoundRectangle 16"
+                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    Stroke="{StaticResource PrimaryBorder}"
+                                    StrokeThickness="1"
+                                    Padding="14,5"
+                                    HorizontalOptions="Center">
+                                <Label Text="Angkor International Academy"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Secondary}"
+                                       HorizontalTextAlignment="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Main Login Card (Animated from Bottom up into Place) -->
+                        <Border x:Name="LoginCardSection"
+                                StrokeShape="RoundRectangle 16"
+                                BackgroundColor="{StaticResource SurfaceCard}"
+                                Stroke="{StaticResource SurfaceBorder}"
+                                StrokeThickness="1"
+                                Padding="28,24">
+                            <VerticalStackLayout Spacing="20">
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="Sign In to Your Account"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Enter your institutional credentials below"
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextMuted}" />
+                                </VerticalStackLayout>
+
+                                <!-- Quick Role Demo Selector -->
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="Quick Role Demo Switcher"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextSecondary}" />
+
+                                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
+                                        <Button Grid.Column="0"
+                                                Text="Admin"
+                                                Command="{Binding QuickSelectRoleCommand}"
+                                                CommandParameter="admin"
+                                                HeightRequest="36" Padding="4,0"
+                                                FontSize="11" FontAttributes="Bold"
+                                                CornerRadius="6"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource Secondary}"
+                                                BorderColor="{StaticResource SecondaryBorder}"
+                                                BorderWidth="1" />
+                                        <Button Grid.Column="1"
+                                                Text="Teacher"
+                                                Command="{Binding QuickSelectRoleCommand}"
+                                                CommandParameter="teacher"
+                                                HeightRequest="36" Padding="4,0"
+                                                FontSize="11" FontAttributes="Bold"
+                                                CornerRadius="6"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource Secondary}"
+                                                BorderColor="{StaticResource SecondaryBorder}"
+                                                BorderWidth="1" />
+                                        <Button Grid.Column="2"
+                                                Text="Student"
+                                                Command="{Binding QuickSelectRoleCommand}"
+                                                CommandParameter="student"
+                                                HeightRequest="36" Padding="4,0"
+                                                FontSize="11" FontAttributes="Bold"
+                                                CornerRadius="6"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource Secondary}"
+                                                BorderColor="{StaticResource SecondaryBorder}"
+                                                BorderWidth="1" />
+                                        <Button Grid.Column="3"
+                                                Text="Parent"
+                                                Command="{Binding QuickSelectRoleCommand}"
+                                                CommandParameter="parent"
+                                                HeightRequest="36" Padding="4,0"
+                                                FontSize="11" FontAttributes="Bold"
+                                                CornerRadius="6"
+                                                BackgroundColor="{StaticResource SecondaryLight}"
+                                                TextColor="{StaticResource Secondary}"
+                                                BorderColor="{StaticResource SecondaryBorder}"
+                                                BorderWidth="1" />
+                                    </Grid>
+
+                                    <!-- Active Role Indicator -->
+                                    <Label Text="{Binding SelectedRoleLabel, StringFormat='Active Profile: {0}'}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource SecondaryDark}" />
+                                </VerticalStackLayout>
+
+                                <!-- Username or Email Field -->
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Username or Email"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Border StrokeShape="RoundRectangle 8"
+                                            Stroke="{StaticResource SurfaceBorder}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{StaticResource SurfaceLight}"
+                                            Padding="14,2"
+                                            HeightRequest="46">
+                                        <Entry Text="{Binding Username}"
+                                               Placeholder="e.g. admin or teacher.dara"
+                                               PlaceholderColor="{StaticResource TextSubtle}"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               FontSize="13"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Password Field -->
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Password"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Border StrokeShape="RoundRectangle 8"
+                                            Stroke="{StaticResource SurfaceBorder}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{StaticResource SurfaceLight}"
+                                            Padding="14,2"
+                                            HeightRequest="46">
+                                        <Entry Text="{Binding Password}"
+                                               IsPassword="True"
+                                               Placeholder="Enter your secure password"
+                                               PlaceholderColor="{StaticResource TextSubtle}"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               FontSize="13"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Error Banner -->
+                                <Border IsVisible="{Binding HasError}"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource DangerLight}"
+                                        Stroke="{StaticResource DangerBorder}"
+                                        StrokeThickness="1"
+                                        Padding="14,10">
+                                    <Label Text="{Binding ErrorMessage}"
+                                           TextColor="{StaticResource DangerText}"
+                                           FontSize="12"
+                                           LineBreakMode="WordWrap"
+                                           VerticalOptions="Center" />
+                                </Border>
+
+                                <!-- Sign In Button -->
+                                <Button Text="Sign In to Nexora"
+                                        Command="{Binding LoginCommand}"
+                                        IsEnabled="{Binding IsNotBusy}"
+                                        BackgroundColor="{StaticResource Primary}"
+                                        TextColor="{StaticResource White}"
+                                        FontAttributes="Bold"
+                                        FontSize="14"
+                                        CornerRadius="8"
+                                        HeightRequest="48" />
+
+                                <!-- Busy Indicator -->
+                                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                                   IsVisible="{Binding IsBusy}"
+                                                   Color="{StaticResource Secondary}"
+                                                   HorizontalOptions="Center"
+                                                   HeightRequest="32" WidthRequest="32" />
+
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Institutional Compliance Footer -->
+                        <VerticalStackLayout x:Name="FooterSection" Spacing="4" HorizontalOptions="Center">
+                            <Label Text="Nexora Cloud Education Architecture"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Strict Multi-Tenant Isolation • Role-Based Access Control • TLS 1.3"
+                                   FontSize="10"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+                </Grid>
+            </ScrollView>
         </Grid>
 
         <!-- ========================================================= -->
@@ -116,48 +302,126 @@
         <!-- ========================================================= -->
         <Grid x:Name="GradientCard"
               HorizontalOptions="Fill"
-              VerticalOptions="Fill">
+              VerticalOptions="Fill"
+              IgnoreSafeArea="True">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0.1,0.0" EndPoint="0.9,1.0">
                     <GradientStop Color="#060E1F" Offset="0.0" />
                     <GradientStop Color="#0A1D47" Offset="0.38" />
-                    <GradientStop Color="#1E4ED8" Offset="0.82" />
+                    <GradientStop Color="#163FA5" Offset="0.75" />
                     <GradientStop Color="#2563EB" Offset="1.0" />
                 </LinearGradientBrush>
             </Grid.Background>
 
-            <!-- Centered Brand Lockup: [Official Ribbon 'N'] [Official 'NEXORA' Wordmark] -->
-            <HorizontalStackLayout x:Name="HeroLockup"
-                                   Spacing="16"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center">
+            <!-- Ambient Tech Orbits & Atmospheric Glow Elements -->
+            <Grid HorizontalOptions="Fill" VerticalOptions="Fill" InputTransparent="True" IgnoreSafeArea="True">
+                <!-- Outer Soft Cyan Ring -->
+                <Border WidthRequest="460" HeightRequest="460"
+                        StrokeShape="RoundRectangle 230"
+                        Stroke="#00E5FF" StrokeThickness="1"
+                        Opacity="0.05"
+                        HorizontalOptions="Center" VerticalOptions="Center" />
 
-                <!-- Official Nexora Ribbon Crest -->
-                <Image x:Name="HeroIcon"
-                       Source="logo_icon_transparent.png"
-                       WidthRequest="64"
-                       HeightRequest="52"
-                       Aspect="AspectFit"
-                       VerticalOptions="Center" />
+                <!-- Middle Luminous Ring -->
+                <Border WidthRequest="340" HeightRequest="340"
+                        StrokeShape="RoundRectangle 170"
+                        Stroke="#38BDF8" StrokeThickness="1"
+                        Opacity="0.08"
+                        HorizontalOptions="Center" VerticalOptions="Center" />
 
-                <!-- Official Nexora Wordmark (with signature cyan slash across 'X') -->
-                <Image x:Name="HeroTitle"
-                       Source="logo_wordmark_white.png"
-                       HeightRequest="36"
-                       WidthRequest="165"
-                       Aspect="AspectFit"
-                       VerticalOptions="Center" />
-            </HorizontalStackLayout>
+                <!-- Inner Ambient Cyan Bloom behind Logo -->
+                <Border WidthRequest="220" HeightRequest="220"
+                        StrokeShape="RoundRectangle 110"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center" VerticalOptions="Center"
+                        Opacity="0.30">
+                    <Border.Background>
+                        <RadialGradientBrush Center="0.5,0.5" Radius="0.5">
+                            <GradientStop Color="#00E5FF" Offset="0.0" />
+                            <GradientStop Color="#2563EB" Offset="0.55" />
+                            <GradientStop Color="Transparent" Offset="1.0" />
+                        </RadialGradientBrush>
+                    </Border.Background>
+                </Border>
 
-            <!-- Subtle Bottom Institution Tag -->
-            <Label Text="Angkor International Academy"
-                   TextColor="#93C5FD"
-                   FontSize="11"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   VerticalOptions="End"
-                   Margin="0,0,0,50"
-                   Opacity="0.8" />
+                <!-- Floating Stardust Sparkles (Balanced Across Corners) -->
+                <Border WidthRequest="6" HeightRequest="6" StrokeShape="RoundRectangle 3"
+                        BackgroundColor="#38BDF8" Opacity="0.45"
+                        HorizontalOptions="Start" VerticalOptions="Start" Margin="56,120,0,0" />
+                <Border WidthRequest="8" HeightRequest="8" StrokeShape="RoundRectangle 4"
+                        BackgroundColor="#F59E0B" Opacity="0.35"
+                        HorizontalOptions="End" VerticalOptions="Start" Margin="0,160,72,0" />
+                <Border WidthRequest="5" HeightRequest="5" Rotation="45"
+                        BackgroundColor="#00E5FF" Opacity="0.5"
+                        HorizontalOptions="Start" VerticalOptions="End" Margin="70,0,0,180" />
+                <Border WidthRequest="6" HeightRequest="6" StrokeShape="RoundRectangle 3"
+                        BackgroundColor="#FFFFFF" Opacity="0.45"
+                        HorizontalOptions="End" VerticalOptions="End" Margin="0,0,60,150" />
+            </Grid>
+
+            <!-- Centered Brand Content Lockup -->
+            <VerticalStackLayout Spacing="16"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center">
+
+                <!-- Horizontal Brand Lockup: [Official Ribbon 'N'] [Official 'NEXORA' Wordmark] -->
+                <HorizontalStackLayout x:Name="HeroLockup"
+                                       Spacing="16"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center">
+
+                    <!-- Official Nexora Ribbon Crest -->
+                    <Image x:Name="HeroIcon"
+                           Source="logo_icon_transparent.png"
+                           WidthRequest="76"
+                           HeightRequest="60"
+                           Aspect="AspectFit"
+                           VerticalOptions="Center" />
+
+                    <!-- Official Nexora Wordmark (with signature cyan slash across 'X') -->
+                    <Image x:Name="HeroTitle"
+                           Source="logo_wordmark_white.png"
+                           HeightRequest="40"
+                           WidthRequest="180"
+                           Aspect="AspectFit"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <!-- Glassmorphic Sub-Title Pill -->
+                <Border x:Name="HeroSubtitle"
+                        StrokeShape="RoundRectangle 14"
+                        BackgroundColor="#14FFFFFF"
+                        Stroke="#2038BDF8"
+                        StrokeThickness="1"
+                        Padding="16,5"
+                        HorizontalOptions="Center">
+                    <Label Text="Smart School Management"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           TextColor="#BAE6FD"
+                           CharacterSpacing="0.6"
+                           HorizontalTextAlignment="Center" />
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Bottom Institutional Glass Pill -->
+            <Border StrokeShape="RoundRectangle 16"
+                    BackgroundColor="#10FFFFFF"
+                    Stroke="#1AFFFFFF"
+                    StrokeThickness="1"
+                    Padding="18,7"
+                    HorizontalOptions="Center"
+                    VerticalOptions="End"
+                    Margin="0,0,0,48">
+                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                    <Label Text="✦" FontSize="10" TextColor="#38BDF8" VerticalOptions="Center" />
+                    <Label Text="Angkor International Academy"
+                           TextColor="#E0F2FE"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
         </Grid>
     </Grid>
 

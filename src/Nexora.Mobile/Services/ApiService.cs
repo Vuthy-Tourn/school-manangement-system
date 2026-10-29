@@ -1279,7 +1279,13 @@ public class ApiService : IApiService
             var targetClass = _mockClasses.FirstOrDefault(c => c.Id == request.ClassSectionId);
             if (targetClass != null && targetClass.ClassTeacherId != CurrentUser.LinkedProfileId.Value)
             {
-                return ApiResponse<bool>.Fail($"Access restricted: Only the designated Homeroom Advisor ({targetClass.ClassTeacherName ?? "Assigned Teacher"}) is authorized to record attendance for Class {targetClass.Name}.");
+                var curTeacher = _mockTeachers.FirstOrDefault(t => t.Id == CurrentUser.LinkedProfileId.Value);
+                bool teachesClass = curTeacher?.Assignments?.Any(a => a.ClassSectionId == request.ClassSectionId) == true ||
+                                    _mockSchedule.Any(s => s.ClassSectionId == request.ClassSectionId && s.TeacherId == CurrentUser.LinkedProfileId.Value);
+                if (!teachesClass)
+                {
+                    return ApiResponse<bool>.Fail($"Access restricted: Only the designated Class Advisor ({targetClass.ClassTeacherName ?? "Assigned Advisor"}) or assigned subject teacher is authorized to record attendance for Class {targetClass.Name}.");
+                }
             }
         }
 
@@ -1287,12 +1293,18 @@ public class ApiService : IApiService
         foreach (var item in request.Records)
         {
             var student = _mockStudents.FirstOrDefault(s => s.Id == item.StudentId);
+            if (student == null && item.StudentId == Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"))
+            {
+                student = _mockStudents.FirstOrDefault(s => s.AdmissionNumber == "ADM-2026-0001");
+            }
             var name = student?.FullName ?? "Student";
-            var adm = student?.AdmissionNumber ?? "";
-            _mockAttendance.RemoveAll(a => (a.StudentId == item.StudentId || (!string.IsNullOrEmpty(adm) && a.AdmissionNumber == adm)) && a.Date == request.Date);
+            var adm = student?.AdmissionNumber ?? (item.StudentId == StudentVisalId ? "ADM-2026-0001" : "");
+            var targetStudentId = student?.Id ?? item.StudentId;
+
+            _mockAttendance.RemoveAll(a => (a.StudentId == item.StudentId || a.StudentId == targetStudentId || (!string.IsNullOrEmpty(adm) && a.AdmissionNumber == adm)) && a.Date == request.Date);
             _mockAttendance.Add(new AttendanceRecordDto(
                 Guid.NewGuid(), Guid.NewGuid(), request.ClassSectionId, "10-A",
-                item.StudentId, name, adm, request.Date, item.Status, item.Remarks,
+                targetStudentId, name, adm, request.Date, item.Status, item.Remarks,
                 DateTime.UtcNow, "Teacher", null, null, null
             ));
         }
@@ -1386,8 +1398,15 @@ public class ApiService : IApiService
             LogException("GetStudentAttendanceHistoryAsync", ex);
         }
 
+        var matchedStudent = _mockStudents.FirstOrDefault(s => s.Id == studentId);
+        if (matchedStudent == null && studentId == Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"))
+        {
+            matchedStudent = _mockStudents.FirstOrDefault(s => s.AdmissionNumber == "ADM-2026-0001");
+        }
+        var targetAdm = matchedStudent?.AdmissionNumber;
+
         var records = _mockAttendance
-            .Where(a => a.StudentId == studentId)
+            .Where(a => a.StudentId == studentId || (matchedStudent != null && a.StudentId == matchedStudent.Id) || (!string.IsNullOrEmpty(targetAdm) && a.AdmissionNumber == targetAdm))
             .GroupBy(a => a.Date)
             .Select(g => g.OrderByDescending(x => x.RecordedAtUtc).First())
             .OrderByDescending(a => a.Date)

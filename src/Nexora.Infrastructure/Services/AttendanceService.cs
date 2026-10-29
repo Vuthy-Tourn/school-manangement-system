@@ -266,14 +266,31 @@ public class AttendanceService : IAttendanceService
         return ApiResponse<AttendanceSummaryDto>.Ok(new AttendanceSummaryDto(total, present, absent, late, excused, percentage));
     }
 
+    private async Task<Student?> ResolveStudentAsync(Guid studentId, CancellationToken ct)
+    {
+        var student = await _context.Students
+            .Include(s => s.CurrentClassSection)
+            .FirstOrDefaultAsync(s => s.Id == studentId || s.UserId == studentId, ct);
+
+        if (student == null && WellKnownStudentAdmissions.TryGetValue(studentId, out var adm))
+        {
+            student = await _context.Students
+                .Include(s => s.CurrentClassSection)
+                .FirstOrDefaultAsync(s => s.AdmissionNumber == adm, ct);
+        }
+
+        return student;
+    }
+
     public async Task<ApiResponse<StudentAttendanceStatsDto>> GetStudentAttendanceStatsAsync(Guid studentId, CancellationToken ct = default)
     {
-        var student = await _context.Students.FindAsync(new object[] { studentId }, ct);
+        var student = await ResolveStudentAsync(studentId, ct);
         if (student == null)
             return ApiResponse<StudentAttendanceStatsDto>.Fail("Student not found.");
 
+        var targetStudentId = student.Id;
         var list = await _context.AttendanceRecords
-            .Where(a => a.StudentId == studentId)
+            .Where(a => a.StudentId == targetStudentId || a.StudentId == studentId)
             .ToListAsync(ct);
 
         int total = list.Count;
@@ -301,8 +318,11 @@ public class AttendanceService : IAttendanceService
 
     public async Task<ApiResponse<List<AttendanceRecordDto>>> GetStudentAttendanceHistoryAsync(Guid studentId, CancellationToken ct = default)
     {
+        var student = await ResolveStudentAsync(studentId, ct);
+        var targetStudentId = student?.Id ?? studentId;
+
         var records = await _context.AttendanceRecords
-            .Where(a => a.StudentId == studentId)
+            .Where(a => a.StudentId == targetStudentId || a.StudentId == studentId)
             .Include(a => a.ClassSection)
             .Include(a => a.Student)
             .Include(a => a.RecordedByUser)
@@ -314,8 +334,8 @@ public class AttendanceService : IAttendanceService
                 a.ClassSectionId,
                 a.ClassSection != null ? a.ClassSection.Name : string.Empty,
                 a.StudentId,
-                a.Student != null ? a.Student.FullName : string.Empty,
-                a.Student != null ? a.Student.AdmissionNumber : string.Empty,
+                a.Student != null ? a.Student.FullName : (student != null ? student.FullName : string.Empty),
+                a.Student != null ? a.Student.AdmissionNumber : (student != null ? student.AdmissionNumber : string.Empty),
                 a.Date,
                 a.Status,
                 a.Remarks,
@@ -332,12 +352,13 @@ public class AttendanceService : IAttendanceService
 
     public async Task<ApiResponse<bool>> SubmitStudentPermissionAsync(SubmitPermissionRequest request, CancellationToken ct = default)
     {
-        var student = await _context.Students.FindAsync(new object[] { request.StudentId }, ct);
+        var student = await ResolveStudentAsync(request.StudentId, ct);
         if (student == null)
             return ApiResponse<bool>.Fail("Student not found.");
 
+        var targetStudentId = student.Id;
         var existingRecord = await _context.AttendanceRecords
-            .FirstOrDefaultAsync(a => a.StudentId == request.StudentId && a.Date == request.Date, ct);
+            .FirstOrDefaultAsync(a => (a.StudentId == targetStudentId || a.StudentId == request.StudentId) && a.Date == request.Date, ct);
 
         string reasonNote = string.IsNullOrWhiteSpace(request.Remarks)
             ? $"[Parent Permission] {request.Reason}"

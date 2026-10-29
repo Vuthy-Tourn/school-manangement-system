@@ -893,8 +893,8 @@ public partial class ParentDashboardViewModel : BaseViewModel
                     else
                     {
                         TodayStatusBadgeText = "Awaiting";
-                        TodayStatusText = "Awaiting Morning Roll Call";
-                        TodayStatusDetails = "Daily homeroom attendance is currently being registered by faculty.";
+                        TodayStatusText = "Awaiting Session Attendance";
+                        TodayStatusDetails = "Class session attendance is currently being recorded by faculty.";
                         TodayStatusColor = Color.FromArgb("#3B82F6");
                         TodayStatusBgColor = Color.FromArgb("#EFF6FF");
                         TodayStatusBorderColor = Color.FromArgb("#BFDBFE");

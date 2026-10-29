@@ -29,7 +29,7 @@
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding ShowTeacherSubjectFilter}">
                         <!-- Teaching Subject & Class Selector -->
                         <VerticalStackLayout Grid.Column="0" Spacing="6">
-                            <Label Text="Teaching Subject &amp; Class"
+                            <Label Text="Subject Session &amp; Class"
                                    FontSize="11"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextSecondary}" />
@@ -525,92 +525,96 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Day Navigation & Date Filter Bar: Prev | Custom Date Card | Today | Next -->
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
-                                <Button Grid.Column="0"
-                                        Text="&lt; Prev"
-                                        Command="{Binding InspectPreviousDaySessionsCommand}"
-                                        BackgroundColor="{StaticResource SurfaceCard}"
-                                        TextColor="{StaticResource TextPrimary}"
-                                        BorderColor="{StaticResource SurfaceBorder}"
-                                        BorderWidth="1"
-                                        FontSize="11.5"
-                                        FontAttributes="Bold"
-                                        HeightRequest="38"
-                                        Padding="10,0"
-                                        CornerRadius="8"
-                                        VerticalOptions="Center" />
+                            <!-- Day Navigation & Date Filter Bar: Organized Two-Row Spacious Layout -->
+                            <VerticalStackLayout Spacing="8">
+                                <!-- Row 1: Broad Date Card with Calendar Picker and Today Button -->
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                                    <!-- Date Selector Card (Spacious with full date display) -->
+                                    <Border Grid.Column="0"
+                                            StrokeShape="RoundRectangle 10"
+                                            BackgroundColor="{StaticResource SurfaceCard}"
+                                            Stroke="{StaticResource SurfaceBorder}"
+                                            StrokeThickness="1"
+                                            Padding="12,0"
+                                            HeightRequest="42"
+                                            VerticalOptions="Center">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                                            <Image Grid.Column="0"
+                                                   Source="icon_timetable.png"
+                                                   WidthRequest="18"
+                                                   HeightRequest="18"
+                                                   VerticalOptions="Center" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding SelectedInspectionDateDisplayShort}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   VerticalOptions="Center" />
+                                            <Path Grid.Column="2"
+                                                  Data="M 0 0 L 4 4 L 8 0"
+                                                  Stroke="{StaticResource TextMuted}"
+                                                  StrokeThickness="1.5"
+                                                  StrokeLineCap="Round"
+                                                  StrokeLineJoin="Round"
+                                                  VerticalOptions="Center"
+                                                  HorizontalOptions="Center" />
 
-                                <!-- Custom Date Filter Button with embedded transparent DatePicker -->
-                                <Border Grid.Column="1"
-                                        StrokeShape="RoundRectangle 8"
-                                        BackgroundColor="{StaticResource SurfaceCard}"
-                                        Stroke="{StaticResource SurfaceBorder}"
-                                        StrokeThickness="1"
-                                        Padding="8,0"
-                                        HeightRequest="38"
-                                        VerticalOptions="Center">
-                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" VerticalOptions="Center">
-                                        <Image Grid.Column="0"
-                                               Source="icon_timetable.png"
-                                               WidthRequest="15"
-                                               HeightRequest="15"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding SelectedInspectionDateDisplayShort}"
-                                               FontSize="11.5"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource TextPrimary}"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                        <Path Grid.Column="2"
-                                              Data="M 0 0 L 3.5 3.5 L 7 0"
-                                              Stroke="{StaticResource TextMuted}"
-                                              StrokeThickness="1.5"
-                                              StrokeLineCap="Round"
-                                              StrokeLineJoin="Round"
-                                              VerticalOptions="Center"
-                                              HorizontalOptions="Center" />
+                                            <!-- Overlay transparent DatePicker that catches the tap -->
+                                            <DatePicker Grid.ColumnSpan="3"
+                                                        Date="{Binding SelectedInspectionDate}"
+                                                        MaximumDate="{Binding MaxInspectionDate}"
+                                                        Opacity="0.015"
+                                                        HorizontalOptions="Fill"
+                                                        VerticalOptions="Fill" />
+                                        </Grid>
+                                    </Border>
 
-                                        <!-- Overlay transparent DatePicker that catches the tap -->
-                                        <DatePicker Grid.ColumnSpan="3"
-                                                    Date="{Binding SelectedInspectionDate}"
-                                                    MaximumDate="{Binding MaxInspectionDate}"
-                                                    Opacity="0.015"
-                                                    HorizontalOptions="Fill"
-                                                    VerticalOptions="Fill" />
-                                    </Grid>
-                                </Border>
+                                    <!-- Jump to Today Button -->
+                                    <Button Grid.Column="1"
+                                            Text="Today"
+                                            Command="{Binding InspectTodaySessionsCommand}"
+                                            BackgroundColor="{Binding TodayButtonBgColor}"
+                                            TextColor="{Binding TodayButtonTextColor}"
+                                            BorderColor="{Binding TodayButtonBorderColor}"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            HeightRequest="42"
+                                            Padding="16,0"
+                                            CornerRadius="10"
+                                            VerticalOptions="Center" />
+                                </Grid>
 
-                                <Button Grid.Column="2"
-                                        Text="Today"
-                                        Command="{Binding InspectTodaySessionsCommand}"
-                                        BackgroundColor="{Binding TodayButtonBgColor}"
-                                        TextColor="{Binding TodayButtonTextColor}"
-                                        BorderColor="{Binding TodayButtonBorderColor}"
-                                        BorderWidth="1"
-                                        FontSize="11.5"
-                                        FontAttributes="Bold"
-                                        HeightRequest="38"
-                                        Padding="12,0"
-                                        CornerRadius="8"
-                                        VerticalOptions="Center" />
+                                <!-- Row 2: Navigation Prev Day / Next Day Bar -->
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" VerticalOptions="Center">
+                                    <Button Grid.Column="0"
+                                            Text="&lt; Previous Day"
+                                            Command="{Binding InspectPreviousDaySessionsCommand}"
+                                            BackgroundColor="{StaticResource SurfaceCard}"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            BorderColor="{StaticResource SurfaceBorder}"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            HeightRequest="38"
+                                            CornerRadius="8"
+                                            VerticalOptions="Center" />
 
-                                <Button Grid.Column="3"
-                                        Text="Next &gt;"
-                                        Command="{Binding InspectNextDaySessionsCommand}"
-                                        IsEnabled="{Binding CanGoToNextInspectionDay}"
-                                        BackgroundColor="{StaticResource SurfaceCard}"
-                                        TextColor="{StaticResource TextPrimary}"
-                                        BorderColor="{StaticResource SurfaceBorder}"
-                                        BorderWidth="1"
-                                        FontSize="11.5"
-                                        FontAttributes="Bold"
-                                        HeightRequest="38"
-                                        Padding="10,0"
-                                        CornerRadius="8"
-                                        VerticalOptions="Center" />
-                            </Grid>
+                                    <Button Grid.Column="1"
+                                            Text="Next Day &gt;"
+                                            Command="{Binding InspectNextDaySessionsCommand}"
+                                            IsEnabled="{Binding CanGoToNextInspectionDay}"
+                                            BackgroundColor="{StaticResource SurfaceCard}"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            BorderColor="{StaticResource SurfaceBorder}"
+                                            BorderWidth="1"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            HeightRequest="38"
+                                            CornerRadius="8"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </VerticalStackLayout>
 
                             <!-- Sessions List -->
                             <VerticalStackLayout Spacing="8">
