@@ -1440,6 +1440,10 @@ public class StudentSessionAttendanceItem : ObservableObject
     public bool HasRemarks => !string.IsNullOrWhiteSpace(Remarks);
     public bool IsHomeroom { get; set; }
 
+    public string SubtitleDisplay => string.IsNullOrWhiteSpace(RoomNumber)
+        ? InstructorName
+        : $"{InstructorName} • {RoomNumber}";
+
     public string StatusBadgeText => Status switch
     {
         AttendanceStatus.Present => "Present",
@@ -1537,6 +1541,7 @@ public partial class AttendanceViewModel : BaseViewModel
     // Session-by-Session Inspection Properties
     [ObservableProperty] private ObservableCollection<StudentSessionAttendanceItem> _daySessions = new();
     [ObservableProperty] private DateTime _selectedInspectionDate = DateTime.Today;
+    [ObservableProperty] private DateTime _maxInspectionDate = DateTime.Today;
     [ObservableProperty] private string _selectedInspectionDateDisplay = "Today's Schedule & Sessions";
     [ObservableProperty] private string _selectedDayOverallStatusText = "All Sessions Present";
     [ObservableProperty] private Color _selectedDayOverallStatusColor = Color.FromArgb("#10B981");
@@ -1544,7 +1549,7 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private Color _selectedDayOverallStatusBorderColor = Color.FromArgb("#A7F3D0");
     [ObservableProperty] private bool _hasDaySessions = true;
     [ObservableProperty] private bool _canGoToNextInspectionDay = false;
-    [ObservableProperty] private string _permissionModalTitle = "Ask Permission";
+    [ObservableProperty] private string _permissionModalTitle = "Ask Permission for Child";
     [ObservableProperty] private ObservableCollection<ClassSectionDto> _classes = new();
     [ObservableProperty] private ClassSectionDto? _selectedClass;
     [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
@@ -1567,6 +1572,17 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _childAttendanceHistory = new();
     [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _filteredChildAttendanceHistory = new();
     private List<AttendanceRecordDisplayItem> _allChildAttendanceRecords = new();
+    private List<AttendanceRecordDisplayItem> _currentFilteredRecords = new();
+
+    // Parent Attendance History Pagination properties
+    private const int HistoryPageSize = 5;
+    [ObservableProperty] private int _historyCurrentPage = 1;
+    [ObservableProperty] private int _historyTotalPages = 1;
+    [ObservableProperty] private string _historyPageInfo = "Page 1 of 1";
+    [ObservableProperty] private bool _canGoToPreviousHistoryPage = false;
+    [ObservableProperty] private bool _canGoToNextHistoryPage = false;
+    [ObservableProperty] private bool _hasHistoryRecords = false;
+    [ObservableProperty] private ObservableCollection<AttendanceRecordDisplayItem> _pagedChildAttendanceHistory = new();
 
     // Filter controls for parent view
     [ObservableProperty] private string _selectedAttendanceFilter = "All";
@@ -2180,9 +2196,21 @@ public partial class AttendanceViewModel : BaseViewModel
         }
     }
 
+    partial void OnSelectedInspectionDateChanged(DateTime value)
+    {
+        if (IsStudentView)
+        {
+            LoadSessionsForInspectionDate(value);
+        }
+    }
+
     public void LoadSessionsForInspectionDate(DateTime inspectionDate)
     {
-        SelectedInspectionDate = inspectionDate;
+        if (SelectedInspectionDate.Date != inspectionDate.Date)
+        {
+            SelectedInspectionDate = inspectionDate;
+            return;
+        }
         CanGoToNextInspectionDay = inspectionDate.Date < DateTime.Today.Date;
 
         var dateOnly = DateOnly.FromDateTime(inspectionDate);
@@ -2497,7 +2525,7 @@ public partial class AttendanceViewModel : BaseViewModel
         {
             prev = prev.AddDays(-1);
         }
-        LoadSessionsForInspectionDate(prev);
+        SelectedInspectionDate = prev;
     }
 
     [RelayCommand]
@@ -2511,21 +2539,21 @@ public partial class AttendanceViewModel : BaseViewModel
         }
         if (next.Date <= DateTime.Today.Date)
         {
-            LoadSessionsForInspectionDate(next);
+            SelectedInspectionDate = next;
         }
     }
 
     [RelayCommand]
     public void InspectTodaySessions()
     {
-        LoadSessionsForInspectionDate(DateTime.Today);
+        SelectedInspectionDate = DateTime.Today;
     }
 
     [RelayCommand]
     public void InspectRecordSessions(AttendanceRecordDisplayItem record)
     {
         if (record == null) return;
-        LoadSessionsForInspectionDate(record.Date.ToDateTime(TimeOnly.MinValue));
+        SelectedInspectionDate = record.Date.ToDateTime(TimeOnly.MinValue);
     }
 
     [RelayCommand]
@@ -2567,26 +2595,57 @@ public partial class AttendanceViewModel : BaseViewModel
             _ => _allChildAttendanceRecords
         };
 
-        FilteredChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(filtered);
+        _currentFilteredRecords = filtered.ToList();
+        FilteredChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(_currentFilteredRecords);
+        UpdateHistoryPagination(1);
+    }
+
+    private void UpdateHistoryPagination(int page = 1)
+    {
+        int totalCount = _currentFilteredRecords.Count;
+        HistoryTotalPages = Math.Max(1, (int)Math.Ceiling((double)totalCount / HistoryPageSize));
+        HistoryCurrentPage = Math.Clamp(page, 1, HistoryTotalPages);
+
+        CanGoToPreviousHistoryPage = HistoryCurrentPage > 1;
+        CanGoToNextHistoryPage = HistoryCurrentPage < HistoryTotalPages;
+        HasHistoryRecords = totalCount > 0;
+
+        int startItem = totalCount == 0 ? 0 : (HistoryCurrentPage - 1) * HistoryPageSize + 1;
+        int endItem = Math.Min(HistoryCurrentPage * HistoryPageSize, totalCount);
+        HistoryPageInfo = totalCount == 0
+            ? "0 records"
+            : $"Showing {startItem}-{endItem} of {totalCount} records (Page {HistoryCurrentPage} of {HistoryTotalPages})";
+
+        var pageItems = _currentFilteredRecords
+            .Skip((HistoryCurrentPage - 1) * HistoryPageSize)
+            .Take(HistoryPageSize)
+            .ToList();
+
+        PagedChildAttendanceHistory = new ObservableCollection<AttendanceRecordDisplayItem>(pageItems);
+    }
+
+    [RelayCommand]
+    public void PreviousHistoryPage()
+    {
+        if (CanGoToPreviousHistoryPage)
+        {
+            UpdateHistoryPagination(HistoryCurrentPage - 1);
+        }
+    }
+
+    [RelayCommand]
+    public void NextHistoryPage()
+    {
+        if (CanGoToNextHistoryPage)
+        {
+            UpdateHistoryPagination(HistoryCurrentPage + 1);
+        }
     }
 
     [RelayCommand]
     public void OpenPermissionModal()
     {
-        if (IsStudentOnlyView)
-        {
-            PermissionTargetChild = new LinkedStudentDto(
-                _currentStudentId,
-                StudentFullName,
-                StudentAdmissionNumber,
-                StudentClassName,
-                "Self",
-                true);
-        }
-        else
-        {
-            PermissionTargetChild = SelectedParentChild ?? ParentChildren.FirstOrDefault();
-        }
+        PermissionTargetChild = SelectedParentChild ?? ParentChildren.FirstOrDefault();
         PermissionDate = DateTime.Today;
         SelectedPermissionReason = PermissionReasons.FirstOrDefault() ?? "Sick Leave / Medical";
         PermissionRemarks = string.Empty;
@@ -2632,20 +2691,12 @@ public partial class AttendanceViewModel : BaseViewModel
 
             if (res.Success)
             {
-                var targetName = IsStudentOnlyView ? "your record" : PermissionTargetChild.FullName;
                 await Shell.Current.DisplayAlert(
                     "Permission Submitted",
-                    $"Official leave permission has been recorded for {targetName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
+                    $"Official leave permission has been recorded for {PermissionTargetChild.FullName} on {PermissionDate:yyyy-MM-dd}. Attendance status marked as Excused.",
                     "OK");
 
-                if (IsStudentOnlyView)
-                {
-                    await LoadStudentOrChildAttendanceInternalAsync(_currentStudentId);
-                }
-                else
-                {
-                    await LoadParentChildAttendanceAsync(PermissionTargetChild.StudentId);
-                }
+                await LoadParentChildAttendanceAsync(PermissionTargetChild.StudentId);
             }
             else
             {
