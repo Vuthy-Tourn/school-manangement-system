@@ -1543,6 +1543,10 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private DateTime _selectedInspectionDate = DateTime.Today;
     [ObservableProperty] private DateTime _maxInspectionDate = DateTime.Today;
     [ObservableProperty] private string _selectedInspectionDateDisplay = "Today's Schedule & Sessions";
+    [ObservableProperty] private string _selectedInspectionDateDisplayShort = "Today, Oct 29";
+    [ObservableProperty] private Color _todayButtonBgColor = Color.FromArgb("#EFF6FF");
+    [ObservableProperty] private Color _todayButtonTextColor = Color.FromArgb("#2563EB");
+    [ObservableProperty] private Color _todayButtonBorderColor = Color.FromArgb("#BFDBFE");
     [ObservableProperty] private string _selectedDayOverallStatusText = "All Sessions Present";
     [ObservableProperty] private Color _selectedDayOverallStatusColor = Color.FromArgb("#10B981");
     [ObservableProperty] private Color _selectedDayOverallStatusBgColor = Color.FromArgb("#ECFDF5");
@@ -1563,6 +1567,7 @@ public partial class AttendanceViewModel : BaseViewModel
 
     // Parent Child Attendance properties
     [ObservableProperty] private bool _hasMultipleChildren = false;
+    public bool HasSingleChild => IsParentView && !HasMultipleChildren;
     [ObservableProperty] private bool _isRefreshing = false;
     private bool _isInitializing = false;
     private bool _isLoading = false;
@@ -2222,6 +2227,25 @@ public partial class AttendanceViewModel : BaseViewModel
             : isYesterday
                 ? $"Yesterday ({inspectionDate:dddd, MMM dd})"
                 : $"{inspectionDate:dddd, MMM dd, yyyy}";
+
+        SelectedInspectionDateDisplayShort = isToday
+            ? $"Today, {inspectionDate:MMM dd}"
+            : isYesterday
+                ? $"Yesterday, {inspectionDate:MMM dd}"
+                : $"{inspectionDate:ddd, MMM dd}";
+
+        if (isToday)
+        {
+            TodayButtonBgColor = Color.FromArgb("#EFF6FF");
+            TodayButtonTextColor = Color.FromArgb("#2563EB");
+            TodayButtonBorderColor = Color.FromArgb("#BFDBFE");
+        }
+        else
+        {
+            TodayButtonBgColor = Color.FromArgb("#2563EB");
+            TodayButtonTextColor = Color.FromArgb("#FFFFFF");
+            TodayButtonBorderColor = Color.FromArgb("#2563EB");
+        }
 
         if (inspectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
         {

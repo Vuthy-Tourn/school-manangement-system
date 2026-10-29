@@ -420,95 +420,31 @@
                         </Border>
                     </Grid>
 
-                    <!-- Today's Live Attendance & Arrival Status Card -->
-                    <Border StrokeShape="RoundRectangle 14"
-                            BackgroundColor="{StaticResource SurfaceCard}"
-                            Stroke="{StaticResource SurfaceBorder}"
-                            Padding="18,16">
-                        <VerticalStackLayout Spacing="12">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Today's School Attendance Status"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource TextPrimary}" />
-                                    <Label Text="Real-time campus check-in status"
-                                           FontSize="11"
-                                           TextColor="{StaticResource TextMuted}" />
-                                </VerticalStackLayout>
-                                <Button Grid.Column="1"
-                                        Text="Ask Permission"
-                                        Command="{Binding OpenPermissionModalCommand}"
-                                        IsVisible="{Binding IsParentView}"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                        TextColor="{StaticResource Primary}"
-                                        BorderColor="{StaticResource PrimaryBorder}"
-                                        BorderWidth="1"
-                                        FontSize="11"
-                                        FontAttributes="Bold"
-                                        HeightRequest="32"
-                                        Padding="10,0"
-                                        CornerRadius="6"
-                                        VerticalOptions="Center" />
-                                <Label Grid.Column="2"
-                                        Text="{Binding StudentClassName, TargetNullValue='Class 10-A'}"
-                                        FontSize="12"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource Secondary}"
-                                        VerticalOptions="Center" />
-                            </Grid>
-
-                            <!-- Live Status Banner -->
-                            <Border StrokeShape="RoundRectangle 12"
-                                    BackgroundColor="{Binding TodayStatusBgColor}"
-                                    Stroke="{Binding TodayStatusBorderColor}"
-                                    StrokeThickness="1"
-                                    Padding="14,12">
-                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
-                                    <Border Grid.Column="0"
-                                            StrokeShape="RoundRectangle 20"
-                                            BackgroundColor="{Binding TodayStatusColor}"
-                                            Stroke="Transparent"
-                                            WidthRequest="40"
-                                            HeightRequest="40"
-                                            VerticalOptions="Center">
-                                        <Label Text="{Binding TodayStatusIcon}"
-                                               TextColor="{StaticResource White}"
-                                               FontSize="18"
-                                               FontAttributes="Bold"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                    </Border>
-
-                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                            <Label Text="{Binding StudentFullName}"
-                                                   FontSize="13"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource TextPrimary}" />
-                                            <Border StrokeShape="RoundRectangle 4"
-                                                    BackgroundColor="{Binding TodayStatusColor}"
-                                                    Padding="6,2"
-                                                    VerticalOptions="Center">
-                                                <Label Text="{Binding TodayStatusBadgeText}"
-                                                       FontSize="10"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{StaticResource White}" />
-                                            </Border>
-                                        </HorizontalStackLayout>
-                                        <Label Text="{Binding TodayStatusText}"
-                                               FontSize="11"
-                                               FontAttributes="Bold"
-                                               TextColor="{Binding TodayStatusColor}" />
-                                        <Label Text="{Binding TodayStatusDetails}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               LineBreakMode="WordWrap" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Border>
+                    <!-- Parent Action Bar (shown when parent has 1 child) -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" IsVisible="{Binding HasSingleChild}">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Child Attendance Overview"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="{Binding SelectedParentChild.FullName}"
+                                   FontSize="11.5"
+                                   TextColor="{StaticResource Primary}" />
                         </VerticalStackLayout>
-                    </Border>
+                        <Button Grid.Column="1"
+                                Text="Ask Permission"
+                                Command="{Binding OpenPermissionModalCommand}"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                TextColor="{StaticResource Primary}"
+                                BorderColor="{StaticResource PrimaryBorder}"
+                                BorderWidth="1"
+                                FontSize="11"
+                                FontAttributes="Bold"
+                                HeightRequest="32"
+                                Padding="12,0"
+                                CornerRadius="6"
+                                VerticalOptions="Center" />
+                    </Grid>
 
                     <!-- Session-by-Session Period Attendance Card -->
                     <Border StrokeShape="RoundRectangle 14"
@@ -545,68 +481,90 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Day Navigation & Date Filter Bar: Prev Day | Date Picker | Today | Next Day -->
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6" VerticalOptions="Center">
+                            <!-- Day Navigation & Date Filter Bar: Prev | Custom Date Card | Today | Next -->
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
                                 <Button Grid.Column="0"
-                                        Text="&lt; Prev Day"
+                                        Text="&lt; Prev"
                                         Command="{Binding InspectPreviousDaySessionsCommand}"
-                                        BackgroundColor="{StaticResource SurfaceLight}"
+                                        BackgroundColor="{StaticResource SurfaceCard}"
                                         TextColor="{StaticResource TextPrimary}"
                                         BorderColor="{StaticResource SurfaceBorder}"
                                         BorderWidth="1"
-                                        FontSize="11"
+                                        FontSize="11.5"
                                         FontAttributes="Bold"
-                                        HeightRequest="34"
-                                        Padding="8,0"
-                                        CornerRadius="6"
+                                        HeightRequest="38"
+                                        Padding="10,0"
+                                        CornerRadius="8"
                                         VerticalOptions="Center" />
 
-                                <!-- Date Filter Picker -->
+                                <!-- Custom Date Filter Button with embedded transparent DatePicker -->
                                 <Border Grid.Column="1"
-                                        StrokeShape="RoundRectangle 6"
-                                        BackgroundColor="{StaticResource SurfaceLight}"
-                                        Stroke="{StaticResource PrimaryBorder}"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="{StaticResource SurfaceCard}"
+                                        Stroke="{StaticResource SurfaceBorder}"
                                         StrokeThickness="1"
-                                        Padding="6,0"
-                                        HeightRequest="34"
+                                        Padding="8,0"
+                                        HeightRequest="38"
                                         VerticalOptions="Center">
-                                    <DatePicker Date="{Binding SelectedInspectionDate}"
-                                                Format="yyyy-MM-dd"
-                                                MaximumDate="{Binding MaxInspectionDate}"
-                                                TextColor="{StaticResource Primary}"
-                                                FontSize="11.5"
-                                                FontAttributes="Bold"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center" />
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" VerticalOptions="Center">
+                                        <Image Grid.Column="0"
+                                               Source="icon_timetable.png"
+                                               WidthRequest="15"
+                                               HeightRequest="15"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding SelectedInspectionDateDisplayShort}"
+                                               FontSize="11.5"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                        <Path Grid.Column="2"
+                                              Data="M 0 0 L 3.5 3.5 L 7 0"
+                                              Stroke="{StaticResource TextMuted}"
+                                              StrokeThickness="1.5"
+                                              StrokeLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              VerticalOptions="Center"
+                                              HorizontalOptions="Center" />
+
+                                        <!-- Overlay transparent DatePicker that catches the tap -->
+                                        <DatePicker Grid.ColumnSpan="3"
+                                                    Date="{Binding SelectedInspectionDate}"
+                                                    MaximumDate="{Binding MaxInspectionDate}"
+                                                    Opacity="0.015"
+                                                    HorizontalOptions="Fill"
+                                                    VerticalOptions="Fill" />
+                                    </Grid>
                                 </Border>
 
                                 <Button Grid.Column="2"
                                         Text="Today"
                                         Command="{Binding InspectTodaySessionsCommand}"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                        TextColor="{StaticResource Primary}"
-                                        BorderColor="{StaticResource PrimaryBorder}"
+                                        BackgroundColor="{Binding TodayButtonBgColor}"
+                                        TextColor="{Binding TodayButtonTextColor}"
+                                        BorderColor="{Binding TodayButtonBorderColor}"
                                         BorderWidth="1"
-                                        FontSize="11"
+                                        FontSize="11.5"
                                         FontAttributes="Bold"
-                                        HeightRequest="34"
-                                        Padding="10,0"
-                                        CornerRadius="6"
+                                        HeightRequest="38"
+                                        Padding="12,0"
+                                        CornerRadius="8"
                                         VerticalOptions="Center" />
 
                                 <Button Grid.Column="3"
-                                        Text="Next Day &gt;"
+                                        Text="Next &gt;"
                                         Command="{Binding InspectNextDaySessionsCommand}"
                                         IsEnabled="{Binding CanGoToNextInspectionDay}"
-                                        BackgroundColor="{StaticResource SurfaceLight}"
+                                        BackgroundColor="{StaticResource SurfaceCard}"
                                         TextColor="{StaticResource TextPrimary}"
                                         BorderColor="{StaticResource SurfaceBorder}"
                                         BorderWidth="1"
-                                        FontSize="11"
+                                        FontSize="11.5"
                                         FontAttributes="Bold"
-                                        HeightRequest="34"
-                                        Padding="8,0"
-                                        CornerRadius="6"
+                                        HeightRequest="38"
+                                        Padding="10,0"
+                                        CornerRadius="8"
                                         VerticalOptions="Center" />
                             </Grid>
 
