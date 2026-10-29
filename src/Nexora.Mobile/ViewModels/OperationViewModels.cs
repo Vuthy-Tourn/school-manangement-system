@@ -1533,10 +1533,26 @@ public partial class AttendanceViewModel : BaseViewModel
     [ObservableProperty] private Guid? _targetClassId;
 
     private bool _isAuthorizedForCurrentSession = false;
-    public bool CanTakeAttendanceActions => _isAuthorizedForCurrentSession && SelectedClass != null && SelectedSession != null;
+    public bool CanTakeAttendanceActions => HasClassesScheduled && _isAuthorizedForCurrentSession && SelectedClass != null && SelectedSession != null;
 
     [ObservableProperty] private bool _showClassFilter = true;
     [ObservableProperty] private bool _showTeacherSubjectFilter = false;
+    [ObservableProperty] private bool _hasClassesScheduled = true;
+    [ObservableProperty] private bool _hasNoClassesScheduled = false;
+    [ObservableProperty] private bool _hasStudents = false;
+    [ObservableProperty] private bool _hasNoStudents = false;
+    [ObservableProperty] private bool _showAdvisorRoleBanner = false;
+    [ObservableProperty] private string _sessionPickerPlaceholder = "Select class session";
+    [ObservableProperty] private string _noClassesTitle = "No Classes Today";
+    [ObservableProperty] private string _noClassesMessage = "You do not have any teaching sessions scheduled for this date.";
+    [ObservableProperty] private string _noClassesSubtext = "Select another date from the calendar to inspect or take attendance.";
+
+    public void UpdateStudentVisibility()
+    {
+        bool hasItems = StudentItems != null && StudentItems.Count > 0;
+        HasStudents = HasClassesScheduled && !HasNoClassesScheduled && hasItems;
+        HasNoStudents = HasClassesScheduled && !HasNoClassesScheduled && !IsBusy && !hasItems;
+    }
 
     private readonly List<ClassSectionDto> _allSchoolClasses = new();
     private readonly List<TimetableEntryDto> _teacherTimetableEntries = new();
@@ -1550,23 +1566,28 @@ public partial class AttendanceViewModel : BaseViewModel
         if (Guid.TryParse(value, out var guid))
         {
             TargetClassId = guid;
+            var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == guid)
+                           ?? Classes.FirstOrDefault(c => c.Id == guid)
+                           ?? Classes.FirstOrDefault();
+            if (targetClass != null)
+            {
+                SelectedClass = targetClass;
+            }
+
             if (Sessions != null && Sessions.Count > 0)
             {
-                var matchSession = Sessions.FirstOrDefault(s => s.ClassSectionId == guid);
+                var matchSession = Sessions.FirstOrDefault(s => s.ClassSectionId == guid)
+                                ?? Sessions.FirstOrDefault(s => targetClass != null && s.ClassName.Equals(targetClass.Name, StringComparison.OrdinalIgnoreCase))
+                                ?? Sessions.FirstOrDefault();
                 if (matchSession != null)
                 {
                     SelectedSession = matchSession;
-                    return;
                 }
             }
-            if (Classes != null && Classes.Count > 0)
-            {
-                var match = Classes.FirstOrDefault(c => c.Id == guid);
-                if (match != null)
-                {
-                    SelectedClass = match;
-                }
-            }
+
+            HasClassesScheduled = true;
+            HasNoClassesScheduled = false;
+            _ = LoadAttendanceInternalAsync();
         }
     }
 
@@ -1742,22 +1763,39 @@ public partial class AttendanceViewModel : BaseViewModel
         SelectedSessionTimeSlot = value?.TimeSlotDisplay ?? "08:00 - 09:30";
         SaveButtonText = $"Save {value?.TitleDisplay ?? "Session"} Attendance";
 
+        bool classChanged = false;
         if (value != null && value.ClassSectionId != Guid.Empty)
         {
-            if (SelectedClass == null || SelectedClass.Id != value.ClassSectionId)
+            var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == value.ClassSectionId)
+                           ?? Classes.FirstOrDefault(c => c.Id == value.ClassSectionId)
+                           ?? _allSchoolClasses.FirstOrDefault(c => !string.IsNullOrEmpty(value.ClassName) &&
+                                                                   (c.Name.Equals(value.ClassName, StringComparison.OrdinalIgnoreCase) ||
+                                                                    c.Name.Contains(value.ClassName, StringComparison.OrdinalIgnoreCase)))
+                           ?? Classes.FirstOrDefault(c => !string.IsNullOrEmpty(value.ClassName) &&
+                                                         (c.Name.Equals(value.ClassName, StringComparison.OrdinalIgnoreCase) ||
+                                                          c.Name.Contains(value.ClassName, StringComparison.OrdinalIgnoreCase)))
+                           ?? Classes.FirstOrDefault();
+            if (targetClass != null && (SelectedClass == null || SelectedClass.Id != targetClass.Id))
             {
-                var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == value.ClassSectionId)
-                               ?? Classes.FirstOrDefault(c => c.Id == value.ClassSectionId);
-                if (targetClass != null)
-                {
-                    SelectedClass = targetClass;
-                }
+                SelectedClass = targetClass;
+                classChanged = true;
             }
+            HasClassesScheduled = true;
+            HasNoClassesScheduled = false;
         }
 
         UpdateAdvisorRoleStatus();
-        ApplySessionAttendance();
-        RecalculatePresentRate();
+
+        if (value != null && !_isInitializing && (classChanged || StudentItems.Count == 0))
+        {
+            _ = LoadAttendanceInternalAsync();
+        }
+        else
+        {
+            ApplySessionAttendance();
+            RecalculatePresentRate();
+            UpdateStudentVisibility();
+        }
     }
 
     partial void OnSelectedParentChildChanged(LinkedStudentDto? value)
@@ -1779,6 +1817,7 @@ public partial class AttendanceViewModel : BaseViewModel
     {
         _apiService = apiService;
         Title = "Attendance Management";
+        _studentItems.CollectionChanged += (s, e) => UpdateStudentVisibility();
     }
 
     public void RecalculatePresentRate()
@@ -1961,6 +2000,7 @@ public partial class AttendanceViewModel : BaseViewModel
                 item.CanEdit = _isAuthorizedForCurrentSession;
             }
             OnPropertyChanged(nameof(CanTakeAttendanceActions));
+            UpdateStudentVisibility();
         }
     }
 
@@ -1971,120 +2011,151 @@ public partial class AttendanceViewModel : BaseViewModel
 
         var sessionsList = new List<AttendanceSessionItemViewModel>();
         var dayOfWeek = SelectedDate.DayOfWeek;
+        bool isWeekend = dayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
 
-        // 1. Classes where this teacher is the designated Class Teacher / Main Advisor:
-        // Main advisor controls the class, has access to all session attendance, and can manage attendance for students.
-        var advisoryClasses = _allSchoolClasses.Where(c => c.ClassTeacherId == teacherId.Value).ToList();
-        foreach (var c in advisoryClasses)
+        if (!isWeekend)
         {
-            try
+            // 1. Classes where this teacher is the designated Class Teacher / Main Advisor:
+            // Main advisor controls the class, has access to all session attendance, and can manage attendance for students.
+            var advisoryClasses = _allSchoolClasses.Where(c => c.ClassTeacherId == teacherId.Value).ToList();
+            foreach (var c in advisoryClasses)
             {
-                var ttRes = await _apiService.GetClassTimetableAsync(c.Id);
-                if (ttRes.Success && ttRes.Data != null && ttRes.Data.Count > 0)
+                try
                 {
-                    var entriesForDay = ttRes.Data
-                        .Where(e => e.DayOfWeek == dayOfWeek)
-                        .OrderBy(e => e.StartTime)
-                        .ToList();
-
-                    if (entriesForDay.Count == 0 && dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
+                    var ttRes = await _apiService.GetClassTimetableAsync(c.Id);
+                    if (ttRes.Success && ttRes.Data != null && ttRes.Data.Count > 0)
                     {
-                        entriesForDay = ttRes.Data
-                            .GroupBy(e => e.SubjectId)
-                            .Select(g => g.First())
+                        var entriesForDay = ttRes.Data
+                            .Where(e => e.DayOfWeek == dayOfWeek)
                             .OrderBy(e => e.StartTime)
                             .ToList();
-                    }
 
-                    foreach (var entry in entriesForDay)
+                        foreach (var entry in entriesForDay)
+                        {
+                            if (!sessionsList.Any(s => s.ClassSectionId == c.Id && s.SubjectId == entry.SubjectId && s.StartTime == entry.StartTime))
+                            {
+                                sessionsList.Add(new AttendanceSessionItemViewModel
+                                {
+                                    SessionKey = $"tt_{entry.Id}",
+                                    TimetableEntryId = entry.Id,
+                                    SubjectId = entry.SubjectId,
+                                    SubjectName = entry.SubjectName,
+                                    ClassSectionId = c.Id,
+                                    ClassName = c.Name,
+                                    InstructorId = entry.TeacherId,
+                                    InstructorName = entry.TeacherId == teacherId.Value
+                                        ? (_currentTeacherProfile?.FullName ?? _apiService.CurrentUser?.FullName ?? "Dara Sok (You)")
+                                        : entry.TeacherName,
+                                    StartTime = entry.StartTime,
+                                    EndTime = entry.EndTime,
+                                    RoomNumber = entry.RoomNumber ?? c.RoomNumber,
+                                    IsHomeroomSession = false
+                                });
+                            }
+                        }
+                    }
+                }
+                catch { /* non-critical */ }
+            }
+
+            // 2. Timetable entries for this teacher where they instruct subjects in any class (including non-advisory classes)
+            var entriesForTeacher = _teacherTimetableEntries
+                .Where(e => e.DayOfWeek == dayOfWeek)
+                .OrderBy(e => e.StartTime)
+                .ToList();
+
+            foreach (var entry in entriesForTeacher)
+            {
+                if (!sessionsList.Any(s => s.ClassSectionId == entry.ClassSectionId && s.SubjectId == entry.SubjectId && s.StartTime == entry.StartTime))
+                {
+                    var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == entry.ClassSectionId);
+                    sessionsList.Add(new AttendanceSessionItemViewModel
                     {
-                        if (!sessionsList.Any(s => s.ClassSectionId == c.Id && s.SubjectId == entry.SubjectId && s.StartTime == entry.StartTime))
+                        SessionKey = $"tt_{entry.Id}",
+                        TimetableEntryId = entry.Id,
+                        SubjectId = entry.SubjectId,
+                        SubjectName = entry.SubjectName,
+                        ClassSectionId = entry.ClassSectionId,
+                        ClassName = targetClass?.Name ?? "Class",
+                        InstructorId = teacherId.Value,
+                        InstructorName = _currentTeacherProfile?.FullName ?? entry.TeacherName ?? _apiService.CurrentUser?.FullName ?? "Faculty",
+                        StartTime = entry.StartTime,
+                        EndTime = entry.EndTime,
+                        RoomNumber = entry.RoomNumber ?? targetClass?.RoomNumber,
+                        IsHomeroomSession = false
+                    });
+                }
+            }
+
+            // 3. Fallback: ONLY IF teacher has NO timetable entries at all across the entire school schedule (unconfigured schedule)
+            if (sessionsList.Count == 0 && _teacherTimetableEntries.Count == 0 && advisoryClasses.Count == 0)
+            {
+                if (_currentTeacherProfile?.Assignments != null)
+                {
+                    foreach (var a in _currentTeacherProfile.Assignments)
+                    {
+                        var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == a.ClassSectionId);
+                        var className = targetClass?.Name ?? a.ClassName ?? "Class";
+                        var subjName = !string.IsNullOrWhiteSpace(a.SubjectName) ? a.SubjectName : "Mathematics";
+
+                        if (!sessionsList.Any(s => s.ClassSectionId == a.ClassSectionId && s.SubjectId == a.SubjectId))
                         {
                             sessionsList.Add(new AttendanceSessionItemViewModel
                             {
-                                SessionKey = $"tt_{entry.Id}",
-                                TimetableEntryId = entry.Id,
-                                SubjectId = entry.SubjectId,
-                                SubjectName = entry.SubjectName,
-                                ClassSectionId = c.Id,
-                                ClassName = c.Name,
-                                InstructorId = entry.TeacherId,
-                                InstructorName = entry.TeacherId == teacherId.Value
-                                    ? (_currentTeacherProfile?.FullName ?? _apiService.CurrentUser?.FullName ?? "Dara Sok (You)")
-                                    : entry.TeacherName,
-                                StartTime = entry.StartTime,
-                                EndTime = entry.EndTime,
-                                RoomNumber = entry.RoomNumber ?? c.RoomNumber,
+                                SessionKey = $"assign_{a.ClassSectionId}_{a.SubjectId}",
+                                SubjectId = a.SubjectId,
+                                SubjectName = subjName,
+                                ClassSectionId = a.ClassSectionId,
+                                ClassName = className,
+                                InstructorId = teacherId.Value,
+                                InstructorName = _currentTeacherProfile?.FullName ?? _apiService.CurrentUser?.FullName ?? "Teacher",
+                                StartTime = new TimeSpan(8, 0, 0),
+                                EndTime = new TimeSpan(9, 30, 0),
+                                RoomNumber = targetClass?.RoomNumber,
                                 IsHomeroomSession = false
                             });
                         }
                     }
                 }
             }
-            catch { /* non-critical */ }
         }
 
-        // 2. Timetable entries for this teacher where they instruct subjects in any class (including non-advisory classes)
-        var entriesForTeacher = _teacherTimetableEntries
-            .Where(e => e.DayOfWeek == dayOfWeek)
-            .OrderBy(e => e.StartTime)
-            .ToList();
-
-        foreach (var entry in entriesForTeacher)
-        {
-            if (!sessionsList.Any(s => s.ClassSectionId == entry.ClassSectionId && s.SubjectId == entry.SubjectId && s.StartTime == entry.StartTime))
-            {
-                var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == entry.ClassSectionId);
-                sessionsList.Add(new AttendanceSessionItemViewModel
-                {
-                    SessionKey = $"tt_{entry.Id}",
-                    TimetableEntryId = entry.Id,
-                    SubjectId = entry.SubjectId,
-                    SubjectName = entry.SubjectName,
-                    ClassSectionId = entry.ClassSectionId,
-                    ClassName = targetClass?.Name ?? "Class",
-                    InstructorId = teacherId.Value,
-                    InstructorName = _currentTeacherProfile?.FullName ?? entry.TeacherName ?? _apiService.CurrentUser?.FullName ?? "Faculty",
-                    StartTime = entry.StartTime,
-                    EndTime = entry.EndTime,
-                    RoomNumber = entry.RoomNumber ?? targetClass?.RoomNumber,
-                    IsHomeroomSession = false
-                });
-            }
-        }
-
-        // 3. Fallback: if no scheduled timetable entries for this day, provide teacher's official assigned subjects/classes
         if (sessionsList.Count == 0)
         {
-            if (_currentTeacherProfile?.Assignments != null)
-            {
-                foreach (var a in _currentTeacherProfile.Assignments)
-                {
-                    var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == a.ClassSectionId);
-                    var className = targetClass?.Name ?? a.ClassName ?? "Class";
-                    var subjName = !string.IsNullOrWhiteSpace(a.SubjectName) ? a.SubjectName : "Mathematics";
+            Sessions = new ObservableCollection<AttendanceSessionItemViewModel>();
+            SelectedSession = null;
+            _previousSession = null;
+            StudentItems.Clear();
+            UpdateStudentVisibility();
 
-                    if (!sessionsList.Any(s => s.ClassSectionId == a.ClassSectionId && s.SubjectId == a.SubjectId))
-                    {
-                        sessionsList.Add(new AttendanceSessionItemViewModel
-                        {
-                            SessionKey = $"assign_{a.ClassSectionId}_{a.SubjectId}",
-                            SubjectId = a.SubjectId,
-                            SubjectName = subjName,
-                            ClassSectionId = a.ClassSectionId,
-                            ClassName = className,
-                            InstructorId = teacherId.Value,
-                            InstructorName = _currentTeacherProfile?.FullName ?? _apiService.CurrentUser?.FullName ?? "Teacher",
-                            StartTime = new TimeSpan(8, 0, 0),
-                            EndTime = new TimeSpan(9, 30, 0),
-                            RoomNumber = targetClass?.RoomNumber,
-                            IsHomeroomSession = false
-                        });
-                    }
-                }
+            HasClassesScheduled = false;
+            HasNoClassesScheduled = true;
+            ShowAdvisorRoleBanner = false;
+            SessionPickerPlaceholder = "No classes scheduled";
+
+            if (isWeekend)
+            {
+                NoClassesTitle = "Weekend — Campus Closed";
+                NoClassesMessage = $"No classes are in session on weekends ({SelectedDate:dddd, MMM dd}). Campus is closed.";
+                NoClassesSubtext = "School resumes on Monday morning. Enjoy your weekend!";
             }
+            else
+            {
+                bool isToday = SelectedDate.Date == DateTime.Today;
+                NoClassesTitle = isToday ? "No Classes Today" : "No Classes Scheduled";
+                NoClassesMessage = isToday
+                    ? $"You do not have any teaching sessions or classes scheduled for today ({SelectedDate:dddd, MMMM d, yyyy})."
+                    : $"You do not have any teaching sessions or classes scheduled on {SelectedDate:dddd, MMMM d, yyyy}.";
+                NoClassesSubtext = "Select another date from the calendar to inspect or take attendance.";
+            }
+
+            UpdateAdvisorRoleStatus();
+            return;
         }
 
+        HasClassesScheduled = true;
+        HasNoClassesScheduled = false;
+        SessionPickerPlaceholder = "Select class session";
         Sessions = new ObservableCollection<AttendanceSessionItemViewModel>(sessionsList);
 
         AttendanceSessionItemViewModel? newSelected = null;
@@ -2099,24 +2170,40 @@ public partial class AttendanceViewModel : BaseViewModel
             newSelected = sessionsList.FirstOrDefault(s => s.ClassSectionId == TargetClassId.Value);
         }
 
-        SelectedSession = newSelected ?? sessionsList.FirstOrDefault();
-        _previousSession = SelectedSession;
+        var selected = newSelected ?? sessionsList.FirstOrDefault();
+
+        if (selected != null)
+        {
+            var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == selected.ClassSectionId)
+                           ?? Classes.FirstOrDefault(c => c.Id == selected.ClassSectionId)
+                           ?? _allSchoolClasses.FirstOrDefault(c => !string.IsNullOrEmpty(selected.ClassName) &&
+                                                                   (c.Name.Equals(selected.ClassName, StringComparison.OrdinalIgnoreCase) ||
+                                                                    c.Name.Contains(selected.ClassName, StringComparison.OrdinalIgnoreCase)))
+                           ?? Classes.FirstOrDefault(c => !string.IsNullOrEmpty(selected.ClassName) &&
+                                                         (c.Name.Equals(selected.ClassName, StringComparison.OrdinalIgnoreCase) ||
+                                                          c.Name.Contains(selected.ClassName, StringComparison.OrdinalIgnoreCase)))
+                           ?? Classes.FirstOrDefault()
+                           ?? _allSchoolClasses.FirstOrDefault();
+            if (targetClass != null)
+            {
+                SelectedClass = targetClass;
+            }
+        }
+
+        SelectedSession = selected;
+        _previousSession = selected;
 
         if (SelectedSession != null)
         {
             SelectedSessionTimeSlot = SelectedSession.TimeSlotDisplay;
             SaveButtonText = $"Save {SelectedSession.TitleDisplay} Attendance";
 
-            var targetClass = _allSchoolClasses.FirstOrDefault(c => c.Id == SelectedSession.ClassSectionId);
-            if (targetClass != null)
-            {
-                SelectedClass = targetClass;
-                await LoadAttendanceInternalAsync();
-            }
+            await LoadAttendanceInternalAsync();
         }
         else
         {
             StudentItems.Clear();
+            UpdateStudentVisibility();
         }
 
         UpdateAdvisorRoleStatus();
@@ -2126,86 +2213,123 @@ public partial class AttendanceViewModel : BaseViewModel
     {
         if (SelectedClass == null)
         {
-            Sessions.Clear();
+            Sessions = new ObservableCollection<AttendanceSessionItemViewModel>();
             SelectedSession = null;
+            _previousSession = null;
+            StudentItems.Clear();
+            UpdateStudentVisibility();
+            HasClassesScheduled = false;
+            HasNoClassesScheduled = true;
+            ShowAdvisorRoleBanner = false;
+            SessionPickerPlaceholder = "No classes scheduled";
+            UpdateAdvisorRoleStatus();
             return;
         }
 
         var sessionsList = new List<AttendanceSessionItemViewModel>();
+        var dayOfWeek = SelectedDate.DayOfWeek;
+        bool isWeekend = dayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
 
-        // Fetch timetable entries for this class
-        try
+        if (!isWeekend)
         {
-            var ttRes = await _apiService.GetClassTimetableAsync(SelectedClass.Id);
-            if (ttRes.Success && ttRes.Data != null && ttRes.Data.Count > 0)
+            // Fetch timetable entries for this class
+            try
             {
-                var dayOfWeek = SelectedDate.DayOfWeek;
-                var entriesForDay = ttRes.Data
-                    .Where(e => e.DayOfWeek == dayOfWeek)
-                    .OrderBy(e => e.StartTime)
-                    .ToList();
-
-                if (entriesForDay.Count == 0 && dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
+                var ttRes = await _apiService.GetClassTimetableAsync(SelectedClass.Id);
+                if (ttRes.Success && ttRes.Data != null && ttRes.Data.Count > 0)
                 {
-                    entriesForDay = ttRes.Data
-                        .GroupBy(e => e.SubjectId)
-                        .Select(g => g.First())
+                    var entriesForDay = ttRes.Data
+                        .Where(e => e.DayOfWeek == dayOfWeek)
                         .OrderBy(e => e.StartTime)
                         .ToList();
-                }
 
-                foreach (var entry in entriesForDay)
-                {
-                    sessionsList.Add(new AttendanceSessionItemViewModel
+                    foreach (var entry in entriesForDay)
                     {
-                        SessionKey = $"tt_{entry.Id}",
-                        TimetableEntryId = entry.Id,
-                        SubjectId = entry.SubjectId,
-                        SubjectName = entry.SubjectName,
-                        ClassSectionId = SelectedClass.Id,
-                        ClassName = SelectedClass.Name,
-                        InstructorId = entry.TeacherId,
-                        InstructorName = entry.TeacherName,
-                        StartTime = entry.StartTime,
-                        EndTime = entry.EndTime,
-                        RoomNumber = entry.RoomNumber ?? SelectedClass.RoomNumber,
-                        IsHomeroomSession = false
-                    });
+                        sessionsList.Add(new AttendanceSessionItemViewModel
+                        {
+                            SessionKey = $"tt_{entry.Id}",
+                            TimetableEntryId = entry.Id,
+                            SubjectId = entry.SubjectId,
+                            SubjectName = entry.SubjectName,
+                            ClassSectionId = SelectedClass.Id,
+                            ClassName = SelectedClass.Name,
+                            InstructorId = entry.TeacherId,
+                            InstructorName = entry.TeacherName,
+                            StartTime = entry.StartTime,
+                            EndTime = entry.EndTime,
+                            RoomNumber = entry.RoomNumber ?? SelectedClass.RoomNumber,
+                            IsHomeroomSession = false
+                        });
+                    }
                 }
             }
+            catch { /* Ignore */ }
+
+            if (sessionsList.Count == 0)
+            {
+                sessionsList.Add(new AttendanceSessionItemViewModel
+                {
+                    SessionKey = "session_math",
+                    SubjectName = "Mathematics",
+                    ClassSectionId = SelectedClass.Id,
+                    ClassName = SelectedClass.Name,
+                    InstructorId = SelectedClass.ClassTeacherId,
+                    InstructorName = SelectedClass.ClassTeacherName ?? "Teacher",
+                    StartTime = new TimeSpan(8, 0, 0),
+                    EndTime = new TimeSpan(9, 30, 0),
+                    RoomNumber = SelectedClass.RoomNumber,
+                    IsHomeroomSession = false
+                });
+                sessionsList.Add(new AttendanceSessionItemViewModel
+                {
+                    SessionKey = "session_chemistry",
+                    SubjectName = "Chemistry",
+                    ClassSectionId = SelectedClass.Id,
+                    ClassName = SelectedClass.Name,
+                    InstructorId = null,
+                    InstructorName = "Faculty",
+                    StartTime = new TimeSpan(10, 0, 0),
+                    EndTime = new TimeSpan(11, 30, 0),
+                    RoomNumber = SelectedClass.RoomNumber,
+                    IsHomeroomSession = false
+                });
+            }
         }
-        catch { /* Ignore */ }
 
         if (sessionsList.Count == 0)
         {
-            sessionsList.Add(new AttendanceSessionItemViewModel
+            Sessions = new ObservableCollection<AttendanceSessionItemViewModel>();
+            SelectedSession = null;
+            _previousSession = null;
+            StudentItems.Clear();
+            UpdateStudentVisibility();
+
+            HasClassesScheduled = false;
+            HasNoClassesScheduled = true;
+            ShowAdvisorRoleBanner = false;
+            SessionPickerPlaceholder = "No classes scheduled";
+
+            if (isWeekend)
             {
-                SessionKey = "session_math",
-                SubjectName = "Mathematics",
-                ClassSectionId = SelectedClass.Id,
-                ClassName = SelectedClass.Name,
-                InstructorId = SelectedClass.ClassTeacherId,
-                InstructorName = SelectedClass.ClassTeacherName ?? "Teacher",
-                StartTime = new TimeSpan(8, 0, 0),
-                EndTime = new TimeSpan(9, 30, 0),
-                RoomNumber = SelectedClass.RoomNumber,
-                IsHomeroomSession = false
-            });
-            sessionsList.Add(new AttendanceSessionItemViewModel
+                NoClassesTitle = "Weekend — Campus Closed";
+                NoClassesMessage = $"No classes are scheduled for {SelectedClass.Name} on weekends.";
+                NoClassesSubtext = "School resumes on Monday morning.";
+            }
+            else
             {
-                SessionKey = "session_chemistry",
-                SubjectName = "Chemistry",
-                ClassSectionId = SelectedClass.Id,
-                ClassName = SelectedClass.Name,
-                InstructorId = null,
-                InstructorName = "Faculty",
-                StartTime = new TimeSpan(10, 0, 0),
-                EndTime = new TimeSpan(11, 30, 0),
-                RoomNumber = SelectedClass.RoomNumber,
-                IsHomeroomSession = false
-            });
+                bool isToday = SelectedDate.Date == DateTime.Today;
+                NoClassesTitle = isToday ? "No Classes Today" : "No Classes Scheduled";
+                NoClassesMessage = $"No classes or timetable periods are scheduled for {SelectedClass.Name} on {SelectedDate:dddd, MMMM d, yyyy}.";
+                NoClassesSubtext = "Select another date or class to view or record attendance.";
+            }
+
+            UpdateAdvisorRoleStatus();
+            return;
         }
 
+        HasClassesScheduled = true;
+        HasNoClassesScheduled = false;
+        SessionPickerPlaceholder = "Select class session";
         Sessions = new ObservableCollection<AttendanceSessionItemViewModel>(sessionsList);
         SelectedSession = sessionsList.FirstOrDefault();
         _previousSession = SelectedSession;
@@ -2953,12 +3077,14 @@ public partial class AttendanceViewModel : BaseViewModel
                 item.CanEdit = _isAuthorizedForCurrentSession;
             }
             OnPropertyChanged(nameof(CanTakeAttendanceActions));
+            UpdateStudentVisibility();
         }
     }
 
     private async Task LoadAttendanceInternalAsync()
     {
-        if (SelectedClass == null || _isLoading) return;
+        SelectedClass ??= Classes.FirstOrDefault() ?? _allSchoolClasses.FirstOrDefault();
+        if (SelectedClass == null || _isLoading || (HasNoClassesScheduled && SelectedSession == null)) return;
         try
         {
             _isLoading = true;
@@ -3133,13 +3259,19 @@ public partial class AttendanceViewModel : BaseViewModel
                 itemsList.Add(itemVm);
             }
 
-            StudentItems = new ObservableCollection<AttendanceItemViewModel>(itemsList);
-            foreach (var item in StudentItems)
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                item.CanEdit = _isAuthorizedForCurrentSession;
-            }
-            OnPropertyChanged(nameof(CanTakeAttendanceActions));
-            RecalculatePresentRate();
+                StudentItems.Clear();
+                foreach (var item in itemsList)
+                {
+                    item.CanEdit = _isAuthorizedForCurrentSession;
+                    StudentItems.Add(item);
+                }
+                OnPropertyChanged(nameof(StudentItems));
+                OnPropertyChanged(nameof(CanTakeAttendanceActions));
+                RecalculatePresentRate();
+                UpdateStudentVisibility();
+            });
 
             var sumRes = await _apiService.GetClassAttendanceSummaryAsync(SelectedClass.Id);
             if (sumRes.Success) Summary = sumRes.Data;
@@ -3151,6 +3283,7 @@ public partial class AttendanceViewModel : BaseViewModel
         finally
         {
             _isLoading = false;
+            UpdateStudentVisibility();
         }
     }
 
@@ -3203,10 +3336,24 @@ public partial class AttendanceViewModel : BaseViewModel
         IsAdmin = role == UserRole.SuperAdmin || role == UserRole.SchoolAdmin;
         var teacherId = _apiService.CurrentUser?.LinkedProfileId;
 
+        if (HasNoClassesScheduled || (!IsAdmin && (Sessions == null || Sessions.Count == 0 || SelectedSession == null)))
+        {
+            _isAuthorizedForCurrentSession = false;
+            IsCurrentUserAdvisor = false;
+            ShowAdvisorRoleBanner = false;
+            AdvisorRoleBadge = string.Empty;
+            AdvisorRoleTag = string.Empty;
+            AdvisorRoleSubtitle = string.Empty;
+            OnPropertyChanged(nameof(CanTakeAttendanceActions));
+            OnPropertyChanged(nameof(SaveButtonText));
+            return;
+        }
+
         if (SelectedClass == null)
         {
             _isAuthorizedForCurrentSession = false;
             IsCurrentUserAdvisor = false;
+            ShowAdvisorRoleBanner = false;
             if (role == UserRole.Teacher && Classes.Count == 0)
             {
                 AdvisorRoleBadge = "No Classes Assigned";
@@ -3217,6 +3364,7 @@ public partial class AttendanceViewModel : BaseViewModel
                 AdvisorRolePillBg = Color.FromArgb("#FEF3C7");
                 AdvisorRoleBadgeText = Color.FromArgb("#92400E");
                 AdvisorRoleTagColor = Color.FromArgb("#B45309");
+                ShowAdvisorRoleBanner = true;
             }
             else
             {
@@ -3243,6 +3391,7 @@ public partial class AttendanceViewModel : BaseViewModel
         if (IsAdmin)
         {
             _isAuthorizedForCurrentSession = true;
+            ShowAdvisorRoleBanner = true;
             AdvisorRoleBadge = "Administrative Authority";
             AdvisorRoleTag = "Full Access";
             AdvisorRoleSubtitle = $"Full override permissions active • Homeroom Advisor: {SelectedClass.ClassTeacherName ?? "Unassigned"}";
@@ -3256,6 +3405,7 @@ public partial class AttendanceViewModel : BaseViewModel
         {
             // Main class advisor controls this class: has access to all session attendance and can manage attendance for students
             _isAuthorizedForCurrentSession = true;
+            ShowAdvisorRoleBanner = true;
             AdvisorRoleBadge = isSessionInstructor ? "Main Advisor & Instructor (You)" : "Main Class Advisor (You)";
             AdvisorRoleTag = "Authorized";
             AdvisorRoleSubtitle = $"Class Advisor Control • Full access to manage attendance for {SelectedSession?.TitleDisplay} ({SelectedSession?.TimeSlotDisplay})";
@@ -3268,6 +3418,7 @@ public partial class AttendanceViewModel : BaseViewModel
         else if (isSessionInstructor)
         {
             _isAuthorizedForCurrentSession = true;
+            ShowAdvisorRoleBanner = true;
             AdvisorRoleBadge = "Subject Instructor (You)";
             AdvisorRoleTag = "Authorized";
             AdvisorRoleSubtitle = $"Authorized to record attendance for {SelectedSession?.TitleDisplay} ({SelectedSession?.TimeSlotDisplay})";
@@ -3280,6 +3431,7 @@ public partial class AttendanceViewModel : BaseViewModel
         else
         {
             _isAuthorizedForCurrentSession = false;
+            ShowAdvisorRoleBanner = true;
             AdvisorRoleBadge = "Restricted Access";
             AdvisorRoleTag = "View Only";
             AdvisorRoleSubtitle = $"Period taught by {SelectedSession?.InstructorName ?? "faculty"} • Viewing mode only";

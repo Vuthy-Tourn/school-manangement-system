@@ -42,6 +42,7 @@
                                 <Picker ItemsSource="{Binding Sessions}"
                                         ItemDisplayBinding="{Binding PickerDisplayWithClass}"
                                         SelectedItem="{Binding SelectedSession}"
+                                        Title="{Binding SessionPickerPlaceholder}"
                                         TextColor="{StaticResource TextPrimary}"
                                         FontSize="12"
                                         VerticalOptions="Center" />
@@ -143,6 +144,7 @@
                             <Picker ItemsSource="{Binding Sessions}"
                                     ItemDisplayBinding="{Binding PickerDisplay}"
                                     SelectedItem="{Binding SelectedSession}"
+                                    Title="{Binding SessionPickerPlaceholder}"
                                     TextColor="{StaticResource TextPrimary}"
                                     FontSize="13"
                                     VerticalOptions="Center" />
@@ -154,7 +156,8 @@
                             BackgroundColor="{Binding AdvisorRoleBadgeBg}"
                             Stroke="{Binding AdvisorRoleBadgeBorder}"
                             StrokeThickness="1"
-                            Padding="14,10">
+                            Padding="14,10"
+                            IsVisible="{Binding ShowAdvisorRoleBanner}">
                         <VerticalStackLayout Spacing="5">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
                                 <Border Grid.Column="0"
@@ -187,7 +190,8 @@
                     </Border>
 
                     <!-- Attendance Rate & Quick Action Bar -->
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center"
+                          IsVisible="{Binding HasClassesScheduled}">
                         <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
                             <Border StrokeShape="RoundRectangle 12"
                                     BackgroundColor="{StaticResource SuccessLight}"
@@ -224,29 +228,10 @@
 
             <!-- Student Attendance Roster -->
             <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
-                <CollectionView ItemsSource="{Binding StudentItems}">
-                    <CollectionView.EmptyView>
-                        <Border StrokeShape="RoundRectangle 12"
-                                BackgroundColor="{StaticResource SurfaceCard}"
-                                Stroke="{StaticResource SurfaceBorder}"
-                                Padding="32"
-                                Margin="0,20"
-                                HorizontalOptions="Center">
-                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-                                <Image Source="icon_attendance.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
-                                <Label Text="No Students Found"
-                                       FontSize="15"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       HorizontalOptions="Center" />
-                                <Label Text="No enrolled students found for the selected academic class."
-                                       FontSize="12"
-                                       TextColor="{StaticResource TextSecondary}"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-                        </Border>
-                    </CollectionView.EmptyView>
-
+                <Grid>
+                    <!-- Class Roster (When classes are scheduled) -->
+                    <CollectionView ItemsSource="{Binding StudentItems}"
+                                    IsVisible="{Binding HasStudents}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="vm:AttendanceItemViewModel">
                             <Border StrokeShape="RoundRectangle 12"
@@ -346,20 +331,113 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-            </RefreshView>
 
-            <!-- Save Button Footer -->
-            <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0">
-                <Button Text="{Binding SaveButtonText}"
-                        Command="{Binding SaveAttendanceCommand}"
-                        IsEnabled="{Binding CanTakeAttendanceActions}"
-                        BackgroundColor="{StaticResource Primary}"
-                        TextColor="{StaticResource White}"
-                        FontAttributes="Bold"
-                        FontSize="14"
-                        HeightRequest="46"
-                        CornerRadius="8" />
-            </Border>
+                <!-- Explicit Empty State (Bypasses iOS UICollectionView EmptyView layout bug) -->
+                <Border StrokeShape="RoundRectangle 12"
+                        BackgroundColor="{StaticResource SurfaceCard}"
+                        Stroke="{StaticResource SurfaceBorder}"
+                        Padding="32"
+                        Margin="0,20"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        IsVisible="{Binding HasNoStudents}">
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Image Source="icon_attendance.png" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" />
+                        <Label Text="No Students Found"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalOptions="Center" />
+                        <Label Text="No enrolled students found for the selected academic class."
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Dedicated "No Classes" State (When teacher has no class on this date) -->
+                <ScrollView IsVisible="{Binding HasNoClassesScheduled}">
+                    <Border StrokeShape="RoundRectangle 16"
+                            BackgroundColor="{StaticResource SurfaceCard}"
+                            Stroke="{StaticResource SurfaceBorder}"
+                            StrokeThickness="1"
+                            Padding="28,32"
+                            Margin="0,8,0,16"
+                            VerticalOptions="Center"
+                            HorizontalOptions="Fill">
+                        <VerticalStackLayout Spacing="16" HorizontalOptions="Center" VerticalOptions="Center">
+
+                            <!-- Visual Icon Container -->
+                            <Border StrokeShape="RoundRectangle 40"
+                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    Stroke="{StaticResource PrimaryBorder}"
+                                    StrokeThickness="1"
+                                    WidthRequest="80"
+                                    HeightRequest="80"
+                                    HorizontalOptions="Center">
+                                <Image Source="icon_timetable.png"
+                                       WidthRequest="40"
+                                       HeightRequest="40"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <!-- Title and Messages -->
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="{Binding NoClassesTitle}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       HorizontalTextAlignment="Center" />
+
+                                <Label Text="{Binding NoClassesMessage}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalTextAlignment="Center"
+                                       LineBreakMode="WordWrap"
+                                       MaximumWidthRequest="320" />
+                            </VerticalStackLayout>
+
+                            <!-- Info Pill Badge -->
+                            <Border StrokeShape="RoundRectangle 20"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    Padding="14,6"
+                                    HorizontalOptions="Center">
+                                <Label Text="{Binding SelectedDate, StringFormat='Schedule for {0:dddd, MMMM d, yyyy}'}"
+                                       FontSize="11.5"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </Border>
+
+                            <!-- Hint text -->
+                            <Label Text="{Binding NoClassesSubtext}"
+                                   FontSize="11.5"
+                                   TextColor="{StaticResource TextSubtle}"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="WordWrap"
+                                   Margin="0,4,0,0" />
+
+                        </VerticalStackLayout>
+                    </Border>
+                </ScrollView>
+            </Grid>
+        </RefreshView>
+
+        <!-- Save Button Footer -->
+        <Border Grid.Row="2" BackgroundColor="Transparent" Padding="0,12,0,0"
+                IsVisible="{Binding HasClassesScheduled}">
+            <Button Text="{Binding SaveButtonText}"
+                    Command="{Binding SaveAttendanceCommand}"
+                    IsEnabled="{Binding CanTakeAttendanceActions}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="{StaticResource White}"
+                    FontAttributes="Bold"
+                    FontSize="14"
+                    HeightRequest="46"
+                    CornerRadius="8" />
+        </Border>
         </Grid>        <!-- 2. STUDENT & PARENT ATTENDANCE VIEW -->
         <RefreshView IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}"

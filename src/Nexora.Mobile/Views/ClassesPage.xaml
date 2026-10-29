@@ -172,70 +172,74 @@
                                                              HeightRequest="6" />
                                             </VerticalStackLayout>
 
-                                            <!-- Homeroom Advisor & Action Bar -->
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                                                    <Image Source="icon_faculty.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center" />
-                                                    <Label Text="{Binding AdvisorDisplay}"
-                                                           FontSize="11"
-                                                           FontAttributes="Bold"
-                                                           TextColor="{StaticResource Primary}"
-                                                           VerticalOptions="Center"
-                                                           LineBreakMode="TailTruncation" />
-                                                    <Border StrokeShape="RoundRectangle 4"
-                                                            BackgroundColor="{StaticResource SuccessLight}"
-                                                            Stroke="{StaticResource SuccessBorder}"
-                                                            StrokeThickness="1"
-                                                            Padding="5,1"
-                                                            IsVisible="{Binding IsMyAdvisory}"
-                                                            VerticalOptions="Center">
-                                                        <Label Text="Your Advisory" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
-                                                    </Border>
-                                                </HorizontalStackLayout>
-
-                                                <HorizontalStackLayout Grid.Column="1" Spacing="6" HorizontalOptions="End" VerticalOptions="Center">
-                                                    <!-- Admin Only: Assign Homeroom Advisor -->
-                                                    <Button Text="Assign Advisor"
-                                                            Command="{Binding BindingContext.AssignAdvisorCommand, Source={x:Reference ClassesRootPage}}"
-                                                            CommandParameter="{Binding .}"
-                                                            IsVisible="{Binding BindingContext.IsAdmin, Source={x:Reference ClassesRootPage}}"
-                                                            BackgroundColor="{StaticResource SecondaryLight}"
-                                                            TextColor="{StaticResource SecondaryDark}"
-                                                            BorderColor="{StaticResource SecondaryBorder}"
-                                                            BorderWidth="1"
-                                                            CornerRadius="6"
-                                                            FontSize="10"
-                                                            FontAttributes="Bold"
-                                                            HeightRequest="28"
-                                                            Padding="10,0" />
-
-                                                    <!-- Homeroom Advisor / Admin Shortcut: Take Attendance -->
-                                                    <Button Text="Take Attendance"
-                                                            Command="{Binding BindingContext.TakeClassAttendanceCommand, Source={x:Reference ClassesRootPage}}"
-                                                            CommandParameter="{Binding .}"
-                                                            IsVisible="{Binding CanTakeAttendance}"
-                                                            BackgroundColor="{StaticResource Secondary}"
-                                                            TextColor="{StaticResource White}"
-                                                            CornerRadius="6"
-                                                            FontSize="10"
-                                                            FontAttributes="Bold"
-                                                            HeightRequest="28"
-                                                            Padding="10,0" />
-
-                                                    <Button Text="View Roster"
-                                                            Command="{Binding BindingContext.ViewRosterCommand, Source={x:Reference ClassesRootPage}}"
-                                                            CommandParameter="{Binding .}"
-                                                            BackgroundColor="{StaticResource PrimaryLight}"
-                                                            TextColor="{StaticResource Primary}"
-                                                            BorderColor="{StaticResource PrimaryBorder}"
-                                                            BorderWidth="1"
-                                                            CornerRadius="6"
-                                                            FontSize="10"
-                                                            FontAttributes="Bold"
-                                                            HeightRequest="28"
-                                                            Padding="10,0" />
-                                                </HorizontalStackLayout>
+                                            <!-- Homeroom Advisor Info -->
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                                                <Image Grid.Column="0" Source="icon_faculty.png" WidthRequest="16" HeightRequest="16" VerticalOptions="Center" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding AdvisorDisplay}"
+                                                       FontSize="11.5"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource Primary}"
+                                                       VerticalOptions="Center"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="1" />
+                                                <Border Grid.Column="2"
+                                                        StrokeShape="RoundRectangle 4"
+                                                        BackgroundColor="{StaticResource SuccessLight}"
+                                                        Stroke="{StaticResource SuccessBorder}"
+                                                        StrokeThickness="1"
+                                                        Padding="6,2"
+                                                        IsVisible="{Binding IsMyAdvisory}"
+                                                        VerticalOptions="Center">
+                                                    <Label Text="Your Advisory" FontSize="9" FontAttributes="Bold" TextColor="{StaticResource SuccessText}" />
+                                                </Border>
                                             </Grid>
+
+                                            <!-- Action Buttons (Right-aligned) -->
+                                            <HorizontalStackLayout Spacing="8" HorizontalOptions="End" VerticalOptions="Center">
+                                                <!-- Admin Only: Assign Homeroom Advisor -->
+                                                <Button Text="Assign Advisor"
+                                                        Command="{Binding BindingContext.AssignAdvisorCommand, Source={x:Reference ClassesRootPage}}"
+                                                        CommandParameter="{Binding .}"
+                                                        IsVisible="{Binding BindingContext.IsAdmin, Source={x:Reference ClassesRootPage}}"
+                                                        BackgroundColor="{StaticResource SecondaryLight}"
+                                                        TextColor="{StaticResource SecondaryDark}"
+                                                        BorderColor="{StaticResource SecondaryBorder}"
+                                                        BorderWidth="1"
+                                                        CornerRadius="6"
+                                                        FontSize="10.5"
+                                                        FontAttributes="Bold"
+                                                        HeightRequest="30"
+                                                        Padding="12,0" />
+
+                                                <!-- Homeroom Advisor / Admin Shortcut: Take Attendance -->
+                                                <Button Text="Take Attendance"
+                                                        Command="{Binding BindingContext.TakeClassAttendanceCommand, Source={x:Reference ClassesRootPage}}"
+                                                        CommandParameter="{Binding .}"
+                                                        IsVisible="{Binding CanTakeAttendance}"
+                                                        BackgroundColor="{StaticResource Secondary}"
+                                                        TextColor="{StaticResource White}"
+                                                        CornerRadius="6"
+                                                        FontSize="10.5"
+                                                        FontAttributes="Bold"
+                                                        HeightRequest="30"
+                                                        Padding="12,0" />
+
+                                                <!-- Admin Only: View Students -->
+                                                <Button Text="View Students"
+                                                        Command="{Binding BindingContext.ViewRosterCommand, Source={x:Reference ClassesRootPage}}"
+                                                        CommandParameter="{Binding .}"
+                                                        IsVisible="{Binding BindingContext.IsAdmin, Source={x:Reference ClassesRootPage}}"
+                                                        BackgroundColor="{StaticResource PrimaryLight}"
+                                                        TextColor="{StaticResource Primary}"
+                                                        BorderColor="{StaticResource PrimaryBorder}"
+                                                        BorderWidth="1"
+                                                        CornerRadius="6"
+                                                        FontSize="10.5"
+                                                        FontAttributes="Bold"
+                                                        HeightRequest="30"
+                                                        Padding="12,0" />
+                                            </HorizontalStackLayout>
 
                                         </VerticalStackLayout>
                                     </Border>
