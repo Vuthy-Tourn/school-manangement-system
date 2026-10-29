@@ -25,8 +25,52 @@
                     Margin="0,0,0,14">
                 <VerticalStackLayout Spacing="14">
 
-                    <!-- Filter Controls Row -->
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <!-- Teacher View (No Class Filter): Permitted Subject/Class & Date Picker -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding ShowTeacherSubjectFilter}">
+                        <!-- Teaching Subject & Class Selector -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+                            <Label Text="Teaching Subject &amp; Class"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="10,0"
+                                    HeightRequest="42">
+                                <Picker ItemsSource="{Binding Sessions}"
+                                        ItemDisplayBinding="{Binding PickerDisplayWithClass}"
+                                        SelectedItem="{Binding SelectedSession}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        FontSize="12"
+                                        VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Attendance Date Picker -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Attendance Date"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource SurfaceBorder}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource SurfaceLight}"
+                                    Padding="10,0"
+                                    HeightRequest="42">
+                                <DatePicker Date="{Binding SelectedDate}"
+                                            Format="yyyy-MM-dd"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            FontSize="13"
+                                            VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Admin View: Class Selector & Date Picker Row -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding ShowClassFilter}">
                         <!-- Class Selector -->
                         <VerticalStackLayout Grid.Column="0" Spacing="6">
                             <Label Text="Academic Class"
@@ -69,8 +113,8 @@
                         </VerticalStackLayout>
                     </Grid>
 
-                    <!-- Class Session / Timetable Period Selector -->
-                    <VerticalStackLayout Spacing="6">
+                    <!-- Admin Only: Class Session / Timetable Period Selector -->
+                    <VerticalStackLayout Spacing="6" IsVisible="{Binding ShowClassFilter}">
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                             <Label Text="Class Session / Timetable Period"
                                    FontSize="11"
