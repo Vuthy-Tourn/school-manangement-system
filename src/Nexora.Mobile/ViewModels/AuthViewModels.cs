@@ -49,6 +49,15 @@ public partial class LoginViewModel : BaseViewModel
     [ObservableProperty]
     private string _selectedRoleLabel = "School Administrator";
 
+    [ObservableProperty]
+    private string _signInButtonText = "Sign In to Nexora";
+
+    [ObservableProperty]
+    private string _loadingStatusText = "Verifying security credentials...";
+
+    [ObservableProperty]
+    private double _loadingProgress = 0.35;
+
     public LoginViewModel(IApiService apiService)
     {
         _apiService = apiService;
@@ -102,14 +111,27 @@ public partial class LoginViewModel : BaseViewModel
         try
         {
             IsBusy = true;
+            SignInButtonText = "Signing In...";
+            LoadingProgress = 0.35;
+            LoadingStatusText = "Verifying security credentials...";
             ClearError();
 
-            var result = await _apiService.LoginAsync(Username, Password);
+            var loginTask = _apiService.LoginAsync(Username, Password);
+
+            await Task.Delay(180);
+            LoadingProgress = 0.72;
+            LoadingStatusText = $"Connecting to {SelectedRoleLabel} portal...";
+
+            var result = await loginTask;
             if (!result.Success || result.Data == null)
             {
                 SetError(result.Message ?? "Invalid credentials. Please verify your details.");
                 return;
             }
+
+            LoadingProgress = 1.0;
+            LoadingStatusText = "Session authorized. Launching dashboard...";
+            await Task.Delay(200);
 
             // Navigate to main AppShell or role dashboard
             if (Microsoft.Maui.Controls.Application.Current != null)
@@ -131,6 +153,9 @@ public partial class LoginViewModel : BaseViewModel
         }
         finally
         {
+            SignInButtonText = "Sign In to Nexora";
+            LoadingProgress = 0.35;
+            LoadingStatusText = "Verifying security credentials...";
             IsBusy = false;
         }
     }
