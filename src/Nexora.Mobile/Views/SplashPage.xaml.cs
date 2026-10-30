@@ -78,36 +78,58 @@ public partial class SplashPage : ContentPage
             GradientCard.TranslationX = 0;
             GradientCard.Opacity = 1;
 
+            GradientBackgroundLayer.Opacity = 0;
+            AmbientElementsLayer.Opacity = 0;
+            BottomPill.Opacity = 0;
+
+            HeroWhiteIcon.Opacity = 1;
+            HeroIcon.Opacity = 0;
+
             HeroTitle.Opacity = 0;
-            HeroTitle.TranslationX = -14;
+            HeroTitle.TranslationX = -18;
 
             HeroSubtitle.Opacity = 0;
             HeroSubtitle.TranslationY = 12;
 
             // Wait a brief tick for native layout to measure
-            await Task.Delay(100);
+            await Task.Delay(80);
 
-            // Shift icon so it begins centered on the screen before the wordmark reveals
-            double offset = (HeroLockup.Width - HeroIcon.Width) / 2.0;
-            if (offset > 10)
+            // Shift icon container so it begins centered on the screen before the wordmark reveals
+            double offset = (HeroLockup.Width - HeroIconContainer.Width) / 2.0;
+            if (offset < 10)
             {
-                HeroIcon.TranslationX = offset;
+                offset = (180 + 16) / 2.0;
             }
+            HeroIconContainer.TranslationX = offset;
+            HeroIconContainer.Scale = 1.15;
 
-            // 1. Gentle Breathe Contraction Pulse on the centered Crest (150ms)
-            await HeroIcon.ScaleTo(0.94, 150, Easing.CubicInOut);
+            // 1. Native Splash Continuity Hold (180ms)
+            await Task.Delay(180);
 
-            // 2. Icon glides smoothly left; Title & Subtitle slide out and fade in (380ms)
+            // 2. Gentle Center Settle & Breathe (200ms)
+            await HeroIconContainer.ScaleTo(1.0, 200, Easing.CubicInOut);
+
+            // 3. Morph & Bloom Reveal (350ms):
+            // - Radiant blue gradient expands across the card
+            // - Ambient stardust & orbits illuminate
+            // - White crest crossfades into colored crest
+            // - Crest glides left from center to lockup position
+            // - "NEXORA" wordmark and subtitle slide out and fade in
+            // - Bottom pill fades in
             await Task.WhenAll(
-                HeroIcon.TranslateTo(0, 0, 380, Easing.CubicOut),
-                HeroIcon.ScaleTo(1.0, 380, Easing.CubicOut),
-                HeroTitle.FadeTo(1.0, 380, Easing.CubicOut),
-                HeroTitle.TranslateTo(0, 0, 380, Easing.CubicOut),
-                HeroSubtitle.FadeTo(1.0, 420, Easing.CubicOut),
-                HeroSubtitle.TranslateTo(0, 0, 420, Easing.CubicOut)
+                GradientBackgroundLayer.FadeTo(1.0, 350, Easing.CubicOut),
+                AmbientElementsLayer.FadeTo(1.0, 350, Easing.CubicOut),
+                HeroWhiteIcon.FadeTo(0.0, 300, Easing.CubicOut),
+                HeroIcon.FadeTo(1.0, 300, Easing.CubicOut),
+                HeroIconContainer.TranslateTo(0, 0, 350, Easing.CubicOut),
+                HeroTitle.FadeTo(1.0, 350, Easing.CubicOut),
+                HeroTitle.TranslateTo(0, 0, 350, Easing.CubicOut),
+                HeroSubtitle.FadeTo(1.0, 380, Easing.CubicOut),
+                HeroSubtitle.TranslateTo(0, 0, 380, Easing.CubicOut),
+                BottomPill.FadeTo(1.0, 380, Easing.CubicOut)
             );
 
-            // 3. Brand Lockup Recognition Pause (250ms)
+            // 4. Brand Lockup Recognition Pause (250ms)
             await Task.Delay(250);
 
             // 4. Reveal underlying Login canvas

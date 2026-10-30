@@ -296,18 +296,30 @@
         <Grid x:Name="GradientCard"
               HorizontalOptions="Fill"
               VerticalOptions="Fill"
+              BackgroundColor="#060E1F"
               IgnoreSafeArea="True">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0.1,0.0" EndPoint="0.9,1.0">
-                    <GradientStop Color="#060E1F" Offset="0.0" />
-                    <GradientStop Color="#0A1D47" Offset="0.38" />
-                    <GradientStop Color="#163FA5" Offset="0.75" />
-                    <GradientStop Color="#2563EB" Offset="1.0" />
-                </LinearGradientBrush>
-            </Grid.Background>
+
+            <!-- Radiant Gradient Background Layer (Blooms in from center) -->
+            <Grid x:Name="GradientBackgroundLayer"
+                  HorizontalOptions="Fill"
+                  VerticalOptions="Fill"
+                  Opacity="0"
+                  IgnoreSafeArea="True">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0.1,0.0" EndPoint="0.9,1.0">
+                        <GradientStop Color="#060E1F" Offset="0.0" />
+                        <GradientStop Color="#0A1D47" Offset="0.38" />
+                        <GradientStop Color="#163FA5" Offset="0.75" />
+                        <GradientStop Color="#2563EB" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+            </Grid>
 
             <!-- Ambient Tech Orbits & Atmospheric Glow Elements -->
-            <Grid HorizontalOptions="Fill" VerticalOptions="Fill" InputTransparent="True" IgnoreSafeArea="True">
+            <Grid x:Name="AmbientElementsLayer"
+                  HorizontalOptions="Fill" VerticalOptions="Fill"
+                  InputTransparent="True" IgnoreSafeArea="True"
+                  Opacity="0">
                 <!-- Outer Soft Cyan Ring -->
                 <Border WidthRequest="460" HeightRequest="460"
                         StrokeShape="RoundRectangle 230"
@@ -321,21 +333,6 @@
                         Stroke="#38BDF8" StrokeThickness="1"
                         Opacity="0.08"
                         HorizontalOptions="Center" VerticalOptions="Center" />
-
-                <!-- Inner Ambient Cyan Bloom behind Logo -->
-                <Border WidthRequest="220" HeightRequest="220"
-                        StrokeShape="RoundRectangle 110"
-                        StrokeThickness="0"
-                        HorizontalOptions="Center" VerticalOptions="Center"
-                        Opacity="0.30">
-                    <Border.Background>
-                        <RadialGradientBrush Center="0.5,0.5" Radius="0.5">
-                            <GradientStop Color="#00E5FF" Offset="0.0" />
-                            <GradientStop Color="#2563EB" Offset="0.55" />
-                            <GradientStop Color="Transparent" Offset="1.0" />
-                        </RadialGradientBrush>
-                    </Border.Background>
-                </Border>
 
                 <!-- Floating Stardust Sparkles (Balanced Across Corners) -->
                 <Border WidthRequest="6" HeightRequest="6" StrokeShape="RoundRectangle 3"
@@ -363,13 +360,32 @@
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center">
 
-                    <!-- Official Nexora Ribbon Crest -->
-                    <Image x:Name="HeroIcon"
-                           Source="logo_icon_transparent.png"
-                           WidthRequest="76"
-                           HeightRequest="60"
-                           Aspect="AspectFit"
-                           VerticalOptions="Center" />
+                    <!-- Official Nexora Crest Container (White to Color Crossfade) -->
+                    <Grid x:Name="HeroIconContainer"
+                          WidthRequest="80"
+                          HeightRequest="64"
+                          VerticalOptions="Center">
+
+                        <!-- Colored Ribbon Crest -->
+                        <Image x:Name="HeroIcon"
+                               Source="logo_icon_transparent.png"
+                               WidthRequest="80"
+                               HeightRequest="64"
+                               Aspect="AspectFit"
+                               Opacity="0"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+
+                        <!-- Native Match White Crest -->
+                        <Image x:Name="HeroWhiteIcon"
+                               Source="logo_icon_white.png"
+                               WidthRequest="80"
+                               HeightRequest="64"
+                               Aspect="AspectFit"
+                               Opacity="1"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Grid>
 
                     <!-- Official Nexora Wordmark (with signature cyan slash across 'X') -->
                     <Image x:Name="HeroTitle"
@@ -398,7 +414,8 @@
             </VerticalStackLayout>
 
             <!-- Bottom Institutional Glass Pill -->
-            <Border StrokeShape="RoundRectangle 16"
+            <Border x:Name="BottomPill"
+                    StrokeShape="RoundRectangle 16"
                     BackgroundColor="#10FFFFFF"
                     Stroke="#1AFFFFFF"
                     StrokeThickness="1"
