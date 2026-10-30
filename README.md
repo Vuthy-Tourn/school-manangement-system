@@ -1,11 +1,17 @@
-# Nexora — Enterprise School Management System
+<p align="center">
+  <img src="docs/assets/logo_horizontal.png" alt="Nexora Logo" width="380" />
+</p>
 
-[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![.NET MAUI](https://img.shields.io/badge/.NET%20MAUI-Cross--Platform-512BD4.svg)](https://dotnet.microsoft.com/apps/maui)
-[![ASP.NET Core 10](https://img.shields.io/badge/ASP.NET%20Core-10.0-512BD4.svg)](https://dotnet.microsoft.com/apps/aspnet)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-48%20Passed%20(100%25)-brightgreen.svg)]()
+<h1 align="center">Nexora — Enterprise School Management System</h1>
+
+<p align="center">
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10.0" /></a>
+  <a href="https://dotnet.microsoft.com/apps/maui"><img src="https://img.shields.io/badge/.NET%20MAUI-Cross--Platform-512BD4.svg" alt=".NET MAUI" /></a>
+  <a href="https://dotnet.microsoft.com/apps/aspnet"><img src="https://img.shields.io/badge/ASP.NET%20Core-10.0-512BD4.svg" alt="ASP.NET Core 10" /></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-16-336791.svg" alt="PostgreSQL 16" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" /></a>
+  <img src="https://img.shields.io/badge/Tests-48%20Passed%20(100%25)-brightgreen.svg" alt="Tests" />
+</p>
 
 > **Nexora** is an enterprise-grade, multi-tenant School Management System engineered with **.NET MAUI**, **ASP.NET Core 10**, and **PostgreSQL 16**. Designed for primary, secondary, and bilingual K-12 institutions, Nexora unifies academic scheduling, class attendance, grading, fee settlements, and cross-platform mobile access for administrators, teachers, students, and parents.
 
