@@ -112,26 +112,14 @@ public partial class LoginViewModel : BaseViewModel
         {
             IsBusy = true;
             SignInButtonText = "Signing In...";
-            LoadingProgress = 0.35;
-            LoadingStatusText = "Verifying security credentials...";
             ClearError();
 
-            var loginTask = _apiService.LoginAsync(Username, Password);
-
-            await Task.Delay(180);
-            LoadingProgress = 0.72;
-            LoadingStatusText = $"Connecting to {SelectedRoleLabel} portal...";
-
-            var result = await loginTask;
+            var result = await _apiService.LoginAsync(Username, Password);
             if (!result.Success || result.Data == null)
             {
                 SetError(result.Message ?? "Invalid credentials. Please verify your details.");
                 return;
             }
-
-            LoadingProgress = 1.0;
-            LoadingStatusText = "Session authorized. Launching dashboard...";
-            await Task.Delay(200);
 
             // Navigate to main AppShell or role dashboard
             if (Microsoft.Maui.Controls.Application.Current != null)
@@ -154,8 +142,6 @@ public partial class LoginViewModel : BaseViewModel
         finally
         {
             SignInButtonText = "Sign In to Nexora";
-            LoadingProgress = 0.35;
-            LoadingStatusText = "Verifying security credentials...";
             IsBusy = false;
         }
     }
