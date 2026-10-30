@@ -1,4 +1,6 @@
 <p align="center">
+  <img src="docs/assets/logo_icon.png" alt="Nexora Emblem" width="130" />
+  <br />
   <img src="docs/assets/logo_horizontal.png" alt="Nexora Logo" width="380" />
 </p>
 
